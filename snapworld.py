@@ -1,12 +1,13 @@
+import random
 import sys
 
 import comm
 
-def GenTasks(nnodes, ntasks, dis):
+def GenTasks(nnodes, tsize, dis):
     """
     generate the tasks
         nnodes, number of nodes
-        ntasks, number of tasks
+        tsize, number of nodes per task
         dis, degree distribution
     """
 
@@ -15,7 +16,9 @@ def GenTasks(nnodes, ntasks, dis):
     while ns < nnodes:
         tname = str(tc)
         tc += 1
-        ne = nnodes*tc / ntasks
+        ne = ns + tsize
+        if ne > nnodes:
+            ne = nnodes
         tinfo = "%s %d %d %s" % (tname, ns, ne-1, dis)
         print tinfo
         ns = ne
@@ -23,9 +26,20 @@ def GenTasks(nnodes, ntasks, dis):
 
     comm.msend("done", "")
 
-def GenDegreeDist(args):
+def StdDist(mean,dev):
+    x = 0.0
+    for i in range(0,12):
+        x += random.random()
+
+    x -= 6.0
+    x *= dev
+    x += mean
+
+    return int(x + 0.5)
+
+def GenStubs(args):
     """
-    generate degree distribution for all the nodes
+    determine degrees for all the nodes, generate the stubs and distribute them
         args, arguments as a string
     """
 
@@ -39,18 +53,29 @@ def GenDegreeDist(args):
 
     print "*task* %s %d %d %s" % (tname, ns, ne, dis)
 
-    # TODO generate node degree distribution
+    # determine node degrees
+    i = ns
+    while i <= ne:
+        deg = StdDist(150,22.5)
+        print "*task* %s, node %s, degree %s" % (tname, str(i), str(deg))
+        i += 1
+
+    # TODO distribute the stubs
 
 if __name__ == '__main__':
 
     if len(sys.argv) < 3:
-        print "Usage: " + sys.argv[0] + " <#nodes> <#ntasks>"
+        print "Usage: " + sys.argv[0] + " <#nodes> <#tsize>"
         sys.exit(1)
 
     nnodes = int(sys.argv[1])
-    ntasks = int(sys.argv[2])
+    tsize = int(sys.argv[2])
 
     comm.mclear()
-    GenTasks(nnodes, ntasks, "std")
-    comm.mexec(GenDegreeDist)
+
+    # generate the tasks and assign nodes to them
+    GenTasks(nnodes, tsize, "std")
+
+    # generate node degrees and distribute stubs to tasks
+    comm.mexec(GenStubs)
 
