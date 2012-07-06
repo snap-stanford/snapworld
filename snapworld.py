@@ -74,12 +74,11 @@ def GenStubs(tname,args):
     
     # one item per task, each task has a list of stubs
     dstubs = {}
-    for i in range(0,ntasks):
-        dstubs[i] = []
-
     for key,value in ddeg.iteritems():
         for i in range(0,value):
             t = int(random.random() * ntasks)
+            if not dstubs.has_key(t):
+                dstubs[t] = []
             dstubs[t].append(key)
 
     for key, value in dstubs.iteritems():
