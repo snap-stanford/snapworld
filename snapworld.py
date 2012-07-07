@@ -20,7 +20,7 @@ def GenTasks(nnodes, tsize, dis):
     ns = 0
     tc = 0
     while ns < nnodes:
-        tname = str(tc)
+        tname = "G" + str(tc)
         tc += 1
         ne = ns + tsize
         if ne > nnodes:
@@ -69,7 +69,7 @@ def GenStubs(tname,args):
     print ddeg
 
     # distribute the stubs randomly to the tasks
-    ntasks = comm.mgettasks()
+    ntasks = comm.mgetconfig("tasks")
     print "__tasks__ %s\t%s" % (tname, str(ntasks))
     
     # one item per task, each task has a list of stubs
@@ -88,14 +88,85 @@ def GenStubs(tname,args):
         comm.mroute(tname,tdst,targs)
 
 def GenGraph(tname,args):
+    """
+    generate the graph edges
+        args, arguments as a string
+    """
 
-    # TODO, generate edges
-    largs = []
+    # extract the stubs from the args
+    # iterate through the input queue and add new items to the stub list
+    stubs = []
     for item in args:
         l = simplejson.loads(item)
-        largs.extend(l)
-    print largs
-    print tname,largs
+        stubs.extend(l)
+    #print stubs
+    print tname,stubs
+
+    # randomize the items
+    random.shuffle(stubs)
+    #print tname + "-r",stubs
+
+    # get the pairs
+    pairs = zip(stubs[::2], stubs[1::2])
+
+    print tname,pairs
+    
+    # distribute the stubs randomly to the tasks
+    tsize = comm.mgetconfig("tsize")
+
+    # get edges for a specific task
+    edges = {}
+    for pair in pairs:
+        esrc = pair[0]
+        edst = pair[1]
+
+        # add the edge twice for both directions
+        tdst = esrc / tsize
+        if not edges.has_key(tdst):
+            edges[tdst] = []
+        l = [esrc, edst]
+        edges[tdst].append(l)
+
+        tdst = edst / tsize
+        if not edges.has_key(tdst):
+            edges[tdst] = []
+        l = [edst, esrc]
+        edges[tdst].append(l)
+
+    print tname,edges
+
+    for key, value in edges.iteritems():
+        tdst = "E%s" % (str(key))
+        targs = simplejson.dumps(value)
+        print tdst,targs
+        comm.mroute(tname,tdst,targs)
+
+def GenStat(tname,args):
+    """
+    generate the graph statistics
+        args, arguments as a string
+    """
+
+    # extract edges from the args
+    # iterate through the input queue and add new items to the edge list
+    edges = []
+    for item in args:
+        l = simplejson.loads(item)
+        edges.extend(l)
+    print edges
+    print tname,edges
+
+    # collect edges for each node
+    nodes = {}
+    for item in edges:
+        src = item[0]
+        dst = item[1]
+        if not nodes.has_key(src):
+            nodes[src] = []
+        nodes[src].append(dst)
+
+    for node, edges in nodes.iteritems():
+        print tname, node, edges
 
 if __name__ == '__main__':
 
@@ -109,7 +180,9 @@ if __name__ == '__main__':
     ntasks = (nnodes+tsize-1)/tsize
     print "__tasks__\t%s" % (str(ntasks))
 
-    comm.msettasks(ntasks)
+    comm.msetconfig("nnodes",nnodes)
+    comm.msetconfig("tsize",tsize)
+    comm.msetconfig("tasks",ntasks)
 
     comm.mclear()
 
@@ -123,5 +196,9 @@ if __name__ == '__main__':
 
     # generate the random graph
     comm.mexec(GenGraph)
+    comm.msend("done", "")
+
+    # generate the graph statistics
+    comm.mexec(GenStat)
     comm.msend("done", "")
 

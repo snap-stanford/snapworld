@@ -1,7 +1,7 @@
 tmail = {}
 tmail1 = {}
 
-ntasks = 0
+mconfig = {}
 
 def msend(cmd, args):
     """
@@ -52,10 +52,11 @@ def mexec(func):
         print task, args
         func(task,args)
 
-def msettasks(n):
-    global ntasks
-    ntasks = n
+def msetconfig(key,value):
+    global mconfig
+    mconfig[key] = value
 
-def mgettasks():
-    return ntasks
+def mgetconfig(key):
+    global mconfig
+    return mconfig.get(key,None)
 
