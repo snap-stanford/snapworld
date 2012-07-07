@@ -6,7 +6,7 @@ import simplejson
 
 #distmean = 150
 #distvar  = 22.5
-distmean = 5
+distmean = 8
 distvar  = 1
 
 def GenTasks(nnodes, tsize, dis):
@@ -167,6 +167,8 @@ def GenStat(tname,args):
 
     for node, edges in nodes.iteritems():
         print tname, node, edges
+
+    # TODO implement the graph stats
 
 if __name__ == '__main__':
 
