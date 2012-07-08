@@ -162,13 +162,32 @@ def GenStat(tname,args):
         src = item[0]
         dst = item[1]
         if not nodes.has_key(src):
-            nodes[src] = []
-        nodes[src].append(dst)
+            nodes[src] = set()
+        nodes[src].add(dst)
 
     for node, edges in nodes.iteritems():
         print tname, node, edges
 
+    # select a random node for stats
+    nsel = random.choice(list(nodes.keys()))
+    print tname, "sel", nsel
+
+    # send the node and its neighbors to the distance task
+    tdst = "D%s" % (str(nsel))
+    targs = simplejson.dumps(list(nodes[nsel]))
+    print tdst,targs
+    comm.mroute(tname,tdst,targs)
+
     # TODO implement the graph stats
+    # nodes:
+    #   - get the nodes
+    #   - find neighbors
+    #   - report neighbors
+    # distance:
+    #   - get neighbors
+    #   - add new not in the set to the list
+    #   - add all to the set
+    #   - report new nodes
 
 if __name__ == '__main__':
 
