@@ -156,25 +156,28 @@ def GenStat(tname,args):
     print edges
     print tname,edges
 
-    # collect edges for each node
-    nodes = {}
+    # collect neighbors for each node
+    nbrs = {}
     for item in edges:
         src = item[0]
         dst = item[1]
-        if not nodes.has_key(src):
-            nodes[src] = set()
-        nodes[src].add(dst)
+        if not nbrs.has_key(src):
+            nbrs[src] = set()
+        nbrs[src].add(dst)
 
-    for node, edges in nodes.iteritems():
+    for node, edges in nbrs.iteritems():
         print tname, node, edges
 
     # select a random node for stats
-    nsel = random.choice(list(nodes.keys()))
+    nsel = random.choice(list(nbrs.keys()))
     print tname, "sel", nsel
 
     # send the node and its neighbors to the distance task
     tdst = "D%s" % (str(nsel))
-    targs = simplejson.dumps(list(nodes[nsel]))
+    dmsg = {}
+    dmsg["node"] = nsel
+    dmsg["nbrs"] = list(nbrs[nsel])
+    targs = simplejson.dumps(dmsg)
     print tdst,targs
     comm.mroute(tname,tdst,targs)
 
