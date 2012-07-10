@@ -48,14 +48,11 @@ def mswitch():
     tmail1 = tmail
     mclear()
 
-def mexec():
+def mexec(func):
     global dispatch
     print tmail1
-
-    mswitch()
     for task,args in tmail1.iteritems():
         print task, args
-        func = dispatch[task[0]]["def"]
         func(task,args)
 
 def msetconfig(key,value):

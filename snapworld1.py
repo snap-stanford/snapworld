@@ -1,7 +1,7 @@
 import random
 import sys
 
-import comm
+import comm1 as comm
 import simplejson
 
 #distmean = 150
@@ -11,20 +11,13 @@ distvar  = 1
 
 dispatch = {}
 
-def GenTasks(tname,args):
+def GenTasks(nnodes, tsize, dis):
     """
     generate the tasks
-        args, arguments as a string
-
         nnodes, number of nodes
         tsize, number of nodes per task
         dis, degree distribution
     """
-
-    d = simplejson.loads(args[0])
-    nnodes = d["nnodes"]
-    tsize = d["tsize"]
-    dis = d["dis"]
 
     ns = 0
     tc = 0
@@ -235,26 +228,19 @@ if __name__ == '__main__':
     dispatch["S"] = d
 
     d = {}
-    d["type"] = "iter"
+    d["type"] = "func"
     d["def" ] = GenNbr
     dispatch["D"] = d
 
+    #"S" : None,
+    #"D" : None,
     #"E" : None,
 
     comm.msetdispatch(dispatch)
 
-    d = {}
-    d["nnodes"] = nnodes
-    d["tsize"] = tsize
-    d["dis"] = "std"
-    targs = simplejson.dumps(d)
-
-    comm.mroute("00","T0",targs)
-    comm.mexec()
-
     # generate the tasks and assign nodes to them
-    #GenTasks(nnodes, tsize, "std")
-    #comm.msend("done", "")
+    GenTasks(nnodes, tsize, "std")
+    comm.msend("done", "")
 
     # generate node degrees and distribute stubs to tasks
     #comm.mexec(GenStubs)
