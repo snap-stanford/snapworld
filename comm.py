@@ -1,8 +1,15 @@
+# output message queue for the current step
 tmail = {}
+# input message queue for the current step
 tmail1 = {}
 
+# dispatch table from task names to functions, iterators
 dispatch = {}
 
+# table of iterators
+diter = {}
+
+# configuration table for global parameters
 mconfig = {}
 
 def msend(cmd, args):
@@ -50,13 +57,37 @@ def mswitch():
 
 def mexec():
     global dispatch
+    global diter
+
     print tmail1
 
+    # move the output queue to input queue, empty the output queue
     mswitch()
-    for task,args in tmail1.iteritems():
-        print task, args
-        func = dispatch[task[0]]["def"]
-        func(task,args)
+
+    # call all the tasks with their input queues
+    for tname,args in tmail1.iteritems():
+        print tname, args
+        tval = dispatch[tname[0]]
+        ftype = tval["type"]
+        fname = tval["def"]
+
+        if ftype == "func":
+            # a function with no state, just call
+            fname(tname,args)
+
+        elif ftype == "iter":
+            # an iterator with state, create it if it does not exist
+            iname = tname.split("-")[0]
+            if not diter.has_key(iname):
+                diter[iname] = fname(tname,args)
+
+            # perform the next step
+            diter[iname].next()
+
+def mgetargs(tname):
+    global tmail1
+    args = tmail1.get(tname,None)
+    return args
 
 def msetconfig(key,value):
     global mconfig

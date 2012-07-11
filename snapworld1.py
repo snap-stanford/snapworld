@@ -243,14 +243,14 @@ if __name__ == '__main__':
     comm.msend("done", "")
 
     # generate node degrees and distribute stubs to tasks
-    #comm.mexec(GenStubs)
-    #comm.msend("done", "")
+    comm.mexec(GenStubs)
+    comm.msend("done", "")
 
     # generate the random graph
-    #comm.mexec(GenGraph)
-    #comm.msend("done", "")
+    comm.mexec(GenGraph)
+    comm.msend("done", "")
 
     # generate the graph statistics
-    #comm.mexec(GenNbr)
-    #comm.msend("done", "")
+    comm.mexec(GenNbr)
+    comm.msend("done", "")
 
