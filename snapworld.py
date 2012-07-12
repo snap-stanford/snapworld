@@ -11,6 +11,13 @@ distvar  = 1
 
 dispatch = {}
 
+def TaskId(node,tsize):
+    """
+    return the task id for a node
+    """
+
+    return node/tsize
+
 def GenTasks(tname,args):
     """
     generate the tasks
@@ -136,13 +143,13 @@ def GenGraph(tname,args):
         edst = pair[1]
 
         # add the edge twice for both directions
-        tdst = esrc / tsize
+        tdst = TaskId(esrc, tsize)
         if not edges.has_key(tdst):
             edges[tdst] = []
         l = [esrc, edst]
         edges[tdst].append(l)
 
-        tdst = edst / tsize
+        tdst = TaskId(edst, tsize)
         if not edges.has_key(tdst):
             edges[tdst] = []
         l = [edst, esrc]
@@ -204,10 +211,11 @@ def GenNbr(tname,args):
         yield
 
         step += 1
-        tname = task + "-" + step
-        args = mgetargs(tname)
+        tname = task + "-" + str(step)
+        args = comm.mgetargs(tname)
 
         # iterate through the input queue, get the nodes, report neighbors
+        step += 1
         for item in args:
             d = simplejson.loads(item)
             tdst = d["task"] + "-" + str(step)
@@ -231,29 +239,78 @@ def GetDist(tname,args):
 
     task = tname.split("-")[0]
     step = int(tname.split("-")[1])
+    tsize = comm.mgetconfig("tsize")
 
-    for item in args:
-        d = simplejson.loads(item)
-        print tname, d
+    # get the initial arguments: starting node and its neighbors
+    dinit = simplejson.loads(args[0])
+    node = dinit["node"]
+    nbrlist = dinit["nbrs"]
 
+    # no visited nodes yet, first iteration
+    visited = {}
+    distance = 0
+
+    while True:
+
+        # process the new neighbors
+        distance += 1
+        newnodes = []
+
+        # process all the input elements
+        for arg in args:
+            dinit = simplejson.loads(arg)
+            srcnode = dinit["node"]
+            nbrlist = dinit["nbrs"]
+
+            for item in nbrlist:
+                # skip nodes already visited
+                if item in visited:
+                    continue
+    
+                # add new nodes to the visited nodes and the new nodes
+                visited[item] = distance
+                newnodes.append(item)
+    
+        # done, if there are no more new nodes
+        if len(newnodes) <= 0:
+            break
+
+        # send new visited nodes to the graph nodes to find their neighbors
+    
+        # collect nodes for the same task
+        dtasks = {}
+        for ndst in newnodes:
+            tn = TaskId(ndst,tsize)
+            if not dtasks.has_key(tn):
+                dtasks[tn] = []
+            dtasks[tn].append(ndst)
+    
+        # send the messages
+        step += 1
+        for tn,args in dtasks.iteritems():
+            dmsg = {}
+            dmsg["task"] = task
+            dmsg["nodes"] = args
+            tdst = "E%s" % (str(tn)) + "-" + str(step)
+            targs = simplejson.dumps(dmsg)
+            print tdst,targs
+            comm.mroute(tname,tdst,targs)
+
+        # wait for another iteration
+        yield
+
+        # move the task name to the next step
+        step += 1
+        tname = task + "-" + str(step)
+
+        # get the input queue
+        args = comm.mgetargs(tname)
+
+        # end of while, repeat the loop
+
+    # TODO calculate statistics
+    print "*finish*", tname
     return
-
-    # TODO
-
-    # extract the stubs from the args
-    # iterate through the input queue and add new items to the stub list
-    stubs = []
-    for item in args:
-        l = simplejson.loads(item)
-        stubs.extend(l)
-    #print stubs
-    print tname,stubs
-
-    # distance:
-    #   - get neighbors
-    #   - add new not in the set to the list
-    #   - add all to the set
-    #   - report new nodes
 
 if __name__ == '__main__':
 
@@ -320,7 +377,6 @@ if __name__ == '__main__':
     #comm.mexec(GenGraph)
     comm.mexec()
 
-    # TODO, make a loop
     # generate the graph statistics
     #comm.mexec(GenNbr)
     comm.mexec()
@@ -328,4 +384,11 @@ if __name__ == '__main__':
     # calculate node distance
     #comm.mexec(GetDist)
     comm.mexec()
+
+    #comm.mexec(GenNbr)
+    comm.mexec()
+
+    # continue processing while there are some messages
+    #while comm.mcontinue():
+    #    comm.mexec()
 

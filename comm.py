@@ -55,14 +55,24 @@ def mswitch():
     tmail1 = tmail
     mclear()
 
+def mcontinue():
+    global tmail1
+
+    status = len(tmail) > 0
+    return status
+
 def mexec():
     global dispatch
     global diter
 
-    print tmail1
+    #print tmail1
 
     # move the output queue to input queue, empty the output queue
     mswitch()
+
+    print "tmail1"
+    for key,value in tmail1.iteritems():
+        print key, value
 
     # call all the tasks with their input queues
     for tname,args in tmail1.iteritems():
@@ -78,9 +88,12 @@ def mexec():
         elif ftype == "iter":
             # an iterator with state, create it if it does not exist
             iname = tname.split("-")[0]
+            print "iname", iname
+            #print diter
             if not diter.has_key(iname):
                 diter[iname] = fname(tname,args)
 
+            #print diter
             # perform the next step
             diter[iname].next()
 
