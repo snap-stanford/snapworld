@@ -12,6 +12,9 @@ diter = {}
 # configuration table for global parameters
 mconfig = {}
 
+# step counter
+nrstep = 0
+
 def msend(cmd, args):
     """
     send a message to task master
@@ -64,6 +67,7 @@ def mcontinue():
 def mexec():
     global dispatch
     global diter
+    global nrstep
 
     #print tmail1
 
@@ -75,31 +79,40 @@ def mexec():
         print key, value
 
     # call all the tasks with their input queues
+    nrstep += 1
+    msetconfig("step",nrstep)
     for tname,args in tmail1.iteritems():
-        print tname, args
+        print "mexec", tname, args
         tval = dispatch[tname[0]]
         ftype = tval["type"]
         fname = tval["def"]
 
         if ftype == "func":
             # a function with no state, just call
-            fname(tname,args)
+            fname(tname,nrstep,args)
 
         elif ftype == "iter":
             # an iterator with state, create it if it does not exist
-            iname = tname.split("-")[0]
+            iname = tname
             print "iname", iname
-            #print diter
+            print "diter1", diter
             if not diter.has_key(iname):
-                diter[iname] = fname(tname,args)
+                print "iname", iname, "*new*"
+                diter[iname] = fname(tname,nrstep,args)
 
             #print diter
             # perform the next step
-            diter[iname].next()
+            try:
+                diter[iname].next()
+            except StopIteration:
+                # remove the iterator
+                #print "*StopIteration*"
+                del diter[iname]
 
 def mgetargs(tname):
     global tmail1
     args = tmail1.get(tname,None)
+    print "args", tname, args
     return args
 
 def msetconfig(key,value):

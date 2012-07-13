@@ -4,10 +4,10 @@ import sys
 import comm
 import simplejson
 
-#distmean = 150
-#distvar  = 22.5
-distmean = 8
-distvar  = 1
+distmean = 150
+distvar  = 22.5
+#distmean = 8
+#distvar  = 1
 
 dispatch = {}
 
@@ -18,7 +18,7 @@ def TaskId(node,tsize):
 
     return node/tsize
 
-def GenTasks(tname,args):
+def GenTasks(tname,step,args):
     """
     generate the tasks
         args, arguments as a string
@@ -28,8 +28,6 @@ def GenTasks(tname,args):
         dis, degree distribution
     """
 
-    step = int(tname.split("-")[1])
-
     d = simplejson.loads(args[0])
     nnodes = d["nnodes"]
     tsize = d["tsize"]
@@ -38,7 +36,7 @@ def GenTasks(tname,args):
     ns = 0
     tc = 0
     while ns < nnodes:
-        tname = "G" + str(tc) + "-" + str(step+1)
+        tname = "G" + str(tc)
         tc += 1
         ne = ns + tsize
         if ne > nnodes:
@@ -59,13 +57,11 @@ def StdDist(mean,dev):
 
     return int(x + 0.5)
 
-def GenStubs(tname,args):
+def GenStubs(tname,step,args):
     """
     determine degrees for all the nodes, generate the stubs and distribute them
         args, arguments as a string
     """
-
-    step = int(tname.split("-")[1])
 
     argwords = args[0]
     largs = argwords.split("\t")
@@ -75,15 +71,16 @@ def GenStubs(tname,args):
     ne = int(largs[1])
     dis = largs[2]
 
-    print "*task* %s %d %d %s" % (tname, ns, ne, dis)
+    print "*task* %s %d %d %d %s" % (tname, step, ns, ne, dis)
 
     # determine node degrees
     i = ns
     ddeg = {}
     while i <= ne:
         deg = StdDist(distmean,distvar)
+        #deg = 3
         ddeg[i] = deg
-        print "*task* %s, node %s, degree %s" % (tname, str(i), str(deg))
+        print "*task* %s %d, node %s, degree %s" % (tname, step, str(i), str(deg))
         i += 1
 
     print ddeg
@@ -102,18 +99,16 @@ def GenStubs(tname,args):
             dstubs[t].append(key)
 
     for key, value in dstubs.iteritems():
-        tdst = "S%s" % (str(key)) + "-" + str(step+1)
+        tdst = "S%s" % (str(key))
         targs = simplejson.dumps(value)
         print tdst,targs
         comm.mroute(tname,tdst,targs)
 
-def GenGraph(tname,args):
+def GenGraph(tname,step,args):
     """
     generate the graph edges
         args, arguments as a string
     """
-
-    step = int(tname.split("-")[1])
 
     # extract the stubs from the args
     # iterate through the input queue and add new items to the stub list
@@ -158,19 +153,18 @@ def GenGraph(tname,args):
     print tname,edges
 
     for key, value in edges.iteritems():
-        tdst = "E%s" % (str(key)) + "-" + str(step+1)
+        tdst = "E%s" % (str(key))
         targs = simplejson.dumps(value)
         print tdst,targs
         comm.mroute(tname,tdst,targs)
 
-def GenNbr(tname,args):
+def GenNbr(tname,step,args):
     """
     generate the graph neighbors
         args, arguments as a string
     """
 
-    task = tname.split("-")[0]
-    step = int(tname.split("-")[1])
+    task = tname
 
     # extract neighbors from the args
     # iterate through the input queue and add new items to the neighbor list
@@ -195,11 +189,11 @@ def GenNbr(tname,args):
 
     # select a random node for stats
     nsel = random.choice(list(nbrs.keys()))
-    print tname, "sel", nsel
+    #nsel = list(nbrs.keys())[0]
+    print tname, "sel", nsel, list(nbrs.keys())
 
     # send the node and its neighbors to the distance task
-    step += 1
-    tdst = "D%s" % (str(nsel)) + "-" + str(step)
+    tdst = "D%s" % (str(nsel))
     dmsg = {}
     dmsg["node"] = nsel
     dmsg["nbrs"] = list(nbrs[nsel])
@@ -210,26 +204,25 @@ def GenNbr(tname,args):
     while True:
         yield
 
-        step += 1
-        tname = task + "-" + str(step)
         args = comm.mgetargs(tname)
+        if args == None:
+            continue
 
         # iterate through the input queue, get the nodes, report neighbors
-        step += 1
         for item in args:
             d = simplejson.loads(item)
-            tdst = d["task"] + "-" + str(step)
+            tdst = d["task"]
             nodes = d["nodes"]
             for node in nodes:
                 dmsg = {}
                 dmsg["node"] = node
                 dmsg["nbrs"] = list(nbrs[node])
                 targs = simplejson.dumps(dmsg)
-                tdst = "D%s" % (str(node)) + "-" + str(step)
+                #tdst = "D%s" % (str(node))
                 print tdst,targs
                 comm.mroute(tname,tdst,targs)
 
-def GetDist(tname,args):
+def GetDist(tname,step,args):
     """
     find the node distance
         args, arguments as a string
@@ -237,8 +230,7 @@ def GetDist(tname,args):
 
     print "GetDist", tname
 
-    task = tname.split("-")[0]
-    step = int(tname.split("-")[1])
+    task = tname
     tsize = comm.mgetconfig("tsize")
 
     # get the initial arguments: starting node and its neighbors
@@ -249,6 +241,8 @@ def GetDist(tname,args):
     # no visited nodes yet, first iteration
     visited = {}
     distance = 0
+    print "*distance*", tname, node, distance
+    visited[node] = distance
 
     while True:
 
@@ -268,6 +262,7 @@ def GetDist(tname,args):
                     continue
     
                 # add new nodes to the visited nodes and the new nodes
+                print "*distance*", tname, item, distance
                 visited[item] = distance
                 newnodes.append(item)
     
@@ -284,14 +279,15 @@ def GetDist(tname,args):
             if not dtasks.has_key(tn):
                 dtasks[tn] = []
             dtasks[tn].append(ndst)
+
+        print "dtasks", dtasks
     
         # send the messages
-        step += 1
         for tn,args in dtasks.iteritems():
             dmsg = {}
             dmsg["task"] = task
             dmsg["nodes"] = args
-            tdst = "E%s" % (str(tn)) + "-" + str(step)
+            tdst = "E%s" % (str(tn))
             targs = simplejson.dumps(dmsg)
             print tdst,targs
             comm.mroute(tname,tdst,targs)
@@ -299,17 +295,31 @@ def GetDist(tname,args):
         # wait for another iteration
         yield
 
-        # move the task name to the next step
-        step += 1
-        tname = task + "-" + str(step)
-
         # get the input queue
         args = comm.mgetargs(tname)
 
         # end of while, repeat the loop
 
-    # TODO calculate statistics
-    print "*finish*", tname
+    #print "*finish*", tname, visited
+    dist = {}
+    for key,value in visited.iteritems():
+        if not dist.has_key(value):
+            dist[value] = []
+        dist[value].append(key)
+
+    for key,value in dist.iteritems():
+        value.sort()
+    #print "*finish1*", tname, dist
+
+    distance = 0
+    compsize = 0
+    while dist.has_key(distance):
+        print "*dist*", distance, len(dist[distance])
+        #print "*dist*", distance, len(dist[distance]), dist[distance]
+        compsize += len(dist[distance])
+        distance += 1
+
+    print "*distall*", distance, compsize
     return
 
 if __name__ == '__main__':
@@ -363,7 +373,9 @@ if __name__ == '__main__':
     d["dis"] = "std"
     targs = simplejson.dumps(d)
 
-    comm.mroute("00","T0-0",targs)
+    #random.seed(0)
+
+    comm.mroute("00","T0",targs)
 
     # generate the tasks and assign nodes to them
     #GenTasks(nnodes, tsize, "std")
@@ -389,6 +401,6 @@ if __name__ == '__main__':
     comm.mexec()
 
     # continue processing while there are some messages
-    #while comm.mcontinue():
-    #    comm.mexec()
+    while comm.mcontinue():
+        comm.mexec()
 
