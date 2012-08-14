@@ -2,10 +2,12 @@ import BaseHTTPServer
 import SocketServer
 
 import os
+import sys
 import time
 import urlparse
 
 import config
+import daemon
 
 class Server(BaseHTTPServer.BaseHTTPRequestHandler):
     
@@ -22,7 +24,7 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
                 'request_version=%s' % self.request_version,
                 '',
                 'SERVER VALUES:',
-                'server_type=%s' % "head server",
+                'server_type=%s' % "host server",
                 'server_version=%s' % self.server_version,
                 'sys_version=%s' % self.sys_version,
                 'protocol_version=%s' % self.protocol_version,
@@ -36,12 +38,6 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
 
         if self.path == "/start":
             print "starting"
-
-            hosts = self.config["hosts"]
-            port = 9000
-            for host in hosts:
-                self.StartHostServer(host, str(port))
-                port += 1
 
         self.send_response(200)
         #self.send_header('Last-Modified', self.date_time_string(time.time()))
@@ -81,28 +77,34 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
                 self.wfile.write('\t%s=%s\n' % (field, form[field].value))
         return
 
-    def StartHostServer(self, host, port):
-        print "starting host server on host %s, port %s" % (host, port)
-
-        cmd = "ssh localhost python git/rok/snapworld/host.py %s" % (port)
-        os.system(cmd)
-
 class ThreadedHTTPServer(SocketServer.ThreadingMixIn,
                             BaseHTTPServer.HTTPServer):
     """Handle requests in a separate thread."""
 
 if __name__ == '__main__':
 
-    dconf = config.readconfig("snapw.config")
-    print dconf
+    if len(sys.argv) < 2:
+        print "Usage: " + sys.argv[0] + " <port>"
+        sys.exit(1)
 
-    port = 8080
+    port = int(sys.argv[1])
+
+    retCode = daemon.createDaemon()
+
+    os.chdir("/home/rok/snapwexec")
+
+    pid = os.getpid()
+    fname = "log-swhost-%d.txt" % (pid)
+    flog = open(fname,"w")
 
     server = ThreadedHTTPServer(('localhost', port), Server)
 
     handler = BaseHTTPServer.BaseHTTPRequestHandler
-    handler.config = dconf
+    handler.flog = flog
 
-    print 'Starting head server on port %d, use <Ctrl-C> to stop' % (port)
+    pid = os.getpid()
+    flog.write("Starting host server pid %d, port %d\n" % (pid, port))
+    flog.flush()
+
     server.serve_forever()
 
