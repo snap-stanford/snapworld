@@ -2,6 +2,7 @@ import BaseHTTPServer
 import SocketServer
 
 import os
+import simplejson
 import time
 import urlparse
 
@@ -33,15 +34,37 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
             message_parts.append('%s=%s' % (name, value.rstrip()))
         message_parts.append('')
         message = '\r\n'.join(message_parts)
+        #print message
+
+        subpath = self.path.split("/")
+        #print subpath
 
         if self.path == "/start":
-            print "starting"
+            print "starting host servers "
 
+            master = self.config["master"]
             hosts = self.config["hosts"]
-            port = 9000
             for host in hosts:
-                self.StartHostServer(host, str(port))
-                port += 1
+                self.StartHostServer(host, master)
+
+        elif self.path == "/config":
+            print "get configuration"
+
+            body = simplejson.dumps(self.config)
+            self.send_response(200)
+            self.send_header('Content-Length', len(body))
+            self.end_headers()
+            self.wfile.write(body)
+            return
+
+        elif subpath[1] == "done":
+            if len(subpath) > 2:
+                host = subpath[2]
+                # TODO make this update thread safe, which it is not now
+                self.server.done.add(host)
+                print "host %s completed" % (str(self.server.done))
+                if len(self.server.done) == len(self.config["hosts"]):
+                    print "all hosts completed"
 
         self.send_response(200)
         #self.send_header('Last-Modified', self.date_time_string(time.time()))
@@ -81,10 +104,13 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
                 self.wfile.write('\t%s=%s\n' % (field, form[field].value))
         return
 
-    def StartHostServer(self, host, port):
-        print "starting host server on host %s, port %s" % (host, port)
+    def StartHostServer(self, remote, master):
+        print "starting host server on host %s, port %s" % (
+                    remote["host"], remote["port"])
 
-        cmd = "ssh localhost python git/rok/snapworld/host.py %s" % (port)
+        cmd = "ssh %s python git/rok/snapworld/host.py -i %s -p %s -m %s:%s" % (
+                    remote["host"], remote["id"], remote["port"],
+                    master["host"], master["port"])
         os.system(cmd)
 
 class ThreadedHTTPServer(SocketServer.ThreadingMixIn,
@@ -96,12 +122,18 @@ if __name__ == '__main__':
     dconf = config.readconfig("snapw.config")
     print dconf
 
-    port = 8080
+    master = dconf["master"]
 
-    server = ThreadedHTTPServer(('localhost', port), Server)
+    host = master["host"]
+    port = int(master["port"])
+
+    server = ThreadedHTTPServer((host, port), Server)
+    server.done = set()
 
     handler = BaseHTTPServer.BaseHTTPRequestHandler
     handler.config = dconf
+
+    dconf["tasks"] = config.assign(dconf)
 
     print 'Starting head server on port %d, use <Ctrl-C> to stop' % (port)
     server.serve_forever()

@@ -1,10 +1,14 @@
+#!/usr/bin/python
+
 import BaseHTTPServer
 import SocketServer
 
 import os
+import simplejson
 import sys
 import time
 import urlparse
+import urllib2
 
 import config
 import daemon
@@ -83,11 +87,31 @@ class ThreadedHTTPServer(SocketServer.ThreadingMixIn,
 
 if __name__ == '__main__':
 
-    if len(sys.argv) < 2:
-        print "Usage: " + sys.argv[0] + " <port>"
+    if len(sys.argv) < 3:
+        print "Usage: " + sys.argv[0] + " -i <id> -p <port> -m <host>:<port>"
         sys.exit(1)
 
-    port = int(sys.argv[1])
+    port = None
+    master = None
+
+    index = 1
+    while index < len(sys.argv):
+        arg = sys.argv[index]
+        if arg == "-i":
+            index += 1
+            id = sys.argv[index]
+        elif arg == "-p":
+            index += 1
+            port = int(sys.argv[index])
+        elif arg == "-m":
+            index += 1
+            master = sys.argv[index]
+
+        index += 1
+
+    if port == None  or  master == None:
+        print "Usage: " + sys.argv[0] + " -i <id> -p <port> -m <host>:<port>"
+        sys.exit(1)
 
     retCode = daemon.createDaemon()
 
@@ -102,8 +126,29 @@ if __name__ == '__main__':
     handler = BaseHTTPServer.BaseHTTPRequestHandler
     handler.flog = flog
 
+    # get configuration from master
+    url = "http://%s/config" % (master)
+    f = urllib2.urlopen(url)
+    sconf = f.read()
+    f.close()
+
+    dconf = simplejson.loads(sconf)
+    handler.dconf = dconf
+
+    flog.write("Got configuration size %d\n" % (len(sconf)))
+    flog.write(str(dconf))
+    flog.write("\n")
+
+    # send done to master
+    url = "http://%s/done/%s" % (master,id)
+    f = urllib2.urlopen(url)
+    sconf = f.read()
+    f.close()
+
     pid = os.getpid()
-    flog.write("Starting host server pid %d, port %d\n" % (pid, port))
+    flog.write(
+        "Starting host server pid %d, id %s, port %d with master %s\n" %
+            (pid, id, port, master))
     flog.flush()
 
     server.serve_forever()

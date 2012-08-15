@@ -23,15 +23,44 @@ def readconfig(fname):
             if len(words) < 2:
                 continue
             value = words[1]
-            dconf["master"] = value
+
+            w = value.split(":")
+            if len(w) <= 0:
+                continue
+            h = w[0]
+            p = "8080"
+            if len(w) > 1:
+                p = w[1]
+            d = {}
+            d["host"] = h
+            d["port"] = p
+
+            dconf["master"] = d
 
         elif key == "hosts":
             if len(words) < 2:
                 continue
             value = words[1]
 
+            hcount = 1
             hosts = value.split(",")
-            dconf["hosts"] = hosts
+            l = []
+            for host in hosts:
+                w = host.split(":")
+                if len(w) <= 0:
+                    continue
+                h = w[0]
+                p = "8100"
+                if len(w) > 1:
+                    p = w[1]
+                d = {}
+                d["host"] = h
+                d["port"] = p
+                d["id"] = str(hcount)
+                l.append(d)
+                hcount += 1
+    
+            dconf["hosts"] = l
 
         elif key == "var":
             if len(words) < 3:
@@ -102,7 +131,7 @@ def assign(dconf):
 
 def addtask(dtasks,hosts,taskname,hostindex):
     #print taskname, hosts[hostindex]
-    dtasks[taskname] = hosts[hostindex]
+    dtasks[taskname] = hosts[hostindex]["id"]
     hostindex += 1
     if hostindex >= len(hosts):
         hostindex = 0
