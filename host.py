@@ -40,8 +40,8 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
         message_parts.append('')
         message = '\r\n'.join(message_parts)
 
-        if self.path == "/start":
-            print "starting"
+        #if self.path == "/start":
+        #    print "starting"
 
         self.send_response(200)
         #self.send_header('Last-Modified', self.date_time_string(time.time()))
