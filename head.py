@@ -6,11 +6,13 @@ import simplejson
 import time
 import urlparse
 
+import client
 import config
 
 class Server(BaseHTTPServer.BaseHTTPRequestHandler):
     
     def do_GET(self):
+        #print "GET path", self.path
         parsed_path = urlparse.urlparse(self.path)
         message_parts = [
                 'CLIENT VALUES:',
@@ -58,13 +60,39 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
             return
 
         elif subpath[1] == "done":
+            self.send_response(200)
+            #self.send_header('Last-Modified', self.date_time_string(time.time()))
+            self.send_header('Content-Length', 0)
+            self.end_headers()
+
             if len(subpath) > 2:
                 host = subpath[2]
                 # TODO make this update thread safe, which it is not now
                 self.server.done.add(host)
                 print "host %s completed" % (str(self.server.done))
                 if len(self.server.done) == len(self.config["hosts"]):
+
                     print "all hosts completed"
+                    #time.sleep(5)
+
+                    # send a start message at the beginning
+                    if not self.server.start:
+                        self.server.start = True
+                        starthost = self.GetStartHost(self.config)
+                        print "send message for __Start__ to", starthost
+                        client.message(starthost,"__Main__","__Start__","")
+
+                    # send a step start command to all the hosts
+                    hosts = self.config["hosts"]
+                    master = "%s:%s" % (
+                        self.config["master"]["host"],
+                        self.config["master"]["port"])
+                    for h in hosts:
+                        print "send next step to", h
+                        self.StartStep(h)
+        
+                    self.server.done = set()
+            return
 
         self.send_response(200)
         #self.send_header('Last-Modified', self.date_time_string(time.time()))
@@ -73,6 +101,7 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
         return
 
     def do_POST(self):
+        print "POST path", self.path
         # Parse the form data posted
         form = cgi.FieldStorage(
             fp=self.rfile, 
@@ -108,10 +137,27 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
         print "starting host server on host %s, port %s" % (
                     remote["host"], remote["port"])
 
-        cmd = "ssh %s python git/rok/snapworld/host.py -i %s -p %s -m %s:%s" % (
+        #cmd = "ssh %s python git/rok/snapworld/host.py -i %s -p %s -m %s:%s" % (
+        cmd = "ssh %s python git/rok/snapworld/host.py -d -i %s -p %s -m %s:%s" % (
                     remote["host"], remote["id"], remote["port"],
                     master["host"], master["port"])
+        print cmd
         os.system(cmd)
+
+    def GetStartHost(self, config):
+        starthost = config["tasks"]["__Start__"]
+
+        hosts = config["hosts"]
+        for host in hosts:
+            if host["id"] == starthost:
+                result = "%s:%s" % (host["host"], host["port"])
+                return result
+
+        return None
+
+    def StartStep(self, host):
+        haddr = "%s:%s" % (host["host"], host["port"])
+        client.step(haddr)
 
 class ThreadedHTTPServer(SocketServer.ThreadingMixIn,
                             BaseHTTPServer.HTTPServer):
@@ -129,6 +175,7 @@ if __name__ == '__main__':
 
     server = ThreadedHTTPServer((host, port), Server)
     server.done = set()
+    server.start = False
 
     handler = BaseHTTPServer.BaseHTTPRequestHandler
     handler.config = dconf

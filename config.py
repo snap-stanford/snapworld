@@ -1,3 +1,5 @@
+import errno
+import os
 import simplejson
 import sys
 
@@ -124,7 +126,7 @@ def assign(dconf):
         #print bunch,size
 
         for i in xrange(0,int(size)):
-            taskname = bunch + "," + str(i)
+            taskname = bunch + "-" + str(i)
             hostindex = addtask(dtasks,hosts,taskname,hostindex)
 
     return dtasks
@@ -137,6 +139,31 @@ def addtask(dtasks,hosts,taskname,hostindex):
         hostindex = 0
 
     return hostindex
+
+def uniquefile(fpath):
+
+    # find path, suffix ('/path/file', '.ext')
+    fparts = os.path.splitext(fpath)
+
+    fname = fpath
+    
+    counter = 1
+    while 1:
+        try:
+            fd = os.open(fname, os.O_CREAT | os.O_EXCL | os.O_RDWR)
+            return os.fdopen(fd,"w"), fname
+        except OSError:
+            pass
+        fname = fparts[0] + '_' + str(counter) + fparts[1]
+        counter += 1
+
+def mkdir_p(path):
+    try:
+        os.makedirs(path)
+    except OSError as exc: # Python >2.5
+        if exc.errno == errno.EEXIST:
+            pass
+        else: raise
 
 if __name__ == '__main__':
 
