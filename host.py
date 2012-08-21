@@ -55,6 +55,14 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
             flog.write(line)
             flog.flush()
 
+            # TODO resolve time conflict, tasks from other nodes can
+            #   start sending messages for qin, before this host renames
+            #   them to qact. Another step might be needed for synchronization.
+
+            # steps:
+            #   - rename qin -> qact
+            #   - create qact
+
         self.send_response(200)
         #self.send_header('Last-Modified', self.date_time_string(time.time()))
         self.end_headers()
@@ -225,6 +233,11 @@ if __name__ == '__main__':
     
         # send done to master
         client.done(master, id)
+
+        # TODO time conflict. The master might already send 'step' request,
+        #       before server_forever() is started, so 'step' might be lost.
+        #       Delay done until the server is up and running.
+        # check out Asynchronous Mixins example for SocketServer
     
         flog.write("Sent done\n")
         flog.flush()
