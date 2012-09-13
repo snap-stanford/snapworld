@@ -69,11 +69,14 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
                 host = subpath[2]
                 # TODO make this update thread safe, which it is not now
                 self.server.done.add(host)
-                print "host %s completed" % (str(self.server.done))
+                print "host %s completed work" % (str(self.server.done))
                 if len(self.server.done) == len(self.config["hosts"]):
 
                     print "all hosts completed"
                     #time.sleep(5)
+
+                    # initialize a set of ready servers
+                    self.server.ready = set()
 
                     # send a start message at the beginning
                     if not self.server.start:
@@ -88,10 +91,37 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
                         self.config["master"]["host"],
                         self.config["master"]["port"])
                     for h in hosts:
+                        print "send prepare to", h
+                        self.Prepare(h)
+            return
+
+        elif subpath[1] == "ready":
+            self.send_response(200)
+            #self.send_header('Last-Modified', self.date_time_string(time.time()))
+            self.send_header('Content-Length', 0)
+            self.end_headers()
+
+            if len(subpath) > 2:
+                host = subpath[2]
+                # TODO make this update thread safe, which it is not now
+                self.server.ready.add(host)
+                print "host %s ready" % (str(self.server.ready))
+                if len(self.server.ready) == len(self.config["hosts"]):
+
+                    print "all hosts ready"
+                    #time.sleep(5)
+        
+                    # initialize a set of done servers
+                    self.server.done = set()
+
+                    # send a step start command to all the hosts
+                    hosts = self.config["hosts"]
+                    master = "%s:%s" % (
+                        self.config["master"]["host"],
+                        self.config["master"]["port"])
+                    for h in hosts:
                         print "send next step to", h
                         self.StartStep(h)
-        
-                    self.server.done = set()
             return
 
         self.send_response(200)
@@ -159,6 +189,10 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
         haddr = "%s:%s" % (host["host"], host["port"])
         client.step(haddr)
 
+    def Prepare(self, host):
+        haddr = "%s:%s" % (host["host"], host["port"])
+        client.prepare(haddr)
+
 class ThreadedHTTPServer(SocketServer.ThreadingMixIn,
                             BaseHTTPServer.HTTPServer):
     """Handle requests in a separate thread."""
@@ -175,6 +209,7 @@ if __name__ == '__main__':
 
     server = ThreadedHTTPServer((host, port), Server)
     server.done = set()
+    server.ready = set()
     server.start = False
 
     handler = BaseHTTPServer.BaseHTTPRequestHandler

@@ -45,23 +45,48 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
         message = '\r\n'.join(message_parts)
 
         #print message
+        #self.flog.write(message)
+        #self.flog.flush()
 
         subpath = self.path.split("/")
         #print subpath
 
-        if self.path == "/step":
+        if self.path == "/prepare":
+
+            # move qin to qact
+
+            qinname = "snapw.%d/qin" % (self.pid)
+            qactname = "snapw.%d/qact" % (self.pid)
+
+            # rename an existing qact
+            qactnewname = "none"
+            if os.path.exists(qactname):
+                t = time.time()
+                s = time.strftime("%Y%m%d-%H%M%S", time.localtime(t))
+                mus = "%06d" % (t*1000000 - int(t)*1000000)
+                qactnewname = "%s-%s" % (s, mus)
+                os.rename(qactname, qactnewname)
+
+            os.rename(qinname, qactname)
+
+            # create new qin
+            config.mkdir_p(qinname)
+
+            # send ready to master
+            client.ready(master, self.id)
+    
+            line = "preparing next step: %s, %s, %s\n" % (
+                        qinname, qactname, qactnewname)
+            flog.write(line)
+            flog.flush()
+
+        elif self.path == "/step":
     
             line = "start next step\n"
             flog.write(line)
             flog.flush()
 
-            # TODO resolve time conflict, tasks from other nodes can
-            #   start sending messages for qin, before this host renames
-            #   them to qact. Another step might be needed for synchronization.
-
-            # steps:
-            #   - rename qin -> qact
-            #   - create qact
+            # TODO execute the local tasks
 
         self.send_response(200)
         #self.send_header('Last-Modified', self.date_time_string(time.time()))
@@ -217,6 +242,7 @@ if __name__ == '__main__':
 
     handler = BaseHTTPServer.BaseHTTPRequestHandler
     handler.flog = flog
+    handler.id = id
     handler.pid = os.getpid()
 
     if master != None:
@@ -238,6 +264,8 @@ if __name__ == '__main__':
         #       before server_forever() is started, so 'step' might be lost.
         #       Delay done until the server is up and running.
         # check out Asynchronous Mixins example for SocketServer
+        # Comment: the constructor might already activate the server,
+        #       so there is no problem.
     
         flog.write("Sent done\n")
         flog.flush()

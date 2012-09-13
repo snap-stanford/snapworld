@@ -19,9 +19,26 @@ def step(server):
     body = f.read()
     f.close()
 
+def prepare(server):
+    # send step prepare
+    url = "http://%s/prepare" % (server)
+
+    #print "step", server
+
+    f = urllib2.urlopen(url)
+    body = f.read()
+    f.close()
+
 def done(server, id):
     # send done
     url = "http://%s/done/%s" % (server,id)
+    f = urllib2.urlopen(url)
+    body = f.read()
+    f.close()
+
+def ready(server, id):
+    # send ready
+    url = "http://%s/ready/%s" % (server,id)
     f = urllib2.urlopen(url)
     body = f.read()
     f.close()
