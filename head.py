@@ -81,9 +81,11 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
                     # send a start message at the beginning
                     if not self.server.start:
                         self.server.start = True
-                        starthost = self.GetStartHost(self.config)
-                        print "send message for __Start__ to", starthost
-                        client.message(starthost,"__Main__","__Start__","")
+                        (starthost, starttask) = self.GetStartInfo(self.config)
+                        s = "send __Start__ message for task %s to host %s" % (
+                                starttask, starthost)
+                        print s
+                        client.message(starthost,"__Main__",starttask,"__Start__")
 
                     # send a step start command to all the hosts
                     hosts = self.config["hosts"]
@@ -174,14 +176,15 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
         print cmd
         os.system(cmd)
 
-    def GetStartHost(self, config):
-        starthost = config["tasks"]["__Start__"]
+    def GetStartInfo(self, config):
+        starttask = "%s-0" % (config["route"]["__Start__"])
+        starthost = config["tasks"][starttask]
 
         hosts = config["hosts"]
         for host in hosts:
             if host["id"] == starthost:
                 result = "%s:%s" % (host["host"], host["port"])
-                return result
+                return result, starttask
 
         return None
 

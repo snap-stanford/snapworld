@@ -117,7 +117,7 @@ def assign(dconf):
     dtasks = {}
 
     # add the initial task
-    hostindex = addtask(dtasks,hosts,"__Start__",hostindex)
+    #hostindex = addtask(dtasks,hosts,"__Start__",hostindex)
 
     # assign all the task in round-robin fashion
     for bunch,bdata in dconf["bunch"].iteritems():

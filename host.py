@@ -82,11 +82,27 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
 
         elif self.path == "/step":
     
-            line = "start next step\n"
+            line = "execute next step\n"
             flog.write(line)
             flog.flush()
 
-            # TODO execute the local tasks
+            # get the tasks to execute
+
+            qactname = "snapw.%d/qact" % (self.pid)
+            active = os.listdir(qactname)
+    
+            line = "active tasks %s\n" % (str(active))
+            flog.write(line)
+            flog.flush()
+
+            for task in active:
+                prog = "%s.py" % (task.split("-",1)[0])
+    
+                line = "starting task: %s %s\n" % (task, prog)
+                flog.write(line)
+                flog.flush()
+
+                # TODO !!! execute the local task
 
         self.send_response(200)
         #self.send_header('Last-Modified', self.date_time_string(time.time()))
@@ -144,7 +160,7 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
             dirname = "snapw.%d/qin/%s" % (self.pid, dst)
             config.mkdir_p(dirname)
 
-            fname = "%s/%s.txt" % (dirname, src)
+            fname = "%s/%s" % (dirname, src)
             f,fnew = config.uniquefile(fname)
             f.write(body)
             f.close()
