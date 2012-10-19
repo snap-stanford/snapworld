@@ -15,6 +15,10 @@ sys.path.append("/home/rok/git/rok/snapworld")
 import client
 import config
 import daemon
+import pexec
+
+workdir = "/home/rok/snapwexec"
+progdir = "/home/rok/git/rok/snapworld"
 
 class Server(BaseHTTPServer.BaseHTTPRequestHandler):
     
@@ -97,12 +101,53 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
 
             for task in active:
                 prog = "%s.py" % (task.split("-",1)[0])
+                progpath = os.path.join(progdir, prog)
     
-                line = "starting task: %s %s\n" % (task, prog)
+                taskdir = "snapw.%d/tasks/%s" % (self.pid, task)
+                config.mkdir_p(taskdir)
+
+                qdir = os.path.join(self.workdir, qactname, task)
+                tdir = os.path.join(self.workdir, taskdir)
+
+                line = "starting task %s, prog %s, workdir %s, qdir %s\n" % (
+                            task, prog, tdir, qdir)
                 flog.write(line)
                 flog.flush()
 
-                # TODO !!! execute the local task
+                # construct a command line
+                cmd = "python %s -t %s -h localhost:%d -q %s" % (
+                            progpath, task, port, qdir)
+                flog.write("starting cmd %s\n" % (cmd))
+                flog.flush()
+
+                # start the work process
+                p = pexec.Exec(tdir,cmd)
+
+                # wait for the process to complete
+                while True:
+                    flog.write("polling\n")
+                    flog.flush()
+                    status = pexec.Poll(p)
+                    if status != None:
+                        break
+
+                    time.sleep(1)
+
+                flog.write("finished\n")
+                flog.flush()
+
+        elif self.path == "/config":
+    
+            line = "get configuration\n"
+            flog.write(line)
+            flog.flush()
+
+            body = simplejson.dumps(self.config)
+            self.send_response(200)
+            self.send_header('Content-Length', len(body))
+            self.end_headers()
+            self.wfile.write(body)
+            return
 
         self.send_response(200)
         #self.send_header('Last-Modified', self.date_time_string(time.time()))
@@ -246,7 +291,7 @@ if __name__ == '__main__':
     if daemon_mode:
         retCode = daemon.createDaemon()
 
-    os.chdir("/home/rok/snapwexec")
+    os.chdir(workdir)
 
     pid = os.getpid()
     #print "pid", pid
@@ -258,15 +303,17 @@ if __name__ == '__main__':
 
     handler = BaseHTTPServer.BaseHTTPRequestHandler
     handler.flog = flog
+    handler.port = port
     handler.id = id
     handler.pid = os.getpid()
+    handler.workdir = workdir
 
     if master != None:
         # get configuration from master
         sconf = client.config(master)
     
         dconf = simplejson.loads(sconf)
-        handler.dconf = dconf
+        handler.config = dconf
     
         flog.write("Got configuration size %d\n" % (len(sconf)))
         flog.write(str(dconf))
