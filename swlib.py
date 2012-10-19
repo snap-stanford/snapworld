@@ -42,6 +42,7 @@ class SnapWorld:
         self.route = None
         self.hosts = None
         self.tasks = None
+        self.range = None
 
         self.target = None
         self.flog = None
@@ -60,12 +61,21 @@ class SnapWorld:
         self.var = self.config.get("var")
         self.route = self.config.get("route")
         self.tasks = self.config.get("tasks")
-        hostlist = self.config.get("hosts")
-        self.target = self.route.get(self.name)
 
-        if (self.var == None  or  self.route == None  or
-            hostlist == None  or  self.tasks == None  or
-            self.target == None):
+        dbunch = self.config.get("bunch")
+        hostlist = self.config.get("hosts")
+
+        if dbunch:
+            dinfo = dbunch.get(self.name)
+            if dinfo:
+                self.range = int(dinfo.get("range"))
+
+        if self.route:
+            self.target = self.route.get(self.name)
+
+        if (self.var   == None  or  self.route  == None  or
+            hostlist   == None  or  self.tasks  == None  or
+            self.range == None  or  self.target == None):
             return None
 
         self.hosts = {}
@@ -95,10 +105,11 @@ class SnapWorld:
         result = self.var.get(name)
         return result
 
-    def Send(self, dst, d):
-        dstname = self.target + "-" + str(dst)
-        dstid = self.tasks.get(dstname)
-        dshost = self.hosts.get(dstid)
+    def Send(self, dstid, d):
+        dstnum = dstid / self.range
+        dstname = self.target + "-" + str(dstnum)
+        dsthostid = self.tasks.get(dstname)
+        dshost = self.hosts.get(dsthostid)
 
         s = simplejson.dumps(d)
         print "send  task %s, host %s, msg %s" % (dstname, dshost, s)

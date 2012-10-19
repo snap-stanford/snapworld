@@ -90,6 +90,24 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
             self.end_headers()
             return
 
+        elif self.path == "/quit":
+            self.send_response(200)
+            self.send_header('Content-Length', 0)
+            self.end_headers()
+
+            # set the flag to terminate the server
+            self.server.running = False
+            self.server.self_dummy()
+            return
+
+        elif self.path == "/dummy":
+            print "dummy request"
+
+            self.send_response(200)
+            self.send_header('Content-Length', 0)
+            self.end_headers()
+            return
+
         elif self.path == "/step":
     
             line = "execute next step\n"
@@ -128,6 +146,17 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(body)
             return
+
+        elif self.path == "/quit":
+    
+            line = "terminate execution\n"
+            self.flog.write(line)
+            self.flog.flush()
+
+            self.send_response(200)
+            self.send_header('Content-Length', 0)
+            self.end_headers()
+            sys.exit(0)
 
         self.send_response(200)
         #self.send_header('Last-Modified', self.date_time_string(time.time()))
@@ -237,6 +266,17 @@ class ThreadedHTTPServer(SocketServer.ThreadingMixIn,
                             BaseHTTPServer.HTTPServer):
     """Handle requests in a separate thread."""
 
+    def execute(self):
+        while self.running:
+            self.handle_request()
+
+        print "exit"
+        sys.exit(0)
+
+    def self_dummy(self):
+        haddr = "%s:%s" % (self.host, self.port)
+        client.dummy(haddr)
+
 def Execute(args):
 
     args.flog.write("Execute " + str(args.active) + "\n")
@@ -245,6 +285,13 @@ def Execute(args):
     for task in args.active:
         prog = "%s.py" % (task.split("-",1)[0])
         progpath = os.path.join(progdir, prog)
+
+        if not os.path.exists(progpath):
+            line = "*** Error: task %s not started, program %s not found\n" % (
+                    task, progpath)
+            args.flog.write(line)
+            args.flog.flush()
+            continue
 
         taskdir = "snapw.%d/tasks/%s" % (args.pid, task)
         config.mkdir_p(taskdir)
@@ -257,9 +304,13 @@ def Execute(args):
         args.flog.write(line)
         args.flog.flush()
 
+        # get server information
+        host = args.server.host
+        port = args.server.port
+
         # construct a command line
-        cmd = "python %s -t %s -h localhost:%d -q %s" % (
-                    progpath, task, port, qdir)
+        cmd = "python %s -t %s -h %s:%d -q %s" % (
+                    progpath, task, host, port, qdir)
         args.flog.write("starting cmd %s\n" % (cmd))
         args.flog.flush()
 
@@ -288,6 +339,7 @@ if __name__ == '__main__':
         print "Usage: " + sys.argv[0] + " -d -i <id> -p <port> -m <host>:<port>"
         sys.exit(1)
 
+    host = "localhost"
     port = None
     master = None
 
@@ -326,7 +378,10 @@ if __name__ == '__main__':
     fname = "log-swhost-%d.txt" % (pid)
     flog = open(fname,"w")
 
-    server = ThreadedHTTPServer(('localhost', port), Server)
+    server = ThreadedHTTPServer((host, port), Server)
+    server.host = host
+    server.port = port
+    server.running = True
 
     handler = BaseHTTPServer.BaseHTTPRequestHandler
     handler.flog = flog
@@ -366,5 +421,5 @@ if __name__ == '__main__':
             (pid, id, port, master))
     flog.flush()
 
-    server.serve_forever()
+    server.execute()
 

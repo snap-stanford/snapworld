@@ -29,20 +29,18 @@ def GenTasks(sw):
     flog.flush()
 
     ns = 0
-    tc = 0
     while ns < nnodes:
-        tname = tc
+        tname = ns
         ne = ns + tsize
         if ne > nnodes:
             ne = nnodes
 
         dout = {}
         dout["s"] = ns
-        dout["e"] = ne-1
+        dout["r"] = ne-ns
 
-        sw.Send(tname,dout)
+        sw.Send(tname, dout)
 
-        tc += 1
         ns = ne
 
 if __name__ == '__main__':

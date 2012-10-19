@@ -19,6 +19,26 @@ def step(server):
     body = f.read()
     f.close()
 
+def quit(server):
+    # send termination quit
+    url = "http://%s/quit" % (server)
+
+    #print "step", server
+
+    f = urllib2.urlopen(url)
+    body = f.read()
+    f.close()
+
+def dummy(server):
+    # send a dummy request
+    url = "http://%s/dummy" % (server)
+
+    #print "step", server
+
+    f = urllib2.urlopen(url)
+    body = f.read()
+    f.close()
+
 def prepare(server):
     # send step prepare
     url = "http://%s/prepare" % (server)

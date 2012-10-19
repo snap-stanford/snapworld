@@ -3,6 +3,7 @@ import SocketServer
 
 import os
 import simplejson
+import sys
 import time
 import urlparse
 
@@ -46,8 +47,33 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
 
             master = self.config["master"]
             hosts = self.config["hosts"]
-            for host in hosts:
-                self.StartHostServer(host, master)
+            for h in hosts:
+                self.StartHostServer(h, master)
+
+        elif self.path == "/quit":
+            print "terminating host servers"
+
+            master = self.config["master"]
+            hosts = self.config["hosts"]
+            for h in hosts:
+                self.QuitHostServer(h)
+
+            self.send_response(200)
+            self.send_header('Content-Length', 0)
+            self.end_headers()
+
+            # set the flag to terminate the server
+            self.server.running = False
+            self.server.self_dummy()
+            return
+
+        elif self.path == "/dummy":
+            print "dummy request"
+
+            self.send_response(200)
+            self.send_header('Content-Length', 0)
+            self.end_headers()
+            return
 
         elif self.path == "/config":
             print "get configuration"
@@ -196,9 +222,24 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
         haddr = "%s:%s" % (host["host"], host["port"])
         client.prepare(haddr)
 
+    def QuitHostServer(self, host):
+        haddr = "%s:%s" % (host["host"], host["port"])
+        client.quit(haddr)
+
 class ThreadedHTTPServer(SocketServer.ThreadingMixIn,
                             BaseHTTPServer.HTTPServer):
     """Handle requests in a separate thread."""
+
+    def execute(self):
+        while self.running:
+            self.handle_request()
+
+        print "exit"
+        sys.exit(0)
+
+    def self_dummy(self):
+        haddr = "%s:%s" % (self.host, self.port)
+        client.dummy(haddr)
 
 if __name__ == '__main__':
 
@@ -211,9 +252,12 @@ if __name__ == '__main__':
     port = int(master["port"])
 
     server = ThreadedHTTPServer((host, port), Server)
+    server.host = host
+    server.port = port
     server.done = set()
     server.ready = set()
     server.start = False
+    server.running = True
 
     handler = BaseHTTPServer.BaseHTTPRequestHandler
     handler.config = dconf
@@ -221,5 +265,5 @@ if __name__ == '__main__':
     dconf["tasks"] = config.assign(dconf)
 
     print 'Starting head server on port %d, use <Ctrl-C> to stop' % (port)
-    server.serve_forever()
+    server.execute()
 
