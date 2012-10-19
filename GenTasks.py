@@ -64,3 +64,6 @@ if __name__ == '__main__':
     for item in msgin:
         GenTasks(sw)
 
+    flog.write("finished\n")
+    flog.flush()
+

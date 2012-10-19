@@ -1,14 +1,15 @@
 #!/usr/bin/python
 
-import BaseHTTPServer
-import SocketServer
-
 import os
 import simplejson
 import sys
 import time
+import threading
 import urlparse
 import urllib2
+
+import BaseHTTPServer
+import SocketServer
 
 sys.path.append("/home/rok/git/rok/snapworld")
 
@@ -68,7 +69,7 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
                 t = time.time()
                 s = time.strftime("%Y%m%d-%H%M%S", time.localtime(t))
                 mus = "%06d" % (t*1000000 - int(t)*1000000)
-                qactnewname = "%s-%s" % (s, mus)
+                qactnewname = "%s-%s-%s" % (qactname, s, mus)
                 os.rename(qactname, qactnewname)
 
             os.rename(qinname, qactname)
@@ -77,70 +78,49 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
             config.mkdir_p(qinname)
 
             # send ready to master
-            client.ready(master, self.id)
+            client.ready(self.master, self.id)
     
             line = "preparing next step: %s, %s, %s\n" % (
                         qinname, qactname, qactnewname)
-            flog.write(line)
-            flog.flush()
+            self.flog.write(line)
+            self.flog.flush()
+
+            self.send_response(200)
+            self.send_header('Content-Length', 0)
+            self.end_headers()
+            return
 
         elif self.path == "/step":
     
             line = "execute next step\n"
-            flog.write(line)
-            flog.flush()
+            self.flog.write(line)
+            self.flog.flush()
 
             # get the tasks to execute
-
             qactname = "snapw.%d/qact" % (self.pid)
             active = os.listdir(qactname)
-    
+
             line = "active tasks %s\n" % (str(active))
-            flog.write(line)
-            flog.flush()
+            self.flog.write(line)
+            self.flog.flush()
 
-            for task in active:
-                prog = "%s.py" % (task.split("-",1)[0])
-                progpath = os.path.join(progdir, prog)
-    
-                taskdir = "snapw.%d/tasks/%s" % (self.pid, task)
-                config.mkdir_p(taskdir)
+            if len(active) > 0:
+                self.qactname = qactname
+                self.active = active
+                # start a thread to execute the work tasks
+                t = threading.Thread(target=Execute, args=(self, ))
+                t.start()
 
-                qdir = os.path.join(self.workdir, qactname, task)
-                tdir = os.path.join(self.workdir, taskdir)
-
-                line = "starting task %s, prog %s, workdir %s, qdir %s\n" % (
-                            task, prog, tdir, qdir)
-                flog.write(line)
-                flog.flush()
-
-                # construct a command line
-                cmd = "python %s -t %s -h localhost:%d -q %s" % (
-                            progpath, task, port, qdir)
-                flog.write("starting cmd %s\n" % (cmd))
-                flog.flush()
-
-                # start the work process
-                p = pexec.Exec(tdir,cmd)
-
-                # wait for the process to complete
-                while True:
-                    flog.write("polling\n")
-                    flog.flush()
-                    status = pexec.Poll(p)
-                    if status != None:
-                        break
-
-                    time.sleep(1)
-
-                flog.write("finished\n")
-                flog.flush()
+            self.send_response(200)
+            self.send_header('Content-Length', 0)
+            self.end_headers()
+            return
 
         elif self.path == "/config":
     
             line = "get configuration\n"
-            flog.write(line)
-            flog.flush()
+            self.flog.write(line)
+            self.flog.flush()
 
             body = simplejson.dumps(self.config)
             self.send_response(200)
@@ -211,8 +191,8 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
             f.close()
     
             line = "message %s length %d\n" % (fnew,  length)
-            flog.write(line)
-            flog.flush()
+            self.flog.write(line)
+            self.flog.flush()
 
         # Begin the response
         self.send_response(200)
@@ -257,6 +237,51 @@ class ThreadedHTTPServer(SocketServer.ThreadingMixIn,
                             BaseHTTPServer.HTTPServer):
     """Handle requests in a separate thread."""
 
+def Execute(args):
+
+    args.flog.write("Execute " + str(args.active) + "\n")
+
+    # execute the tasks sequentially
+    for task in args.active:
+        prog = "%s.py" % (task.split("-",1)[0])
+        progpath = os.path.join(progdir, prog)
+
+        taskdir = "snapw.%d/tasks/%s" % (args.pid, task)
+        config.mkdir_p(taskdir)
+
+        qdir = os.path.join(args.workdir, args.qactname, task)
+        tdir = os.path.join(args.workdir, taskdir)
+
+        line = "starting task %s, prog %s, workdir %s, qdir %s\n" % (
+                    task, prog, tdir, qdir)
+        args.flog.write(line)
+        args.flog.flush()
+
+        # construct a command line
+        cmd = "python %s -t %s -h localhost:%d -q %s" % (
+                    progpath, task, port, qdir)
+        args.flog.write("starting cmd %s\n" % (cmd))
+        args.flog.flush()
+
+        # start the work process
+        p = pexec.Exec(tdir,cmd)
+
+        # wait for the process to complete
+        while True:
+            args.flog.write("polling\n")
+            args.flog.flush()
+            status = pexec.Poll(p)
+            if status != None:
+                break
+
+            time.sleep(1)
+
+        args.flog.write("finished\n")
+        args.flog.flush()
+
+    # send done to master
+    client.done(args.master, args.id)
+
 if __name__ == '__main__':
 
     if len(sys.argv) < 3:
@@ -288,6 +313,7 @@ if __name__ == '__main__':
         print "Usage: " + sys.argv[0] + " -d -i <id> -p <port> -m <host>:<port>"
         sys.exit(1)
 
+    #daemon_mode = False
     if daemon_mode:
         retCode = daemon.createDaemon()
 
@@ -296,6 +322,7 @@ if __name__ == '__main__':
     pid = os.getpid()
     #print "pid", pid
 
+    #flog = sys.stdout
     fname = "log-swhost-%d.txt" % (pid)
     flog = open(fname,"w")
 
@@ -307,6 +334,7 @@ if __name__ == '__main__':
     handler.id = id
     handler.pid = os.getpid()
     handler.workdir = workdir
+    handler.master = master
 
     if master != None:
         # get configuration from master

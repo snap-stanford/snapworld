@@ -10,7 +10,7 @@ def Exec(pwd, cmd):
     cl = cmd.split()
 
     # start the process
-    p = subprocess.Popen(cl)
+    p = subprocess.Popen(cl, cwd=pwd)
     return p
 
 def Poll(p):
