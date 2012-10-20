@@ -365,7 +365,7 @@ if __name__ == '__main__':
         print "Usage: " + sys.argv[0] + " -d -i <id> -p <port> -m <host>:<port>"
         sys.exit(1)
 
-    #daemon_mode = False
+    daemon_mode = False
     if daemon_mode:
         retCode = daemon.createDaemon()
 
@@ -374,9 +374,9 @@ if __name__ == '__main__':
     pid = os.getpid()
     #print "pid", pid
 
-    #flog = sys.stdout
-    fname = "log-swhost-%d.txt" % (pid)
-    flog = open(fname,"w")
+    flog = sys.stdout
+    #fname = "log-swhost-%d.txt" % (pid)
+    #flog = open(fname,"w")
 
     server = ThreadedHTTPServer((host, port), Server)
     server.host = host

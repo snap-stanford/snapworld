@@ -3,34 +3,25 @@ import sys
 
 import swlib
 
-#- init
-#    - restore state
-#    - get config
-#- while persistent:
-#    - while True:
-#        - get input
-#        - if no input:
-#            break
-#        - process input, produce output
-#    - wait for host
-
 def GenTasks(sw):
     """
     generate the tasks
-        tname, task name
-        nnodes, number of nodes
-        tsize, number of nodes per task
     """
 
     taskname = sw.GetName()
+
+    # total number of nodes
     nnodes = int(sw.GetVar("nodes"))
-    tsize = int(sw.GetVar("range"))
-    flog.write("task %s, nodes %d, tsize %d\n" % (taskname, nnodes, tsize))
-    flog.flush()
+
+    # nodes in each task
+    tsize = sw.GetRange()
+
+    sw.flog.write("task %s, nodes %d, tsize %d\n" % (taskname, nnodes, tsize))
+    sw.flog.flush()
 
     ns = 0
     while ns < nnodes:
-        tname = ns
+        tname = ns / tsize
         ne = ns + tsize
         if ne > nnodes:
             ne = nnodes
@@ -42,6 +33,9 @@ def GenTasks(sw):
         sw.Send(tname, dout)
 
         ns = ne
+
+def Worker(sw):
+    GenTasks(sw)
 
 if __name__ == '__main__':
     
@@ -55,12 +49,7 @@ if __name__ == '__main__':
     sw.SetLog(flog)
     sw.GetConfig()
 
-    msgin = sw.GetInput()
-    flog.write("msgin " + str(msgin) + "\n")
-    flog.flush()
-
-    for item in msgin:
-        GenTasks(sw)
+    Worker(sw)
 
     flog.write("finished\n")
     flog.flush()

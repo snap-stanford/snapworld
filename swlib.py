@@ -95,9 +95,19 @@ class SnapWorld:
     def GetHost(self):
         return self.host
 
-    def GetInput(self):
+    def GetRange(self):
+        return self.range
+
+    def GetMsgList(self):
         l = os.listdir(self.qin)
         return l
+
+    def GetMsg(self, name):
+        msgpath = os.path.join(self.qin, name)
+        f = open(msgpath, "r")
+        result = f.read()
+        f.close()
+        return result
 
     def GetVar(self, name):
         # get variables from the configuration
@@ -105,9 +115,16 @@ class SnapWorld:
         result = self.var.get(name)
         return result
 
+    def LoadState(self, d):
+        return None
+
+    def SaveState(self, d):
+        pass
+
     def Send(self, dstid, d):
-        dstnum = dstid / self.range
-        dstname = self.target + "-" + str(dstnum)
+        #dstnum = dstid / self.range
+        #dstname = self.target + "-" + str(dstnum)
+        dstname = self.target + "-" + str(dstid)
         dsthostid = self.tasks.get(dstname)
         dshost = self.hosts.get(dsthostid)
 
