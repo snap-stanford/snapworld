@@ -71,7 +71,12 @@ class SnapWorld:
                 self.range = int(dinfo.get("range"))
 
         if self.route:
-            self.target = self.route.get(self.name)
+            for key, routes in self.route.iteritems():
+                dest = routes.get(self.name)
+                if dest:
+                    if not target:
+                        self.target = {}
+                    self.target[key] = dest
 
         if (self.var   == None  or  self.route  == None  or
             hostlist   == None  or  self.tasks  == None  or
@@ -124,7 +129,7 @@ class SnapWorld:
     def Send(self, dstid, d):
         #dstnum = dstid / self.range
         #dstname = self.target + "-" + str(dstnum)
-        dstname = self.target + "-" + str(dstid)
+        dstname = self.target["1"] + "-" + str(dstid)
         dsthostid = self.tasks.get(dstname)
         dshost = self.hosts.get(dsthostid)
 

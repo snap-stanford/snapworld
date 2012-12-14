@@ -101,10 +101,20 @@ def readconfig(fname):
             src = words[1]
             dest = words[2]
 
+            srcname = src
+            srcport = "1"
+            srcwords = src.split(":")
+            if len(srcwords) >= 2:
+                srcname = srcwords[0]
+                srcport = srcwords[1]
+
             if not dconf.has_key("route"):
                 dconf["route"] = {}
 
-            dconf["route"][src] = dest
+            if not dconf["route"].has_key(srcport):
+                dconf["route"][srcport] = {}
+
+            dconf["route"][srcport][srcname] = dest
 
     f.close()
 
