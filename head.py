@@ -203,7 +203,7 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
         os.system(cmd)
 
     def GetStartInfo(self, config):
-        starttask = "%s-0" % (config["route"]["__Start__"])
+        starttask = "%s-0" % (config["route"]["1"]["__Start__"])
         starthost = config["tasks"][starttask]
 
         hosts = config["hosts"]

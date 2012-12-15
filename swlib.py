@@ -74,7 +74,7 @@ class SnapWorld:
             for key, routes in self.route.iteritems():
                 dest = routes.get(self.name)
                 if dest:
-                    if not target:
+                    if not self.target:
                         self.target = {}
                     self.target[key] = dest
 
@@ -110,9 +110,10 @@ class SnapWorld:
     def GetMsg(self, name):
         msgpath = os.path.join(self.qin, name)
         f = open(msgpath, "r")
-        result = f.read()
+        s = f.read()
         f.close()
-        return result
+        msg = simplejson.loads(s)
+        return msg
 
     def GetVar(self, name):
         # get variables from the configuration
@@ -120,16 +121,29 @@ class SnapWorld:
         result = self.var.get(name)
         return result
 
-    def LoadState(self, d):
-        return None
+    def LoadState(self):
+        fname = "swstate-%s.txt" % (self.taskname)
+        try:
+            f = open(fname,"r")
+        except:
+            return None
+
+        s = f.read()
+        f.close()
+        d = simplejson.loads(s)
+        return d
 
     def SaveState(self, d):
-        pass
+        fname = "swstate-%s.txt" % (self.taskname)
+        f = open(fname,"w")
+        s = simplejson.dumps(d)
+        f.write(s)
+        f.close()
 
-    def Send(self, dstid, d):
+    def Send(self, dstid, d, port = "1"):
         #dstnum = dstid / self.range
         #dstname = self.target + "-" + str(dstnum)
-        dstname = self.target["1"] + "-" + str(dstid)
+        dstname = self.target[port] + "-" + str(dstid)
         dsthostid = self.tasks.get(dstname)
         dshost = self.hosts.get(dsthostid)
 

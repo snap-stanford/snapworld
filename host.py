@@ -378,6 +378,7 @@ if __name__ == '__main__':
     #fname = "log-swhost-%d.txt" % (pid)
     #flog = open(fname,"w")
 
+    print "host %s, port %d" % (host, port)
     server = ThreadedHTTPServer((host, port), Server)
     server.host = host
     server.port = port

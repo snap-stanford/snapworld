@@ -1,6 +1,5 @@
-import random
 import os
-import simplejson
+import random
 import sys
 
 import swlib
@@ -11,6 +10,30 @@ def TaskId(node,tsize):
     """
 
     return node/tsize
+
+def SelectNodes(sw):
+    """
+    select random nodes for distance calculations
+    """
+
+    # generate samples in the first task ...-0
+    taskname = sw.GetName()
+    index = taskname.split("-")
+    if len(index) < 2  or  index[1] != "0":
+        return
+
+    # get all the nodes and the number of samples
+    nnodes = int(sw.GetVar("nodes"))
+    nsample = int(sw.GetVar("stat_tasks"))
+
+    s = set()
+    for i in range(0, nsample):
+        while 1:
+            n = int(random.random() * nnodes)
+            if not n in s:
+                break
+        sw.Send(i,n,"2")
+        s.add(n)
 
 def GenGraph(sw):
     """
@@ -29,12 +52,10 @@ def GenGraph(sw):
     stubs = []
     for item in msglist:
         msg = sw.GetMsg(item)
-
-        l = simplejson.loads(msg)
-        sw.flog.write("task %s, args %s\n" % (taskname, str(l)))
+        sw.flog.write("task %s, args %s\n" % (taskname, str(msg)))
         sw.flog.flush()
 
-        stubs.extend(l)
+        stubs.extend(msg)
 
     #print taskname,stubs
 
@@ -76,6 +97,7 @@ def GenGraph(sw):
         sw.Send(tdst, msgout)
 
 def Worker(sw):
+    SelectNodes(sw)
     GenGraph(sw)
 
 if __name__ == '__main__':

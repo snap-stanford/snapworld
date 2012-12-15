@@ -1,6 +1,5 @@
-import random
 import os
-import simplejson
+import random
 import sys
 
 import swlib
@@ -33,9 +32,7 @@ def GenStubs(sw):
     sw.flog.flush()
 
     for item in msglist:
-        msg = sw.GetMsg(item)
-
-        d = simplejson.loads(msg)
+        d = sw.GetMsg(item)
         sw.flog.write("task %s, args %s\n" % (taskname, str(d)))
         sw.flog.flush()
 

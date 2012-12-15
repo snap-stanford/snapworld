@@ -19,7 +19,7 @@ def GenTasks(sw):
     sw.flog.write("task %s, nodes %d, tsize %d\n" % (taskname, nnodes, tsize))
     sw.flog.flush()
 
-    ns = 0
+    ns = 1
     while ns < nnodes:
         tname = ns / tsize
         ne = ns + tsize
