@@ -140,10 +140,10 @@ class SnapWorld:
         f.write(s)
         f.close()
 
-    def Send(self, dstid, d, port = "1"):
+    def Send(self, dstid, d, channel = "1"):
         #dstnum = dstid / self.range
         #dstname = self.target + "-" + str(dstnum)
-        dstname = self.target[port] + "-" + str(dstid)
+        dstname = self.target[channel] + "-" + str(dstid)
         dsthostid = self.tasks.get(dstname)
         dshost = self.hosts.get(dsthostid)
 

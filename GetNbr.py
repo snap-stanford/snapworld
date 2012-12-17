@@ -16,28 +16,32 @@ def GetNbr(sw):
     sw.flog.flush()
 
     ds = sw.LoadState()
+    
+    edges = []
+    for item in msglist:
+        dmsg = sw.GetMsg(item)
+        cmd = dmsg["cmd"]
+        msg = dmsg["body"]
 
-    # process initialization
-    if ds == None:
+        if cmd == "init":
+            edges.extend(msg)
+        else:
+            GetNeighbors(sw, ds, msg)
 
+    if len(edges) > 0:
         # first iteration: input are edges, save the state
-        ds = GetEdges(msglist)
+        ds = GetEdges(edges)
         sw.flog.write("state " + str(ds) + "\n")
         sw.flog.flush()
         sw.SaveState(ds)
 
-    else:
-        # successive iterations: input are nodes, report the edges
-        GetNeighbors(sw, ds, msglist)
+        dmsgout = {}
+        dmsgout["src"] = sw.GetName()
+        dmsgout["cmd"] = "targets"
+        dmsgout["body"] = {}
+        sw.Send(0,dmsgout,"2")
 
-
-def GetEdges(msglist):
-    # extract neighbors from the args
-    # iterate through the input queue and add new items to the neighbor list
-    edges = []
-    for item in msglist:
-        msg = sw.GetMsg(item)
-        edges.extend(msg)
+def GetEdges(edges):
 
     #print edges
     sw.flog.write("edges " + str(edges) + "\n")
@@ -59,21 +63,21 @@ def GetEdges(msglist):
 
     return d
 
-def GetNeighbors(sw, ds, msglist):
-    # iterate through the input queue, get the nodes, report neighbors
+def GetNeighbors(sw, ds, msg):
+    # report node neighbors
 
-    edges = []
-    for item in msglist:
-        d = sw.GetMsg(item)
-        tdst = d["task"]
-        nodes = d["nodes"]
-        s = set()
-        for node in nodes:
-            snode = str(node)
-            s = s.union(set(ds[snode]))
+    tdst = msg["task"]
+    nodes = msg["nodes"]
+    s = set()
+    for node in nodes:
+        snode = str(node)
+        s = s.union(set(ds[snode]))
 
-        dmsg = list(s)
-        sw.Send(tdst,dmsg)
+    dmsgout = {}
+    dmsgout["src"] = sw.GetName()
+    dmsgout["cmd"] = "nbrs"
+    dmsgout["body"] = list(s)
+    sw.Send(tdst,dmsgout)
 
 def Worker(sw):
     GetNbr(sw)
@@ -85,7 +89,7 @@ if __name__ == '__main__':
 
     #flog = sys.stdout
     fname = "log-swwork-%s.txt" % (sw.GetName())
-    flog = open(fname,"w")
+    flog = open(fname,"a")
 
     sw.SetLog(flog)
     sw.GetConfig()

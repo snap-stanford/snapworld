@@ -376,7 +376,7 @@ if __name__ == '__main__':
 
     flog = sys.stdout
     #fname = "log-swhost-%d.txt" % (pid)
-    #flog = open(fname,"w")
+    #flog = open(fname,"a")
 
     print "host %s, port %d" % (host, port)
     server = ThreadedHTTPServer((host, port), Server)

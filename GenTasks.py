@@ -30,7 +30,12 @@ def GenTasks(sw):
         dout["s"] = ns
         dout["r"] = ne-ns
 
-        sw.Send(tname, dout)
+        dmsgout = {}
+        dmsgout["src"] = taskname
+        dmsgout["cmd"] = "nodes"
+        dmsgout["body"] = dout
+
+        sw.Send(tname, dmsgout)
 
         ns = ne
 
@@ -44,7 +49,7 @@ if __name__ == '__main__':
 
     #flog = sys.stdout
     fname = "log-swwork-%s.txt" % (sw.GetName())
-    flog = open(fname,"w")
+    flog = open(fname,"a")
 
     sw.SetLog(flog)
     sw.GetConfig()

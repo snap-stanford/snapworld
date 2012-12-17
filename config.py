@@ -137,8 +137,12 @@ def assign(dconf):
 
         for i in xrange(0,int(size)):
             taskname = bunch + "-" + str(i)
+            if bunch == "__Finish__":
+                continue
             hostindex = addtask(dtasks,hosts,taskname,hostindex)
 
+    # schedule the finish task on the first host
+    addtask(dtasks,hosts,"__Finish__-0",0)
     return dtasks
 
 def addtask(dtasks,hosts,taskname,hostindex):

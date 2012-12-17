@@ -42,7 +42,8 @@ def InitState(taskindex, msglist):
     # the original node is on input
     node = None
     for item in msglist:
-        node = sw.GetMsg(item)
+        msg = sw.GetMsg(item)
+        node = msg["body"]
 
     snode = str(node)
 
@@ -59,7 +60,13 @@ def InitState(taskindex, msglist):
     dmsg = {}
     dmsg["task"] = taskindex
     dmsg["nodes"] = [node]
-    sw.Send(tn,dmsg)
+
+    dmsgout = {}
+    dmsgout["src"] = sw.GetName()
+    dmsgout["cmd"] = "nbrs"
+    dmsgout["body"] = dmsg
+
+    sw.Send(tn,dmsgout)
 
     return ds
 
@@ -72,7 +79,8 @@ def AddNewNodes(taskindex, sw, ds, msglist):
     # nodes to add are on the input
     newnodes = set()
     for item in msglist:
-        nodes = sw.GetMsg(item)
+        msg = sw.GetMsg(item)
+        nodes = msg["body"]
         for node in nodes:
             snode = str(node)
             if snode in visited:
@@ -95,6 +103,17 @@ def AddNewNodes(taskindex, sw, ds, msglist):
             if not dcount.has_key(i):
                 break
             l.append(dcount[i])
+
+        dmsg = {}
+        dmsg["start"] = ds["start"]
+        dmsg["dist"] = l
+
+        dmsgout = {}
+        dmsgout["src"] = sw.GetName()
+        dmsgout["cmd"] = "results"
+        dmsgout["body"] = dmsg
+
+        sw.Send(0,dmsgout,"2")
 
         sw.flog.write("final " + ds["start"] + " " + str(distance) + " " + str(visited) + "\n")
         sw.flog.write("distances " + str(l) + "\n")
@@ -119,7 +138,13 @@ def AddNewNodes(taskindex, sw, ds, msglist):
         dmsg = {}
         dmsg["task"] = taskindex
         dmsg["nodes"] = args
-        sw.Send(tn,dmsg)
+
+        dmsgout = {}
+        dmsgout["src"] = sw.GetName()
+        dmsgout["cmd"] = "nbrs"
+        dmsgout["body"] = dmsg
+
+        sw.Send(tn,dmsgout)
 
 def Worker(sw):
     GetDist(sw)
@@ -131,7 +156,7 @@ if __name__ == '__main__':
 
     #flog = sys.stdout
     fname = "log-swwork-%s.txt" % (sw.GetName())
-    flog = open(fname,"w")
+    flog = open(fname,"a")
 
     sw.SetLog(flog)
     sw.GetConfig()

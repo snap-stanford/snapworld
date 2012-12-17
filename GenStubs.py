@@ -7,6 +7,7 @@ import swlib
 #distmean = 150
 #distvar  = 22.5
 distmean = 8
+#distmean = 3
 distvar  = 1
 
 def StdDist(mean,dev):
@@ -32,7 +33,8 @@ def GenStubs(sw):
     sw.flog.flush()
 
     for item in msglist:
-        d = sw.GetMsg(item)
+        dmsg = sw.GetMsg(item)
+        d = dmsg["body"]
         sw.flog.write("task %s, args %s\n" % (taskname, str(d)))
         sw.flog.flush()
 
@@ -73,10 +75,15 @@ def GenStubs(sw):
     sw.flog.write("dstubs " + str(dstubs) + "\n")
     sw.flog.flush()
 
+    dmsgout = {}
+    dmsgout["src"] = taskname
+    dmsgout["cmd"] = "stubs"
+
     for tdst, msgout in dstubs.iteritems():
         sw.flog.write("sending task %d, msg %s" % (tdst, str(msgout)) + "\n")
         sw.flog.flush()
-        sw.Send(tdst, msgout)
+        dmsgout["body"] = msgout
+        sw.Send(tdst, dmsgout)
 
 def Worker(sw):
     GenStubs(sw)
@@ -88,7 +95,7 @@ if __name__ == '__main__':
 
     #flog = sys.stdout
     fname = "log-swwork-%s.txt" % (sw.GetName())
-    flog = open(fname,"w")
+    flog = open(fname,"a")
 
     sw.SetLog(flog)
     sw.GetConfig()

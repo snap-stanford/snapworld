@@ -51,7 +51,8 @@ def GenGraph(sw):
 
     stubs = []
     for item in msglist:
-        msg = sw.GetMsg(item)
+        dmsg = sw.GetMsg(item)
+        msg = dmsg["body"]
         sw.flog.write("task %s, args %s\n" % (taskname, str(msg)))
         sw.flog.flush()
 
@@ -91,13 +92,18 @@ def GenGraph(sw):
 
     #print taskname,edges
 
+    dmsgout = {}
+    dmsgout["src"] = taskname
+    dmsgout["cmd"] = "init"
+
     for tdst, msgout in edges.iteritems():
         sw.flog.write("sending task %d, msg %s" % (tdst, str(msgout)) + "\n")
         sw.flog.flush()
-        sw.Send(tdst, msgout)
+        dmsgout["body"] = msgout
+        sw.Send(tdst, dmsgout)
 
 def Worker(sw):
-    SelectNodes(sw)
+    #SelectNodes(sw)
     GenGraph(sw)
 
 if __name__ == '__main__':
@@ -107,7 +113,7 @@ if __name__ == '__main__':
 
     #flog = sys.stdout
     fname = "log-swwork-%s.txt" % (sw.GetName())
-    flog = open(fname,"w")
+    flog = open(fname,"a")
 
     sw.SetLog(flog)
     sw.GetConfig()
