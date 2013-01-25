@@ -19,6 +19,40 @@ def step(server):
     body = f.read()
     f.close()
 
+def getexec(server,prog,timestamp):
+    '''
+    get executable from the head task
+    - return values
+        "", no change
+        <body>, new content
+        None, no file found
+    '''
+
+    # send a request for executable
+    if not timestamp:
+        url = "http://%s/exec?p=%s" % (server, prog)
+    else:
+        url = "http://%s/exec?p=%s&t=%s" % (server, prog, str(timestamp))
+
+    print "exec", server, prog, timestamp
+
+    httpcode = 200
+    try:
+        f = urllib2.urlopen(url)
+    except urllib2.HTTPError as e:
+        httpcode = e.code
+
+    if httpcode == 304:
+        return ""
+
+    if httpcode != 200:
+        return None
+
+    body = f.read()
+    f.close()
+
+    return body
+
 def quit(server):
     # send termination quit
     url = "http://%s/quit" % (server)

@@ -19,7 +19,6 @@ import daemon
 import pexec
 
 workdir = "/home/rok/snapwexec"
-progdir = "/home/rok/git/rok/snapworld"
 
 class Server(BaseHTTPServer.BaseHTTPRequestHandler):
     
@@ -281,10 +280,54 @@ def Execute(args):
 
     args.flog.write("Execute " + str(args.active) + "\n")
 
+    tnow = time.time()
+
+    execdir = os.path.join(args.workdir, "snapw.%d/exec" % (args.pid))
+    config.mkdir_p(execdir)
+
     # execute the tasks sequentially
     for task in args.active:
-        prog = "%s.py" % (task.split("-",1)[0])
-        progpath = os.path.join(progdir, prog)
+
+        # get the executables
+        bunch = "%s" % (task.split("-",1)[0])
+        execlist = []
+        try:
+            execlist = args.config["bunch"][bunch]["exec"].split(",")
+        except:
+            pass
+
+        for item in execlist:
+            execpath = os.path.join(execdir, item)
+            # check if the program exists and its mtime
+            mtime = None
+            try:
+                stat = os.stat(execpath)
+                mtime = int(stat.st_mtime)
+            except:
+                pass
+
+            if not mtime  or  mtime < tnow:
+                # the file does not exist or it is older than current time,
+                #   contact the head task
+
+                content = client.getexec(args.master,item,mtime)
+                swc = "None"
+                if content:
+                    swc = str(len(content))
+
+                print "Host received %s" % (swc)
+                if content:
+                    if len(content) > 0:
+                        print "Host saving to %s" % (execpath)
+                        f = open(execpath,"w")
+                        f.write(content)
+                        f.close()
+    
+                    os.utime(execpath,(tnow, tnow))
+
+        prog = execlist[0]
+        print "Task %s, exec %s" % (prog, execlist)
+        progpath = os.path.join(execdir, prog)
 
         if not os.path.exists(progpath):
             line = "*** Error: task %s not started, program %s not found\n" % (

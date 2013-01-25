@@ -33,14 +33,22 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
                 '',
                 'HEADERS RECEIVED:',
                 ]
+        #print parsed_path
+
         for name, value in sorted(self.headers.items()):
             message_parts.append('%s=%s' % (name, value.rstrip()))
         message_parts.append('')
         message = '\r\n'.join(message_parts)
-        #print message
+        #print "message", message
 
         subpath = self.path.split("/")
-        #print subpath
+        #print "subpath", subpath
+
+        command = parsed_path.path
+        #print "command", command
+
+        dargs = dict(urlparse.parse_qsl(parsed_path.query))
+        #print "dargs", dargs
 
         if self.path == "/start":
             print "starting host servers "
@@ -83,6 +91,41 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
             self.send_header('Content-Length', len(body))
             self.end_headers()
             self.wfile.write(body)
+            return
+
+        elif command == "/exec":
+            pname = dargs.get("p")
+
+            ptime = 0
+            try:
+                ptime = int(dargs.get("t"))
+            except:
+                pass
+            print "get executable", pname, ptime
+
+            stat = os.stat(pname)
+            mtime = int(stat.st_mtime)
+
+            swnew = False
+            if mtime > ptime:
+                swnew = True
+            
+            print "stat", pname, ptime, mtime, "NEW" if swnew else "OLD"
+            if not swnew:
+                # the file has not changed
+                self.send_response(304)
+                self.send_header('Content-Length', 0)
+                self.end_headers()
+                return
+
+            f = open(pname)
+            content = f.read()
+            f.close()
+
+            self.send_response(200)
+            self.send_header('Content-Length', len(content))
+            self.end_headers()
+            self.wfile.write(content)
             return
 
         elif subpath[1] == "done":
@@ -196,7 +239,8 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
                     remote["host"], remote["port"])
 
         #cmd = "ssh %s python git/rok/snapworld/host.py -i %s -p %s -m %s:%s" % (
-        cmd = "ssh %s python git/rok/snapworld/host.py -d -i %s -p %s -m %s:%s" % (
+        #cmd = "ssh %s python git/rok/snapworld/host.py -d -i %s -p %s -m %s:%s" % (
+        cmd = "ssh %s python2.6 /lfs/1/tmp/rok/snapworld/host.py -d -i %s -p %s -m %s:%s" % (
                     remote["host"], remote["id"], remote["port"],
                     master["host"], master["port"])
         print cmd

@@ -82,11 +82,18 @@ def readconfig(fname):
             size = words[3]
             range = words[5]
 
+            execprog = None
+            if len(words) >= 8  and  words[6] == "exec":
+                execprog = words[7]
+
             if size[0] == "$":
                 size = dconf["var"][size[1:]]
 
             if range[0] == "$":
                 range = dconf["var"][range[1:]]
+
+            if execprog  and  len(execprog) > 0  and  range[0] == "$":
+                execprog = dconf["var"][execprog[1:]]
 
             if not dconf.has_key("bunch"):
                 dconf["bunch"] = {}
@@ -94,6 +101,8 @@ def readconfig(fname):
             dconf["bunch"][name] = {}
             dconf["bunch"][name]["size"] = size
             dconf["bunch"][name]["range"] = range
+            if execprog:
+                dconf["bunch"][name]["exec"] = execprog
 
         elif key == "route":
             if len(words) < 3:
