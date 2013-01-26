@@ -102,7 +102,7 @@ def message(server, src, dst, body):
     url = "http://%s/msg/%s/%s" % (server,dst,src)
     length = len(body)
 
-    #print "url", url
+    print "message url", url
 
     request = urllib2.Request(url, data=body)
     request.add_header('Content-Length', '%d' % length)

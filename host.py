@@ -71,7 +71,9 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
                 qactnewname = "%s-%s-%s" % (qactname, s, mus)
                 os.rename(qactname, qactnewname)
 
-            os.rename(qinname, qactname)
+            # rename existing qin
+            if os.path.exists(qinname):
+                os.rename(qinname, qactname)
 
             # create new qin
             config.mkdir_p(qinname)
@@ -112,6 +114,10 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
             line = "execute next step\n"
             self.flog.write(line)
             self.flog.flush()
+
+            # TODO, implement null action,
+            #   skip execution if there are no tasks to execute,
+            #   qact does not exist
 
             # get the tasks to execute
             qactname = "snapw.%d/qact" % (self.pid)
@@ -382,7 +388,8 @@ if __name__ == '__main__':
         print "Usage: " + sys.argv[0] + " -d -i <id> -p <port> -m <host>:<port>"
         sys.exit(1)
 
-    host = "localhost"
+    #host = "localhost"
+    host = "bruce.stanford.edu"
     port = None
     master = None
 
@@ -408,7 +415,7 @@ if __name__ == '__main__':
         print "Usage: " + sys.argv[0] + " -d -i <id> -p <port> -m <host>:<port>"
         sys.exit(1)
 
-    daemon_mode = False
+    #daemon_mode = False
     if daemon_mode:
         retCode = daemon.createDaemon()
 
