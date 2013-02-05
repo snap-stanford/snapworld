@@ -11,14 +11,16 @@ import urllib2
 import BaseHTTPServer
 import SocketServer
 
-sys.path.append("/home/rok/git/rok/snapworld")
+bindir = os.environ["SNAPWBIN"]
+workdir = os.environ["SNAPWEXEC"]
+python = os.environ["PYTHON"]
+
+sys.path.append(bindir)
 
 import client
 import config
 import daemon
 import pexec
-
-workdir = "/home/rok/snapwexec"
 
 class Server(BaseHTTPServer.BaseHTTPRequestHandler):
     
@@ -71,20 +73,23 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
                 qactnewname = "%s-%s-%s" % (qactname, s, mus)
                 os.rename(qactname, qactnewname)
 
-            # rename existing qin
+            # get the number of active tasks, rename existing qin
+            numtasks = 0
             if os.path.exists(qinname):
                 os.rename(qinname, qactname)
+                active = os.listdir(qactname)
+                numtasks = len(active)
 
             # create new qin
             config.mkdir_p(qinname)
-
-            # send ready to master
-            client.ready(self.master, self.id)
     
             line = "preparing next step: %s, %s, %s\n" % (
                         qinname, qactname, qactnewname)
             self.flog.write(line)
             self.flog.flush()
+
+            # send ready to master
+            client.ready(self.master, self.id, numtasks)
 
             self.send_response(200)
             self.send_header('Content-Length', 0)
@@ -115,28 +120,29 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
             self.flog.write(line)
             self.flog.flush()
 
+            self.send_response(200)
+            self.send_header('Content-Length', 0)
+            self.end_headers()
+
             # TODO, implement null action,
             #   skip execution if there are no tasks to execute,
             #   qact does not exist
 
             # get the tasks to execute
             qactname = "snapw.%d/qact" % (self.pid)
-            active = os.listdir(qactname)
+            active = []
+            if os.path.exists(qactname):
+                active = os.listdir(qactname)
 
             line = "active tasks %s\n" % (str(active))
             self.flog.write(line)
             self.flog.flush()
 
-            if len(active) > 0:
-                self.qactname = qactname
-                self.active = active
-                # start a thread to execute the work tasks
-                t = threading.Thread(target=Execute, args=(self, ))
-                t.start()
-
-            self.send_response(200)
-            self.send_header('Content-Length', 0)
-            self.end_headers()
+            self.qactname = qactname
+            self.active = active
+            # start a thread to execute the work tasks
+            t = threading.Thread(target=Execute, args=(self, ))
+            t.start()
             return
 
         elif self.path == "/config":
@@ -150,6 +156,7 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
             self.send_header('Content-Length', len(body))
             self.end_headers()
             self.wfile.write(body)
+
             return
 
         elif self.path == "/quit":
@@ -228,6 +235,11 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
             self.flog.write(line)
             self.flog.flush()
 
+            self.send_response(200)
+            self.send_header('Content-Length', 0)
+            self.end_headers()
+            return
+
         # Begin the response
         self.send_response(200)
         self.end_headers()
@@ -267,6 +279,9 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
                 self.wfile.write('\t%s=%s\n' % (field, form[field].value))
         return
 
+    def log_message(self, format, *args):
+        pass
+
 class ThreadedHTTPServer(SocketServer.ThreadingMixIn,
                             BaseHTTPServer.HTTPServer):
     """Handle requests in a separate thread."""
@@ -288,8 +303,9 @@ def Execute(args):
 
     tnow = time.time()
 
-    execdir = os.path.join(args.workdir, "snapw.%d/exec" % (args.pid))
-    config.mkdir_p(execdir)
+    if len(args.active) > 0:
+        execdir = os.path.join(args.workdir, "snapw.%d/exec" % (args.pid))
+        config.mkdir_p(execdir)
 
     # execute the tasks sequentially
     for task in args.active:
@@ -358,7 +374,7 @@ def Execute(args):
         port = args.server.port
 
         # construct a command line
-        cmd = "python %s -t %s -h %s:%d -q %s" % (
+        cmd = python + " %s -t %s -h %s:%d -q %s" % (
                     progpath, task, host, port, qdir)
         args.flog.write("starting cmd %s\n" % (cmd))
         args.flog.flush()
@@ -374,7 +390,7 @@ def Execute(args):
             if status != None:
                 break
 
-            time.sleep(1)
+            time.sleep(0.1)
 
         args.flog.write("finished\n")
         args.flog.flush()
@@ -388,8 +404,11 @@ if __name__ == '__main__':
         print "Usage: " + sys.argv[0] + " -d -i <id> -p <port> -m <host>:<port>"
         sys.exit(1)
 
+    print "host.py started"
+
     #host = "localhost"
-    host = "bruce.stanford.edu"
+    #host = "bruce.stanford.edu"
+    host = "0.0.0.0"
     port = None
     master = None
 
@@ -415,8 +434,13 @@ if __name__ == '__main__':
         print "Usage: " + sys.argv[0] + " -d -i <id> -p <port> -m <host>:<port>"
         sys.exit(1)
 
+    print "bindir", bindir
+    print "workdir", workdir
+    sys.stdout.flush()
+
     #daemon_mode = False
     if daemon_mode:
+        print "daemon"
         retCode = daemon.createDaemon()
 
     os.chdir(workdir)
@@ -424,9 +448,20 @@ if __name__ == '__main__':
     pid = os.getpid()
     #print "pid", pid
 
-    flog = sys.stdout
-    #fname = "log-swhost-%d.txt" % (pid)
-    #flog = open(fname,"a")
+    fname1 = "log-snapw-host-%d.txt" % (port)
+    fname = "log-swhost-%d.txt" % (pid)
+
+    fd = os.open(fname1, os.O_APPEND | os.O_WRONLY) # standard input (0)
+    #flog = open(fname, "a") # standard input (0)
+
+    # Duplicate standard input to standard output and standard error.
+    os.dup2(0, 1)           # standard output (1)
+    os.dup2(0, 2)           # standard error (2)
+
+    #flog = os.fdopen(fd)
+
+    #flog = sys.stdout
+    flog = open(fname,"a")
 
     print "host %s, port %d" % (host, port)
     server = ThreadedHTTPServer((host, port), Server)

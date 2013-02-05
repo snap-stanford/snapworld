@@ -155,13 +155,18 @@ def createDaemon():
    maxfd = resource.getrlimit(resource.RLIMIT_NOFILE)[1]
    if (maxfd == resource.RLIM_INFINITY):
       maxfd = MAXFD
+
+   # op RS: changed the code to keep stdin, stdout, stderr open
   
    # Iterate through and close all file descriptors.
+   #for fd in range(3, maxfd):
    for fd in range(0, maxfd):
       try:
          os.close(fd)
       except OSError:	# ERROR, fd wasn't open to begin with (ignored)
          pass
+
+   return(0)
 
    # Redirect the standard I/O file descriptors to the specified file.  Since
    # the daemon has no controlling terminal, most daemons redirect stdin,

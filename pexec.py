@@ -10,6 +10,8 @@ def Exec(pwd, cmd):
     cl = cmd.split()
 
     # start the process
+    #p = subprocess.Popen(cl, cwd=pwd, stderr=subprocess.STDOUT, stdout=1)
+    #p = subprocess.Popen(cl, cwd=pwd, stdout=1)
     p = subprocess.Popen(cl, cwd=pwd)
     return p
 

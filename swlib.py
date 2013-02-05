@@ -53,6 +53,9 @@ class SnapWorld:
         self.flog.write("Starting task %s with host %s, queue %s\n" % (self.taskname, self.host, self.qin))
         self.flog.flush()
 
+    def GetLog(self):
+        return self.flog
+
     def GetConfig(self):
         # get configuration from the host
         sconf = client.config(self.host)

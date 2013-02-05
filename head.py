@@ -144,12 +144,15 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
                     print "all hosts completed"
                     #time.sleep(5)
 
-                    # initialize a set of ready servers
+                    #  initialize a set of ready servers,
+                    #       clear the continue indicator
                     self.server.ready = set()
+                    self.server.iterate = False
 
                     # send a start message at the beginning
                     if not self.server.start:
                         self.server.start = True
+                        self.server.executing = True
                         (starthost, starttask) = self.GetStartInfo(self.config)
                         s = "send __Start__ message for task %s to host %s" % (
                                 starttask, starthost)
@@ -161,9 +164,13 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
                     master = "%s:%s" % (
                         self.config["master"]["host"],
                         self.config["master"]["port"])
+
+                    print "hosts", hosts
                     for h in hosts:
                         print "send prepare to", h
+                        sys.stdout.flush()
                         self.Prepare(h)
+                        print "done sending prepare to", h
             return
 
         elif subpath[1] == "ready":
@@ -176,8 +183,27 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
                 host = subpath[2]
                 # TODO make this update thread safe, which it is not now
                 self.server.ready.add(host)
+
+                # get the number of active tasks on the host
+                numtasks = 0
+                try:
+                    numtasks = int(subpath[3])
+                except:
+                    pass
+
+                # execute the next step, if there are active tasks
+                if numtasks > 0:
+                    self.server.iterate = True
+
                 print "host %s ready" % (str(self.server.ready))
                 if len(self.server.ready) == len(self.config["hosts"]):
+
+                    # stop the execution, if there are no more tasks to execute
+                    if not self.server.iterate:
+                        print "all tasks completed"
+                        self.server.executing = False
+                        self.server.iterate = False
+                        return
 
                     print "all hosts ready"
                     #time.sleep(5)
@@ -190,6 +216,7 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
                     master = "%s:%s" % (
                         self.config["master"]["host"],
                         self.config["master"]["port"])
+                    # TODO, create a thread for this step
                     for h in hosts:
                         print "send next step to", h
                         self.StartStep(h)
@@ -240,7 +267,8 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
 
         #cmd = "ssh %s python git/rok/snapworld/host.py -i %s -p %s -m %s:%s" % (
         #cmd = "ssh %s python git/rok/snapworld/host.py -d -i %s -p %s -m %s:%s" % (
-        cmd = "ssh %s python2.6 /lfs/1/tmp/rok/snapworld/host.py -d -i %s -p %s -m %s:%s" % (
+        #cmd = "ssh %s python2.6 /lfs/1/tmp/rok/snapworld/host.py -d -i %s -p %s -m %s:%s" % (
+        cmd = "ssh %s snapworld.sh %s %s %s %s" % (
                     remote["host"], remote["id"], remote["port"],
                     master["host"], master["port"])
         print cmd
@@ -296,12 +324,22 @@ if __name__ == '__main__':
     port = int(master["port"])
 
     server = ThreadedHTTPServer((host, port), Server)
+    # head service host name
     server.host = host
+    # head service port
     server.port = port
+    # set of hosts completed their step
     server.done = set()
+    # set of hosts ready for the next step
     server.ready = set()
+    # indicator, if an application has started yet
     server.start = False
+    # indicator that the head service is running
     server.running = True
+    # indicator that an application is running
+    server.executing = False
+    # indicator that an application should execute the next step
+    server.iterate = False
 
     handler = BaseHTTPServer.BaseHTTPRequestHandler
     handler.config = dconf

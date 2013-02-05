@@ -90,9 +90,9 @@ def done(server, id):
     body = f.read()
     f.close()
 
-def ready(server, id):
+def ready(server, id, numtasks=0):
     # send ready
-    url = "http://%s/ready/%s" % (server,id)
+    url = "http://%s/ready/%s/%s" % (server,id,str(numtasks))
     f = urllib2.urlopen(url)
     body = f.read()
     f.close()

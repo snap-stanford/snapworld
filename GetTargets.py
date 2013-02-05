@@ -15,6 +15,7 @@ def SelectNodes(sw):
 
     s = set()
     for i in range(0, nsample):
+
         while 1:
             n = int(random.random() * nnodes)
             if not n in s:
@@ -26,6 +27,7 @@ def SelectNodes(sw):
         dmsgout["body"] = n
 
         sw.Send(i,dmsgout)
+
         s.add(n)
 
 def Worker(sw):

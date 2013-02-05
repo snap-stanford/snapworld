@@ -45,6 +45,9 @@ def readconfig(fname):
             value = words[1]
 
             hcount = 1
+            if dconf.has_key("hosts"):
+                hcount = len(dconf["hosts"]) + 1
+
             hosts = value.split(",")
             l = []
             for host in hosts:
@@ -62,7 +65,10 @@ def readconfig(fname):
                 l.append(d)
                 hcount += 1
     
-            dconf["hosts"] = l
+            if not dconf.has_key("hosts"):
+                dconf["hosts"] = l
+            else:
+                dconf["hosts"].extend(l)
 
         elif key == "var":
             if len(words) < 3:
