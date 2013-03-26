@@ -345,6 +345,10 @@ if __name__ == '__main__':
     handler.config = dconf
 
     dconf["tasks"] = config.assign(dconf)
+    #s = simplejson.dumps(dconf)
+    #f = open("snapw-dump.config","w")
+    #f.write(s)
+    #f.close()
 
     print 'Starting head server on port %d, use <Ctrl-C> to stop' % (port)
     server.execute()

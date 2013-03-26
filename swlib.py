@@ -9,30 +9,43 @@ class SnapWorld:
 
     def Args(self, argv):
         if len(argv) < 7:
-            print "Usage: " + argv[0] + " -t <id> -h <host>:<port> -q <queue_dir>"
+            print "Usage: " + argv[0] + " -t <id> -h <host>:<port> -q <queue_dir> -c <config_file> -l"
             sys.exit(1)
 
         self.taskname = None
         self.host = None
         self.qin = None
+        self.configfile = None
+        self.local = False
 
         index = 1
         while index < len(argv):
             arg = argv[index]
             if arg == "-t":
+                # task name
                 index += 1
                 self.taskname = argv[index]
             elif arg == "-h":
+                # host process address
                 index += 1
                 self.host = argv[index]
             elif arg == "-q":
+                # input queue location
                 index += 1
                 self.qin = argv[index]
+            elif arg == "-c":
+                # config file name (optional, needed if local)
+                index += 1
+                self.configfile = argv[index]
+            elif arg == "-l":
+                # local operation, no network
+                self.local = True
 
             index += 1
 
-        if self.taskname == None  or  self.host == None  or  self.qin == None:
-            print "Usage: " + argv[0] + " -t <id> -h <host>:<port> -q <queue_dir>"
+        if (self.taskname == None  or  self.qin == None  or
+            (self.host == None  and  self.configfile == None)):
+            print "Usage: " + argv[0] + " -t <id> -h <host>:<port> -q <queue_dir> -c <config_file> -l"
             sys.exit(1)
 
         self.config = None
@@ -58,7 +71,21 @@ class SnapWorld:
 
     def GetConfig(self):
         # get configuration from the host
-        sconf = client.config(self.host)
+        sconf = None
+        if self.configfile:
+            try:
+                f = open(self.configfile)
+                sconf = f.read()
+                f.close()
+            except:
+                pass
+        elif self.host:
+            sconf = client.config(self.host)
+
+        if not sconf:
+            print "*** no configuration"
+            return None
+
         self.config = simplejson.loads(sconf)
 
         self.var = self.config.get("var")
@@ -110,6 +137,10 @@ class SnapWorld:
         l = os.listdir(self.qin)
         return l
 
+    def GetMsgName(self, name):
+        msgname = os.path.join(self.qin, name)
+        return msgname
+
     def GetMsg(self, name):
         msgpath = os.path.join(self.qin, name)
         f = open(msgpath, "r")
@@ -124,8 +155,13 @@ class SnapWorld:
         result = self.var.get(name)
         return result
 
+    def GetStateName(self):
+        fname = "swstate-%s.txt" % (self.taskname)
+        return fname
+        
     def LoadState(self):
         fname = "swstate-%s.txt" % (self.taskname)
+
         try:
             f = open(fname,"r")
         except:
@@ -134,24 +170,51 @@ class SnapWorld:
         s = f.read()
         f.close()
         d = simplejson.loads(s)
+
         return d
 
     def SaveState(self, d):
+        # save the state
         fname = "swstate-%s.txt" % (self.taskname)
+
         f = open(fname,"w")
         s = simplejson.dumps(d)
         f.write(s)
         f.close()
 
-    def Send(self, dstid, d, channel = "1"):
+    def GetOutName(self, dstname):
+        fname = "swout-%s-%s.txt" % (self.taskname, dstname)
+        return fname
+
+    def Send(self, dstid, d, channel = "1", swsnap = False):
+
         #dstnum = dstid / self.range
         #dstname = self.target + "-" + str(dstnum)
         dstname = self.target[channel] + "-" + str(dstid)
         dsthostid = self.tasks.get(dstname)
         dshost = self.hosts.get(dsthostid)
 
-        s = simplejson.dumps(d)
-        print "send  task %s, host %s, msg %s" % (dstname, dshost, s)
+        if self.local:
+            fname = self.GetOutName(dstname)
 
-        client.message(dshost,self.taskname,dstname,s)
+        if swsnap:
+            # Snap vector
+            if self.local:
+                print "send Snap task %s, host %s, msg %s, *** Error: not yet implemented" % (dstname, dshost, s)
+                return
+
+            client.messagevec(dshost,self.taskname,dstname,d)
+
+        else:
+            # json dict
+            s = simplejson.dumps(d)
+            print "send  task %s, host %s, msg %s" % (dstname, dshost, s)
+
+            if self.local:
+                f = open(fname,"w")
+                f.write(s)
+                f.close()
+                return
+
+            client.message(dshost,self.taskname,dstname,s)
 

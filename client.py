@@ -1,3 +1,4 @@
+import httplib
 import urllib2
 
 def config(server):
@@ -109,4 +110,26 @@ def message(server, src, dst, body):
     f = urllib2.urlopen(request)
     body = f.read()
     f.close()
+
+def messagevec(server, src, dst, Vec):
+    h = httplib.HTTPConnection(server)
+    h.connect()
+    url = "/msg/%s/%s" % (dst,src)
+    h.putrequest("POST",url)
+    h.putheader("Content-Length", str(Vec.GetMemSize()))
+    h.endheaders()
+
+    fileno = h.sock.fileno()
+    #print "fileno", fileno
+
+    n = Vec.Send(fileno)
+    #print n
+
+    res = h.getresponse()
+    #print res.status, res.reason
+    data = res.read()
+    #print len(data)
+    #print data
+
+    h.close()
 
