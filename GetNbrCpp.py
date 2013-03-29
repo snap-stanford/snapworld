@@ -94,20 +94,16 @@ def GetNeighbors(sw, AdjLists, msg):
 
     tdst = msg["task"]
     nodes = msg["nodes"]
-    s = set()
+    Nodes = Snap.TIntV()
     for node in nodes:
-        # TODO: rewrite for SNAP once GetDist is SNAP format
-        Nbrs = AdjLists.GetDat(node)
-        for j in range(0, Nbrs.Len()):
-            s.add(Nbrs.GetVal(j).Val)
+        Nodes.Add(node)
 
-    print "s", str(s)
-    # TODO: rewrite output message to SNAP format for GetDist
-    dmsgout = {}
-    dmsgout["src"] = sw.GetName()
-    dmsgout["cmd"] = "nbrs"
-    dmsgout["body"] = list(s)
-    sw.Send(tdst,dmsgout)
+    Hood = Snap.TIntV()
+    Snap.GetNeighborhood(Nodes, AdjLists, Hood);
+
+    print "Hood len %d" % (Hood.Len())
+
+    sw.Send(tdst,Hood,swsnap=True)
 
 def Worker(sw):
     GetNbr(sw)

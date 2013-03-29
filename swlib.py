@@ -3,6 +3,8 @@ import os
 import simplejson
 import sys
 
+import snap as Snap
+
 class SnapWorld:
     def __init__(self):
         pass
@@ -200,7 +202,10 @@ class SnapWorld:
         if swsnap:
             # Snap vector
             if self.local:
-                print "send Snap task %s, host %s, msg %s, *** Error: not yet implemented" % (dstname, dshost, s)
+                FOut = Snap.TFOut(Snap.TStr(fname))
+                d.Save(FOut)
+                FOut.Flush()
+                #print "send Snap task %s, host %s, *** Error: local 'Send' not yet implemented" % (dstname, dshost)
                 return
 
             client.messagevec(dshost,self.taskname,dstname,d)

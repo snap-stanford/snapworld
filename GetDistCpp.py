@@ -13,7 +13,7 @@ def LoadState():
     FIn = Snap.TFIn(Snap.TStr(fname))
     Start = Snap.TInt(FIn)
     Dist = Snap.TInt(FIn)
-    Visited = Snap.TIntV(FIn)
+    Visited = Snap.TIntH(FIn)
 
     ds = {}
     ds["start"] = Start.Val
@@ -53,9 +53,7 @@ def GetDist(sw):
     sw.flog.write("msglist " + str(msglist) + "\n")
     sw.flog.flush()
 
-    print 11
     ds = LoadState()
-    print 12
 
     # process initialization
     if ds == None:
@@ -70,6 +68,8 @@ def GetDist(sw):
     SaveState(ds)
 
 def InitState(taskindex, msglist):
+    # TODO move all the message formats to SNAP
+    # TODO move all the iterators to SNAP
 
     # the original node is on input
     node = None
@@ -105,10 +105,13 @@ def InitState(taskindex, msglist):
     return ds
 
 def AddNewNodes(taskindex, sw, ds, msglist):
+    # TODO move all the message formats to SNAP
+    # TODO move all the iterators to SNAP
 
     ds["dist"] += 1
     distance = ds["dist"]
     Visited = ds["visit"]
+    print "Visited", type(Visited)
     
     # nodes to add are on the input
     NewNodes = Snap.TIntH() 
@@ -125,10 +128,15 @@ def AddNewNodes(taskindex, sw, ds, msglist):
     if NewNodes.Len() <= 0:
         # get distance distribution
         dcount = {}
-        for snode,distance in visited.iteritems():
+        VIter = Visited.BegI()
+        while not VIter.IsEnd():
+            snode = VIter.GetKey().Val
+            distance = VIter.GetDat().Val
             if not dcount.has_key(distance):
                 dcount[distance] = 0
             dcount[distance] += 1
+
+            VIter.Next()
 
         nnodes = int(sw.GetVar("nodes"))
         l = []
@@ -148,7 +156,7 @@ def AddNewNodes(taskindex, sw, ds, msglist):
 
         sw.Send(0,dmsgout,"2")
 
-        sw.flog.write("final " + ds["start"] + " " + str(distance) + " " + str(visited) + "\n")
+        sw.flog.write("final %s %s" % (str(ds["start"]), str(distance)))
         sw.flog.write("distances " + str(l) + "\n")
         sw.flog.flush()
         return
@@ -158,11 +166,14 @@ def AddNewNodes(taskindex, sw, ds, msglist):
 
     # collect nodes for the same task
     dtasks = {}
-    for ndst in newnodes:
+    NIter = NewNodes.BegI()
+    while not NIter.IsEnd():
+        ndst = NIter.GetKey().Val
         tn = TaskId(ndst,tsize)
         if not dtasks.has_key(tn):
             dtasks[tn] = []
         dtasks[tn].append(ndst)
+        NIter.Next()
 
     #print "dtasks", dtasks
 
