@@ -3,7 +3,13 @@ import os
 import simplejson
 import sys
 
-import snap as Snap
+gotsnap = False
+
+try:
+    import snap as Snap
+    gotsnap = True
+except:
+    pass
 
 class SnapWorld:
     def __init__(self):
@@ -200,6 +206,10 @@ class SnapWorld:
             fname = self.GetOutName(dstname)
 
         if swsnap:
+            if not gotsnap:
+                print "*** Error: Snap module is not available"
+                sys.exit(1)
+                
             # Snap vector
             if self.local:
                 FOut = Snap.TFOut(Snap.TStr(fname))

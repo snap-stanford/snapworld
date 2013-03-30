@@ -5,49 +5,13 @@ import sys
 import snap as Snap
 import swlib
 
-def LoadState():
-    fname = sw.GetStateName()
-    if not os.path.exists(fname):
-        return None
-
-    FIn = Snap.TFIn(Snap.TStr(fname))
-    Start = Snap.TInt(FIn)
-    Dist = Snap.TInt(FIn)
-    Visited = Snap.TIntH(FIn)
-
-    ds = {}
-    ds["start"] = Start.Val
-    ds["dist"] = Dist.Val
-    ds["visit"] = Visited
-    return ds
-
-def SaveState(ds):
-    fname = sw.GetStateName()
-
-    Start = Snap.TInt(ds["start"])
-    Dist = Snap.TInt(ds["dist"])
-    Visited = ds["visit"]
-
-    FOut = Snap.TFOut(Snap.TStr(fname))
-    Start.Save(FOut)
-    Dist.Save(FOut)
-    Visited.Save(FOut)
-    FOut.Flush()
-
-def TaskId(node,tsize):
-    """
-    return the task id for a node
-    """
-
-    return node/tsize
-
 def GetDist(sw):
     """
     find the node distance
     """
 
     taskname = sw.GetName()
-    taskindex = taskname.split("-")[1]
+    taskindex = int(taskname.split("-")[1])
 
     msglist = sw.GetMsgList()
     sw.flog.write("msglist " + str(msglist) + "\n")
@@ -82,25 +46,18 @@ def InitState(taskindex, msglist):
     ds["dist"] = 0
 
     Visited = Snap.TIntH() 
-    print 1
     Visited.AddDat(node,0)
-    print 2
 
     ds["visit"] = Visited
 
     tsize = sw.GetRange()
     tn = TaskId(node,tsize)
 
-    dmsg = {}
-    dmsg["task"] = taskindex
-    dmsg["nodes"] = [node]
-
-    dmsgout = {}
-    dmsgout["src"] = sw.GetName()
-    dmsgout["cmd"] = "nbrs"
-    dmsgout["body"] = dmsg
-
-    sw.Send(tn,dmsgout)
+    # send the message
+    Vec1 = Snap.TIntV()
+    Vec1.Add(node)
+    Vec1.Add(taskindex)
+    sw.Send(tn,Vec1,swsnap=True)
 
     return ds
 
@@ -115,14 +72,26 @@ def AddNewNodes(taskindex, sw, ds, msglist):
     
     # nodes to add are on the input
     NewNodes = Snap.TIntH() 
+
     for item in msglist:
-        msg = sw.GetMsg(item)
-        nodes = msg["body"]
-        for node in nodes:
-            if Visited.IsKey(node):
+
+        name = sw.GetMsgName(item)
+
+        print "input", name
+        # read the input nodes
+        FIn = Snap.TFIn(Snap.TStr(name))
+        Vec = Snap.TIntV(FIn)
+
+        # TODO iterate through nodes
+        print "len", Vec.Len()
+        for i in range(0,Vec.Len()):
+            Node = Vec.GetVal(i).Val
+            print "Vec", i, Node
+
+            if Visited.IsKey(Node):
                 continue
-            NewNodes.AddDat(node,0)
-            Visited.AddDat(node,distance)
+            NewNodes.AddDat(Node,0)
+            Visited.AddDat(Node,distance)
 
     # done, no new nodes
     if NewNodes.Len() <= 0:
@@ -183,12 +152,50 @@ def AddNewNodes(taskindex, sw, ds, msglist):
         dmsg["task"] = taskindex
         dmsg["nodes"] = args
 
-        dmsgout = {}
-        dmsgout["src"] = sw.GetName()
-        dmsgout["cmd"] = "nbrs"
-        dmsgout["body"] = dmsg
+        # output is composed of: nodes, task#
+        Vec1 = Snap.TIntV()
+        for node in args:
+            Vec1.Add(node)
 
-        sw.Send(tn,dmsgout)
+        Vec1.Add(taskindex)
+
+        sw.Send(tn,Vec1,swsnap=True)
+
+def TaskId(node,tsize):
+    """
+    return the task id for a node
+    """
+
+    return node/tsize
+
+def LoadState():
+    fname = sw.GetStateName()
+    if not os.path.exists(fname):
+        return None
+
+    FIn = Snap.TFIn(Snap.TStr(fname))
+    Start = Snap.TInt(FIn)
+    Dist = Snap.TInt(FIn)
+    Visited = Snap.TIntH(FIn)
+
+    ds = {}
+    ds["start"] = Start.Val
+    ds["dist"] = Dist.Val
+    ds["visit"] = Visited
+    return ds
+
+def SaveState(ds):
+    fname = sw.GetStateName()
+
+    Start = Snap.TInt(ds["start"])
+    Dist = Snap.TInt(ds["dist"])
+    Visited = ds["visit"]
+
+    FOut = Snap.TFOut(Snap.TStr(fname))
+    Start.Save(FOut)
+    Dist.Save(FOut)
+    Visited.Save(FOut)
+    FOut.Flush()
 
 def Worker(sw):
     GetDist(sw)
