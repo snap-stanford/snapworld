@@ -1,0 +1,23 @@
+master  localhost:8088
+#hosts   ilc01,ilc02,ilc03,ilc04,ilc05,ilc06,ilc07,ilc08,ilc09,ilc10
+#hosts   localhost:9100,localhost:9101,localhost:9102
+hosts   localhost:9100
+
+var     nodes           7,000
+var     range           300
+var     stat_tasks      108
+var     gen_tasks       24
+
+bunch   GenTasks        size    1               range   $range
+bunch   GenStubs        size    $gen_tasks      range   1
+bunch   GenGraph        size    $gen_tasks      range   $range
+bunch   GenNbr          size    $gen_tasks      range   1
+bunch   GenDist         size    $stat_tasks     range   $range
+
+route   __Start__       GenTasks
+route   GenTasks        GenStubs
+route   GenStubs        GenGraph
+route   GenGraph        GenNbr
+route   GenNbr          GenDist
+route   GenDist         GenNbr
+
