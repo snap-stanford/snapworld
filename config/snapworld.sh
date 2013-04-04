@@ -1,8 +1,8 @@
 #!/bin/bash
 
-export SNAPWBIN=/home/rok/git/rok/snapworld
-export SNAPWEXEC=/home/rok/snapwexec
-export SNAPWOUTPUT=/home/rok/snapwexec
+export SNAPWBIN=${HOME}/git/snapworld/work
+export SNAPWEXEC=${HOME}/snapwexec
+export SNAPWOUTPUT=${HOME}/snapwexec
 export PYTHON=python
 
 SNAPWID=$1
