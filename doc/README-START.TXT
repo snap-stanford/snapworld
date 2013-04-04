@@ -30,7 +30,7 @@ python head.py
 # in another window, start the application
 curl -i http://<host>:8100/start
 
-# the execution should be less than 1 min
+# the execution should be around 10s
 
 # stop all the SnapWorld processes
 curl -i http://<host>:8100/quit
