@@ -8,12 +8,15 @@ def Exec(pwd, cmd):
 
     # split into individual arguments, since we are not using shell
     cl = cmd.split()
-
+    cmd_ref = cmd
     # start the process
     #p = subprocess.Popen(cl, cwd=pwd, stderr=subprocess.STDOUT, stdout=1)
     #p = subprocess.Popen(cl, cwd=pwd, stdout=1)
     p = subprocess.Popen(cl, cwd=pwd)
     return p
+
+def GetPid(p):
+	return p.pid
 
 def Poll(p):
     status = p.poll()

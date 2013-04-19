@@ -91,6 +91,7 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
             self.send_header('Content-Length', len(body))
             self.end_headers()
             self.wfile.write(body)
+            print "get configuration in head done"
             return
 
         elif command == "/exec":
@@ -268,9 +269,12 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
         #cmd = "ssh %s python git/rok/snapworld/host.py -i %s -p %s -m %s:%s" % (
         #cmd = "ssh %s python git/rok/snapworld/host.py -d -i %s -p %s -m %s:%s" % (
         #cmd = "ssh %s python2.6 /lfs/1/tmp/rok/snapworld/host.py -d -i %s -p %s -m %s:%s" % (
-        cmd = "ssh %s snapworld.sh %s %s %s %s" % (
+        cmd = "ssh %s sh snapworld.sh %s %s %s %s" % (
                     remote["host"], remote["id"], remote["port"],
                     master["host"], master["port"])
+        #cmd = "ssh %s sh snapworld.sh %s %s %s %s" % (
+        #            remote["host"], master["host"], master["port"],
+        #            remote["id"], remote["port"])
         print cmd
         os.system(cmd)
 
