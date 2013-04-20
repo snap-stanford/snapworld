@@ -307,13 +307,13 @@ def Execute(args):
         execdir = os.path.join(args.workdir, "snapw.%d/exec" % (args.pid))
         config.mkdir_p(execdir)
 
-    # execute the tasks sequentially
-    for task in args.active:
+    def execute_single_task(task):
 
         # get the executables
         bunch = "%s" % (task.split("-",1)[0])
         execlist = []
         try:
+ #           execlist = client.bunch_config(args.master, bunch).split(",")
             execlist = args.config["bunch"][bunch]["exec"].split(",")
         except:
             pass
@@ -356,7 +356,7 @@ def Execute(args):
                     task, progpath)
             args.flog.write(line)
             args.flog.flush()
-            continue
+            return
 
         taskdir = "snapw.%d/tasks/%s" % (args.pid, task)
         config.mkdir_p(taskdir)
@@ -381,19 +381,40 @@ def Execute(args):
 
         # start the work process
         p = pexec.Exec(tdir,cmd)
+        return p
 
-        # wait for the process to complete
-        while True:
-            args.flog.write("polling\n")
+    # Dynamically check what the number of processors we have on each host
+    # In any error, default to 1.
+    try:
+        max_tasks = os.sysconf('SC_NPROCESSORS_ONLN')
+    except:
+        max_tasks = 1
+    args.flog.write("Running tasks with " + str(max_tasks) + "-way parallelism\n")
+
+    # execute the tasks in a parallel fashion by running
+    # at most max_tasks processes at any point.
+    task_list = args.active[:]
+    procs = []
+    while True:
+        while task_list and len(procs) < max_tasks:
+            task = task_list.pop()
+            procs.append(execute_single_task(task))
+
+        for p in procs:
+            # wait for the process to complete
+            pid = pexec.GetPid(p)
+            args.flog.write("polling " + str(pid) + "\n")
             args.flog.flush()
             status = pexec.Poll(p)
-            if status != None:
-                break
+            if status is not None:
+                args.flog.write("finished " + str(pid) + "\n")
+                args.flog.flush()
+                procs.remove(p)
 
-            time.sleep(0.1)
-
-        args.flog.write("finished\n")
-        args.flog.flush()
+        if not procs and not task_list:
+            break
+        else:
+            time.sleep(0.05)
 
     # send done to master
     client.done(args.master, args.id)
@@ -480,6 +501,7 @@ if __name__ == '__main__':
     if master != None:
         # get configuration from master
         sconf = client.config(master)
+        print "SCONF", sconf
     
         dconf = simplejson.loads(sconf)
         handler.config = dconf
@@ -488,7 +510,7 @@ if __name__ == '__main__':
         flog.write(str(dconf))
         flog.write("\n")
         flog.flush()
-    
+ 
         # send done to master
         client.done(master, id)
 
