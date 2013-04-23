@@ -2,7 +2,7 @@ import BaseHTTPServer
 import SocketServer
 
 import os
-import simplejson
+import json as simplejson
 import sys
 import time
 import urlparse

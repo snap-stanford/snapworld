@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 import os
-import simplejson
+import json as simplejson
 import sys
 import time
 import threading

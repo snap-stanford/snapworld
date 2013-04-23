@@ -1,6 +1,6 @@
 import errno
 import os
-import simplejson
+import json as simplejson
 import sys
 
 def readconfig(fname):
