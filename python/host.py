@@ -298,18 +298,14 @@ class ThreadedHTTPServer(SocketServer.ThreadingMixIn,
         client.dummy(haddr)
 
 def Execute(args):
-
     args.flog.write("Execute " + str(args.active) + "\n")
-
     tnow = time.time()
-
+     
     if len(args.active) > 0:
         execdir = os.path.join(args.workdir, "snapw.%d/exec" % (args.pid))
         config.mkdir_p(execdir)
-
-    # execute the tasks sequentially
-    for task in args.active:
-
+     
+    def execute_single_task(task):     
         # get the executables
         bunch = "%s" % (task.split("-",1)[0])
         execlist = []
@@ -317,7 +313,7 @@ def Execute(args):
             execlist = args.config["bunch"][bunch]["exec"].split(",")
         except:
             pass
-
+     
         for item in execlist:
             execpath = os.path.join(execdir, item)
             # check if the program exists and its mtime
@@ -327,16 +323,16 @@ def Execute(args):
                 mtime = int(stat.st_mtime)
             except:
                 pass
-
+     
             if not mtime  or  mtime < tnow:
                 # the file does not exist or it is older than current time,
                 #   contact the head task
-
+     
                 content = client.getexec(args.master,item,mtime)
                 swc = "None"
                 if content:
                     swc = str(len(content))
-
+     
                 print "Host received %s" % (swc)
                 if content:
                     if len(content) > 0:
@@ -344,57 +340,78 @@ def Execute(args):
                         f = open(execpath,"w")
                         f.write(content)
                         f.close()
-    
+       
                     os.utime(execpath,(tnow, tnow))
-
+     
         prog = execlist[0]
         print "Task %s, exec %s" % (prog, execlist)
         progpath = os.path.join(execdir, prog)
-
+     
         if not os.path.exists(progpath):
             line = "*** Error: task %s not started, program %s not found\n" % (
-                    task, progpath)
+                task, progpath)
             args.flog.write(line)
             args.flog.flush()
-            continue
-
+            return
+     
         taskdir = "snapw.%d/tasks/%s" % (args.pid, task)
         config.mkdir_p(taskdir)
-
+     
         qdir = os.path.join(args.workdir, args.qactname, task)
         tdir = os.path.join(args.workdir, taskdir)
-
+     
         line = "starting task %s, prog %s, workdir %s, qdir %s\n" % (
-                    task, prog, tdir, qdir)
+            task, prog, tdir, qdir)
         args.flog.write(line)
         args.flog.flush()
-
+     
         # get server information
         host = args.server.host
         port = args.server.port
-
+     
         # construct a command line
         cmd = python + " %s -t %s -h %s:%d -q %s" % (
-                    progpath, task, host, port, qdir)
+            progpath, task, host, port, qdir)
         args.flog.write("starting cmd %s\n" % (cmd))
         args.flog.flush()
-
+     
         # start the work process
         p = pexec.Exec(tdir,cmd)
-
-        # wait for the process to complete
-        while True:
-            args.flog.write("polling\n")
+        return p
+     
+    # Dynamically check what the number of processors we have on each host
+    # In any error, default to 1.
+    try:
+        max_tasks = os.sysconf('SC_NPROCESSORS_ONLN')
+    except:
+        max_tasks = 1
+    args.flog.write("Running tasks with " + str(max_tasks) + "-way parallelism\n")
+     
+    # execute the tasks in a parallel fashion by running
+    # at most max_tasks processes at any point.
+    task_list = args.active[:]
+    procs = []
+    while True:
+        while task_list and len(procs) < max_tasks:
+            task = task_list.pop()
+            procs.append(execute_single_task(task))
+                
+        for p in procs:
+            # wait for the process to complete
+            pid = pexec.GetPid(p)
+            args.flog.write("polling " + str(pid) + "\n")
             args.flog.flush()
             status = pexec.Poll(p)
-            if status != None:
-                break
-
-            time.sleep(0.1)
-
-        args.flog.write("finished\n")
-        args.flog.flush()
-
+            if status is not None:
+                args.flog.write("finished " + str(pid) + "\n")
+                args.flog.flush()
+                procs.remove(p)
+ 
+        if not procs and not task_list:
+            break
+        else:
+            time.sleep(0.05)
+ 
     # send done to master
     client.done(args.master, args.id)
 

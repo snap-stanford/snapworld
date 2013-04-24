@@ -15,6 +15,9 @@ def Exec(pwd, cmd):
     p = subprocess.Popen(cl, cwd=pwd)
     return p
 
+def GetPid(p):
+    return p.pid
+
 def Poll(p):
     status = p.poll()
     return status
