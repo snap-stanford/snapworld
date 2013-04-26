@@ -410,7 +410,7 @@ def Execute(args):
         if not procs and not task_list:
             break
         else:
-            time.sleep(0.05)
+            time.sleep(1.0)
  
     # send done to master
     client.done(args.master, args.id)
