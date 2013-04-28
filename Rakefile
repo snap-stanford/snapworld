@@ -1,6 +1,6 @@
 require 'rake'
 
-PORT = 8102
+PORT = 9102
 ################################
 
 def sh2(cmd)
@@ -35,6 +35,7 @@ task :deploy do
     Dir.chdir("bin/") do
         sh "cp -f ../python/* ."
         sh "cp ../app/libbfs/* ../app/cppbfs/* ."
+        sh "cp ../app/pybfs/* ."
         sh "cp ../../snap-python/swig-sw/_snap.so ../../snap-python/swig-sw/snap.py ."
         sh "cp ../snapw.config ." # override config File
 

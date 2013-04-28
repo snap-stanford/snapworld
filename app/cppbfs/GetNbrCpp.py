@@ -13,8 +13,7 @@ def GetNbr(sw):
     taskname = sw.GetName()
 
     msglist = sw.GetMsgList()
-    sw.flog.write("msglist " + str(msglist) + "\n")
-    sw.flog.flush()
+    sw.log.debug("msglist %s" % str(msglist))
 
     AdjLists = LoadState()
 
@@ -43,9 +42,8 @@ def GetNbr(sw):
 
     # first iteration: input are edges, save the state
     AdjLists = GetEdges(Edges)
-    sw.flog.write("state " + str(AdjLists.Len()) + "\n")
-    sw.flog.flush()
-
+    sw.log.debug("state %s" % str(AdjLists.Len()))
+    
     SaveState(AdjLists)
 
     dmsgout = {}
@@ -56,9 +54,7 @@ def GetNbr(sw):
 
 def GetEdges(Edges):
 
-    #print edges
-    sw.flog.write("edges " + str(Edges.Len()) + "\n")
-    sw.flog.flush()
+    sw.log.debug("edges %s" % str(Edges.Len()))
 
     AdjLists = Snap.TIntIntVH()
     Snap.GetAdjLists(Edges, AdjLists)
@@ -102,15 +98,12 @@ if __name__ == '__main__':
     sw = swlib.SnapWorld()
     sw.Args(sys.argv)
 
-    #flog = sys.stdout
     fname = "log-swwork-%s.txt" % (sw.GetName())
-    flog = open(fname,"a")
 
-    sw.SetLog(flog)
+    sw.SetLog(fname)
     sw.GetConfig()
 
     Worker(sw)
 
-    flog.write("finished\n")
-    flog.flush()
+    sw.log.info("finished")
 

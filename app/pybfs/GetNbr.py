@@ -1,5 +1,3 @@
-import os
-import random
 import sys
 
 import swlib
@@ -12,8 +10,7 @@ def GetNbr(sw):
     taskname = sw.GetName()
 
     msglist = sw.GetMsgList()
-    sw.flog.write("msglist " + str(msglist) + "\n")
-    sw.flog.flush()
+    sw.log.debug("msglist %s" % str(msglist))
 
     ds = sw.LoadState()
     
@@ -31,8 +28,7 @@ def GetNbr(sw):
     if len(edges) > 0:
         # first iteration: input are edges, save the state
         ds = GetEdges(edges)
-        sw.flog.write("state " + str(ds) + "\n")
-        sw.flog.flush()
+        sw.log.debug("state %s" % str(ds))
         sw.SaveState(ds)
 
         dmsgout = {}
@@ -44,9 +40,8 @@ def GetNbr(sw):
 def GetEdges(edges):
 
     #print edges
-    sw.flog.write("edges " + str(edges) + "\n")
-    sw.flog.flush()
-
+    sw.log.debug("edges %s" % str(edges))
+    
     # collect neighbors for each node
     nbrs = {}
     for item in edges:
@@ -87,15 +82,12 @@ if __name__ == '__main__':
     sw = swlib.SnapWorld()
     sw.Args(sys.argv)
 
-    #flog = sys.stdout
     fname = "log-swwork-%s.txt" % (sw.GetName())
-    flog = open(fname,"a")
 
-    sw.SetLog(flog)
+    sw.SetLog(fname)
     sw.GetConfig()
 
     Worker(sw)
 
-    flog.write("finished\n")
-    flog.flush()
-
+    sw.log.info("finished")
+ 

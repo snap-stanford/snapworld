@@ -1,4 +1,3 @@
-import os
 import random
 import sys
 
@@ -46,15 +45,13 @@ def GenGraph(sw):
     taskname = sw.GetName()
 
     msglist = sw.GetMsgList()
-    sw.flog.write("msglist " + str(msglist) + "\n")
-    sw.flog.flush()
+    sw.log.debug("msglist " + str(msglist))
 
     stubs = []
     for item in msglist:
         dmsg = sw.GetMsg(item)
         msg = dmsg["body"]
-        sw.flog.write("task %s, args %s\n" % (taskname, str(msg)))
-        sw.flog.flush()
+        sw.log.debug("task %s, args %s" % (taskname, str(msg)))
 
         stubs.extend(msg)
 
@@ -97,8 +94,7 @@ def GenGraph(sw):
     dmsgout["cmd"] = "init"
 
     for tdst, msgout in edges.iteritems():
-        sw.flog.write("sending task %d, msg %s" % (tdst, str(msgout)) + "\n")
-        sw.flog.flush()
+        sw.log.debug("sending task %d, msg %s" % (tdst, str(msgout)))
         dmsgout["body"] = msgout
         sw.Send(tdst, dmsgout)
 
@@ -111,15 +107,12 @@ if __name__ == '__main__':
     sw = swlib.SnapWorld()
     sw.Args(sys.argv)
 
-    #flog = sys.stdout
     fname = "log-swwork-%s.txt" % (sw.GetName())
-    flog = open(fname,"a")
 
-    sw.SetLog(flog)
+    sw.SetLog(fname)
     sw.GetConfig()
 
     Worker(sw)
 
-    flog.write("finished\n")
-    flog.flush()
+    sw.log.info("finished")
 

@@ -1,5 +1,3 @@
-import os
-import random
 import sys
 
 import swlib
@@ -20,9 +18,8 @@ def GetDist(sw):
     taskindex = taskname.split("-")[1]
 
     msglist = sw.GetMsgList()
-    sw.flog.write("msglist " + str(msglist) + "\n")
-    sw.flog.flush()
-
+    sw.log.debug("msglist %s" % str(msglist))
+    
     ds = sw.LoadState()
 
     # process initialization
@@ -115,9 +112,8 @@ def AddNewNodes(taskindex, sw, ds, msglist):
 
         sw.Send(0,dmsgout,"2")
 
-        sw.flog.write("final " + ds["start"] + " " + str(distance) + " " + str(visited) + "\n")
-        sw.flog.write("distances " + str(l) + "\n")
-        sw.flog.flush()
+        sw.log.info("final " + ds["start"] + " " + str(distance) + " " + str(visited))
+        sw.log.info("distances %s" % str(l))
         return
 
     # nodes in each task
@@ -154,15 +150,12 @@ if __name__ == '__main__':
     sw = swlib.SnapWorld()
     sw.Args(sys.argv)
 
-    #flog = sys.stdout
     fname = "log-swwork-%s.txt" % (sw.GetName())
-    flog = open(fname,"a")
 
-    sw.SetLog(flog)
+    sw.SetLog(fname)
     sw.GetConfig()
 
     Worker(sw)
 
-    flog.write("finished\n")
-    flog.flush()
+    sw.log.info("finished")
 

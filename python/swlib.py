@@ -74,8 +74,9 @@ class SnapWorld:
         self.log_filename = filename
         self.log = logging.getLogger(self.log_filename)
         self.log.setLevel(level)
-        self.log.setFormatter(logging.Formatter('[%(levelname)s] [%(asctime)s] [%(process)d] [%(filename)s] [%(funcName)s] %(message)s'))
-        self.log.addHandler(logging.FileHandler(self.log_filename))
+        fh = logging.FileHandler(filename)
+        fh.setFormatter(logging.Formatter('[%(levelname)s] [%(asctime)s] [%(process)d] [%(filename)s] [%(funcName)s] %(message)s'))
+        self.log.addHandler(fh)
 
     def GetLog(self):
         return self.log_filename

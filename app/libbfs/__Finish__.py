@@ -14,8 +14,7 @@ def Finish(sw):
     """
 
     msglist = sw.GetMsgList()
-    sw.flog.write("msglist " + str(msglist) + "\n")
-    sw.flog.flush()
+    sw.log.debug("msglist %s" % str(msglist))
 
     # get the results
     GetResults(msglist)
@@ -30,8 +29,7 @@ def GetResults(msglist):
         dist = msg["dist"]
 
         #print edges
-        sw.flog.write("node %s, distances %s\n" % (start, str(dist)))
-        sw.flog.flush()
+        sw.log.debug("node %s, distances %s" % (start, str(dist)))
 
 def Worker(sw):
     Finish(sw)
@@ -44,15 +42,12 @@ if __name__ == '__main__':
     pid = os.getpid()
 
     fname = "log-swfinish-%d.txt" % (pid)
-    #fname = "log-swwork-%s.txt" % (sw.GetName())
     fullname = os.path.join(workdir,fname)
-    flog = open(fullname,"a")
 
-    sw.SetLog(flog)
+    sw.SetLog(fullname)
     sw.GetConfig()
 
     Worker(sw)
 
-    flog.write("finished\n")
-    flog.flush()
+    sw.log.info("finished")
 

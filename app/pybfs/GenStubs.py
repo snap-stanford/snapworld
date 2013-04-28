@@ -1,4 +1,3 @@
-import os
 import random
 import sys
 
@@ -29,20 +28,17 @@ def GenStubs(sw):
     taskname = sw.GetName()
 
     msglist = sw.GetMsgList()
-    sw.flog.write("msglist " + str(msglist) + "\n")
-    sw.flog.flush()
+    sw.log.debug("msglist " + str(msglist))
 
     for item in msglist:
         dmsg = sw.GetMsg(item)
         d = dmsg["body"]
-        sw.flog.write("task %s, args %s\n" % (taskname, str(d)))
-        sw.flog.flush()
+        sw.log.debug("task %s, args %s" % (taskname, str(d)))
 
         ns = d["s"]
         ne = ns + d["r"]
 
-        sw.flog.write("task %s, start %d, end %d\n" % (taskname, ns, ne))
-        sw.flog.flush()
+        sw.log.debug("task %s, start %d, end %d" % (taskname, ns, ne))
 
         # determine node degrees
         i = ns
@@ -51,17 +47,14 @@ def GenStubs(sw):
             deg = StdDist(distmean,distvar)
             #deg = 3
             ddeg[i] = deg
-            sw.flog.write("task %s, node %s, degree %s\n" % (taskname, str(i), str(deg)))
-            sw.flog.flush()
+            sw.log.debug("task %s, node %s, degree %s" % (taskname, str(i), str(deg)))
             i += 1
 
-    sw.flog.write("ddeg " + str(ddeg) + "\n")
-    sw.flog.flush()
+    sw.log.debug("ddeg " + str(ddeg))
 
     # distribute the stubs randomly to the tasks
     ntasks = int(sw.GetVar("gen_tasks"))
-    sw.flog.write("__tasks__ %s\t%s\n" % (taskname, str(ntasks)))
-    sw.flog.flush()
+    sw.log.debug("__tasks__ %s\t%s" % (taskname, str(ntasks)))
 
     # each task has a list of stubs
     dstubs = {}
@@ -72,16 +65,14 @@ def GenStubs(sw):
                 dstubs[t] = []
             dstubs[t].append(key)
 
-    sw.flog.write("dstubs " + str(dstubs) + "\n")
-    sw.flog.flush()
+    sw.log.debug("dstubs " + str(dstubs))
 
     dmsgout = {}
     dmsgout["src"] = taskname
     dmsgout["cmd"] = "stubs"
 
     for tdst, msgout in dstubs.iteritems():
-        sw.flog.write("sending task %d, msg %s" % (tdst, str(msgout)) + "\n")
-        sw.flog.flush()
+        sw.log.debug("sending task %d, msg %s" % (tdst, str(msgout)))
         dmsgout["body"] = msgout
         sw.Send(tdst, dmsgout)
 
@@ -93,15 +84,12 @@ if __name__ == '__main__':
     sw = swlib.SnapWorld()
     sw.Args(sys.argv)
 
-    #flog = sys.stdout
     fname = "log-swwork-%s.txt" % (sw.GetName())
-    flog = open(fname,"a")
 
-    sw.SetLog(flog)
+    sw.SetLog(fname)
     sw.GetConfig()
 
     Worker(sw)
 
-    flog.write("finished\n")
-    flog.flush()
+    sw.log.info("finished")
 

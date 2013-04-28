@@ -16,9 +16,8 @@ def GenTasks(sw):
     # nodes in each task
     tsize = sw.GetRange()
 
-    sw.flog.write("task %s, nodes %d, tsize %d\n" % (taskname, nnodes, tsize))
-    sw.flog.flush()
-
+    sw.log.debug("task %s, nodes %d, tsize %d" % (taskname, nnodes, tsize))
+    
     ns = 0
     while ns < nnodes:
         tname = ns / tsize
@@ -47,15 +46,12 @@ if __name__ == '__main__':
     sw = swlib.SnapWorld()
     sw.Args(sys.argv)
 
-    #flog = sys.stdout
     fname = "log-swwork-%s.txt" % (sw.GetName())
-    flog = open(fname,"a")
-
-    sw.SetLog(flog)
+    
+    sw.SetLog(fname)
     sw.GetConfig()
 
     Worker(sw)
 
-    flog.write("finished\n")
-    flog.flush()
+    sw.log.info("finished")
 

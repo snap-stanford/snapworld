@@ -47,36 +47,29 @@ def GenGraph(sw):
     taskname = sw.GetName()
 
     msglist = sw.GetMsgList()
-    sw.flog.write("msglist " + str(msglist) + "\n")
-    sw.flog.flush()
+    sw.log.debug("msglist %s" % str(msglist))
 
     Stubs = Snap.TIntV()
     for item in msglist:
 
-        sw.flog.write("1 got item " + item + "\n")
-        sw.flog.flush()
+        sw.log.debug("1: got item " + item)
 
         name = sw.GetMsgName(item)
 
-        sw.flog.write("2 got name " + name + "\n")
-        sw.flog.flush()
+        sw.log.debug("2: got name " + name)
 
         FIn = Snap.TFIn(Snap.TStr(name))
         Vec = Snap.TIntV(FIn)
 
-        sw.flog.write("3 got vector %d" % (Vec.Len()) + "\n")
-        sw.flog.flush()
+        sw.log.debug("3: got vector %d" % (Vec.Len()))
 
         Stubs.AddV(Vec)
         #for i in range(0,Vec.Len()):
         #    stubs.append(Vec.GetVal(i).Val)
 
-        #sw.flog.write("4 got stubs %d" % (len(stubs)) + "\n")
-        sw.flog.write("4 got stubs %d" % (Stubs.Len()) + "\n")
-        sw.flog.flush()
+        sw.log.debug("4: got stubs %d" % (Stubs.Len()))
 
-    sw.flog.write("5 got all stubs\n")
-    sw.flog.flush()
+    sw.log.debug("5: got all stubs")
 
     #print taskname,stubs
 
@@ -101,14 +94,10 @@ def GenGraph(sw):
 
     # send messages
     for i in range(0,Tasks.Len()):
-        #sw.flog.write("sending task %d" % (i) + "\n")
-        sw.flog.write("sending task %d, len %d" %
-                            (i, Tasks.GetVal(i).Len()) + "\n")
-        sw.flog.flush()
+        sw.log.debug("sending task %d, len %d" % (i, Tasks.GetVal(i).Len()))
         sw.Send(i,Tasks.GetVal(i),swsnap=True)
 
 def Worker(sw):
-    #SelectNodes(sw)
     GenGraph(sw)
 
 if __name__ == '__main__':
@@ -116,16 +105,13 @@ if __name__ == '__main__':
     sw = swlib.SnapWorld()
     sw.Args(sys.argv)
 
-    #flog = sys.stdout
     fname = "log-swwork-%s.txt" % (sw.GetName())
-    flog = open(fname,"a")
 
-    sw.SetLog(flog)
+    sw.SetLog(fname)
     sw.GetConfig()
 
     Snap.SeedRandom()
     Worker(sw)
 
-    flog.write("finished\n")
-    flog.flush()
+    sw.log.info("finished")
 
