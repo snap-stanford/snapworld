@@ -1,7 +1,6 @@
 import errno
 import os
 import sys
-import json
 
 def readconfig(fname):
 

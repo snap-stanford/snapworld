@@ -97,7 +97,7 @@ class SnapWorld:
             print "*** no configuration"
             return None
 
-        self.config = simplejson.loads(sconf)
+        self.config = json.loads(sconf)
 
         self.var = self.config.get("var")
         self.route = self.config.get("route")
@@ -155,7 +155,7 @@ class SnapWorld:
         f = open(msgpath, "r")
         s = f.read()
         f.close()
-        msg = simplejson.loads(s)
+        msg = json.loads(s)
         return msg
 
     def GetVar(self, name):
@@ -178,7 +178,7 @@ class SnapWorld:
 
         s = f.read()
         f.close()
-        d = simplejson.loads(s)
+        d = json.loads(s)
 
         return d
 
@@ -187,7 +187,7 @@ class SnapWorld:
         fname = "swstate-%s.txt" % (self.taskname)
 
         f = open(fname,"w")
-        s = simplejson.dumps(d)
+        s = json.dumps(d)
         f.write(s)
         f.close()
 
@@ -223,7 +223,7 @@ class SnapWorld:
 
         else:
             # json dict
-            s = simplejson.dumps(d)
+            s = json.dumps(d)
             print "send  task %s, host %s, msg %s" % (dstname, dshost, s)
 
             if self.local:
