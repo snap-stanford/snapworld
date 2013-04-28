@@ -181,7 +181,7 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
                         logging.info("all tasks completed")
                         self.server.executing = False
                         self.server.iterate = False
-                        self._quit() # FIXME: Added by @mteh
+                        self._quit(force=True)
                         return
 
                     logging.info("all hosts ready")
@@ -206,7 +206,7 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
         self.wfile.write(message)
         return
 
-    def _quit(self):
+    def _quit(self, force=False):
         logging.info("terminating host servers")
 
         master = self.config["master"]
@@ -214,9 +214,10 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
         for h in hosts:
             self.QuitHostServer(h)
 
-        self.send_response(200)
-        self.send_header('Content-Length', 0)
-        self.end_headers()
+        if not force:
+            self.send_response(200)
+            self.send_header('Content-Length', 0)
+            self.end_headers()
 
         # set the flag to terminate the server
         self.server.running = False
