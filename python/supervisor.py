@@ -11,15 +11,17 @@ import shutil
 import BaseHTTPServer
 import SocketServer
 
+import client
+import config
+import daemon
+import perf
+
 bindir = os.environ["SNAPWBIN"]
 workdir = os.environ["SNAPWEXEC"]
 python = os.environ["PYTHON"]
 
 sys.path.append(bindir)
 
-import client
-import config
-import daemon
 
 class Server(BaseHTTPServer.BaseHTTPRequestHandler):
     
@@ -68,7 +70,8 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
                     os.rename(qactname, qactnewname)
                     logging.debug("renamed %s to %s" % (qactname, qactnewname))
                 else:
-                    shutil.rmtree(qactname)
+                    with perf.Timer(logging, 'shutile.rmtree'):
+                        shutil.rmtree(qactname)
                     logging.debug("removed dir %s" % qactname)
 
             # get the number of active tasks, rename existing qin
