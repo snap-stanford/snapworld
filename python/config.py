@@ -8,7 +8,7 @@ def readconfig(fname):
     dconf = {}
     f = open(fname)
     for line in f:
-        cline = line.split("\n")[0]
+        cline = line.strip()
         #print cline
 
         words = cline.split()
@@ -130,6 +130,9 @@ def readconfig(fname):
                 dconf["route"][srcport] = {}
 
             dconf["route"][srcport][srcname] = dest
+
+        elif key == "init":
+            dconf["init"] = words[1]
 
     f.close()
 

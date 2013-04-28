@@ -268,8 +268,10 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
         #cmd = "ssh %s python git/rok/snapworld/host.py -i %s -p %s -m %s:%s" % (
         #cmd = "ssh %s python git/rok/snapworld/host.py -d -i %s -p %s -m %s:%s" % (
         #cmd = "ssh %s python2.6 /lfs/1/tmp/rok/snapworld/host.py -d -i %s -p %s -m %s:%s" % (
-        cmd = "ssh %s snapworld.sh %s %s %s %s" % (
-                    remote["host"], remote["id"], remote["port"],
+
+        init_script = self.config.get('init', 'supervisor.sh')
+        cmd = "ssh %s %s %s %s %s %s" % (
+                    remote["host"], init_script, remote["id"], remote["port"],
                     master["host"], master["port"])
         print cmd
         os.system(cmd)

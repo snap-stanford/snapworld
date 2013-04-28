@@ -1,5 +1,3 @@
-#!/usr/bin/python
-
 import os
 import json as simplejson
 import sys
@@ -421,7 +419,7 @@ if __name__ == '__main__':
         print "Usage: " + sys.argv[0] + " -d -i <id> -p <port> -m <host>:<port>"
         sys.exit(1)
 
-    print "host.py started"
+    print __file__ + " started"
 
     #host = "localhost"
     #host = "bruce.stanford.edu"

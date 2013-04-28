@@ -1,5 +1,3 @@
-#! /usr/bin/python
-
 import subprocess
 
 #python /home/rok/git/rok/snapworld/GenTasks.py -t GenTasks-0 -h localhost:9100 -q /home/rok/snapwexec/snapw.2687/qact/GenTasks-0
