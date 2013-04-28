@@ -1,7 +1,7 @@
 import os
-import json as simplejson
 import sys
 import time
+import json
 import threading
 import urlparse
 import urllib2
@@ -149,7 +149,7 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
             self.flog.write(line)
             self.flog.flush()
 
-            body = simplejson.dumps(self.config)
+            body = json.dumps(self.config)
             self.send_response(200)
             self.send_header('Content-Length', len(body))
             self.end_headers()
@@ -496,7 +496,7 @@ if __name__ == '__main__':
         # get configuration from master
         sconf = client.config(master)
     
-        dconf = simplejson.loads(sconf)
+        dconf = json.loads(sconf)
         handler.config = dconf
     
         flog.write("Got configuration size %d\n" % (len(sconf)))

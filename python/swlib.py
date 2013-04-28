@@ -1,7 +1,7 @@
 import client
 import os
-import json as simplejson
 import sys
+import json
 
 gotsnap = False
 

@@ -1,7 +1,7 @@
 import errno
 import os
-import json as simplejson
 import sys
+import json
 
 def readconfig(fname):
 
@@ -211,10 +211,6 @@ if __name__ == '__main__':
     for key,value in dconf.iteritems():
         print "%s: %s" % (key, str(value))
 
-    #print
-    #json = simplejson.dumps(dconf)
-    #print json
-    
     # assign tasks to hosts
     dtasks = assign(dconf)
 

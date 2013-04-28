@@ -2,10 +2,10 @@ import BaseHTTPServer
 import SocketServer
 
 import os
-import json as simplejson
 import sys
 import time
 import urlparse
+import json
 
 import client
 import config
@@ -86,7 +86,7 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
         elif self.path == "/config":
             print "get configuration"
 
-            body = simplejson.dumps(self.config)
+            body = json.dumps(self.config)
             self.send_response(200)
             self.send_header('Content-Length', len(body))
             self.end_headers()
@@ -347,10 +347,6 @@ if __name__ == '__main__':
     handler.config = dconf
 
     dconf["tasks"] = config.assign(dconf)
-    #s = simplejson.dumps(dconf)
-    #f = open("snapw-dump.config","w")
-    #f.write(s)
-    #f.close()
 
     print 'Starting head server on port %d, use <Ctrl-C> to stop' % (port)
     server.execute()
