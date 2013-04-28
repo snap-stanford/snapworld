@@ -84,7 +84,7 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header('Content-Length', len(body))
             self.end_headers()
-            self.wfile.write(body)
+#            self.wfile.write(body)
             return
 
         elif command == "/exec":
@@ -119,7 +119,7 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header('Content-Length', len(content))
             self.end_headers()
-            self.wfile.write(content)
+#            self.wfile.write(content)
             return
 
         elif subpath[1] == "done":
@@ -215,7 +215,7 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
         self.send_response(200)
         #self.send_header('Last-Modified', self.date_time_string(time.time()))
         self.end_headers()
-        self.wfile.write(message)
+#        self.wfile.write(message)
         return
 
     def StartHostServer(self, remote, master):
