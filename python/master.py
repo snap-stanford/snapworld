@@ -5,6 +5,7 @@ import os
 import sys
 import urlparse
 import json
+import logging
 
 import client
 import config
@@ -12,7 +13,6 @@ import config
 class Server(BaseHTTPServer.BaseHTTPRequestHandler):
     
     def do_GET(self):
-        #print "GET path", self.path
         parsed_path = urlparse.urlparse(self.path)
         message_parts = [
                 'CLIENT VALUES:',
@@ -32,25 +32,20 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
                 '',
                 'HEADERS RECEIVED:',
                 ]
-        #print parsed_path
 
         for name, value in sorted(self.headers.items()):
             message_parts.append('%s=%s' % (name, value.rstrip()))
         message_parts.append('')
         message = '\r\n'.join(message_parts)
-        #print "message", message
 
         subpath = self.path.split("/")
-        #print "subpath", subpath
 
         command = parsed_path.path
-        #print "command", command
 
         dargs = dict(urlparse.parse_qsl(parsed_path.query))
-        #print "dargs", dargs
 
         if self.path == "/start":
-            print "starting host servers "
+            logging.info("starting host servers")
 
             master = self.config["master"]
             hosts = self.config["hosts"]
@@ -58,7 +53,7 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
                 self.StartHostServer(h, master)
 
         elif self.path == "/quit":
-            print "terminating host servers"
+            logging.info("terminating host servers")
 
             master = self.config["master"]
             hosts = self.config["hosts"]
@@ -75,7 +70,7 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
             return
 
         elif self.path == "/dummy":
-            print "dummy request"
+            logging.debug("dummy request")
 
             self.send_response(200)
             self.send_header('Content-Length', 0)
@@ -83,7 +78,7 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
             return
 
         elif self.path == "/config":
-            print "get configuration"
+            logging.debug("get configuration")
 
             body = json.dumps(self.config)
             self.send_response(200)
@@ -100,7 +95,7 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
                 ptime = int(dargs.get("t"))
             except:
                 pass
-            print "get executable", pname, ptime
+            logging.debug("get executable: " + str(pname) + str(ptime))
 
             stat = os.stat(pname)
             mtime = int(stat.st_mtime)
@@ -109,7 +104,7 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
             if mtime > ptime:
                 swnew = True
             
-            print "stat", pname, ptime, mtime, "NEW" if swnew else "OLD"
+            logging.debug("stat " + str(pname) + " " + str(ptime) + " " + str(mtime) + " " + str("NEW" if swnew else "OLD"))
             if not swnew:
                 # the file has not changed
                 self.send_response(304)
@@ -136,14 +131,13 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
                 host = subpath[2]
                 # TODO make this update thread safe, which it is not now
                 self.server.done.add(host)
-                print "host %s completed work" % (str(self.server.done))
+                logging.info("host %s completed work" % (str(self.server.done)))
                 if len(self.server.done) == len(self.config["hosts"]):
 
-                    print "all hosts completed"
-                    #time.sleep(5)
+                    logging.info("all hosts completed")
 
-                    #  initialize a set of ready servers,
-                    #       clear the continue indicator
+                    # initialize a set of ready servers,
+                    # clear the continue indicator
                     self.server.ready = set()
                     self.server.iterate = False
 
@@ -154,7 +148,7 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
                         (starthost, starttask) = self.GetStartInfo(self.config)
                         s = "send __Start__ message for task %s to host %s" % (
                                 starttask, starthost)
-                        print s
+                        logging.debug(s)
                         client.message(starthost,"__Main__",starttask,"__Start__")
 
                     # send a step start command to all the hosts
@@ -163,12 +157,12 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
                         self.config["master"]["host"],
                         self.config["master"]["port"])
 
-                    print "hosts", hosts
+                    logging.debug("hosts " + str(hosts))
                     for h in hosts:
-                        print "send prepare to", h
+                        logging.debug("send prepare to " + str(h))
                         sys.stdout.flush()
                         self.Prepare(h)
-                        print "done sending prepare to", h
+                        logging.debug("done sending prepare to " + str(h))
             return
 
         elif subpath[1] == "ready":
@@ -193,18 +187,17 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
                 if numtasks > 0:
                     self.server.iterate = True
 
-                print "host %s ready" % (str(self.server.ready))
+                logging.debug("host %s ready" % (str(self.server.ready)))
                 if len(self.server.ready) == len(self.config["hosts"]):
 
                     # stop the execution, if there are no more tasks to execute
                     if not self.server.iterate:
-                        print "all tasks completed"
+                        logging.info("all tasks completed")
                         self.server.executing = False
                         self.server.iterate = False
                         return
 
-                    print "all hosts ready"
-                    #time.sleep(5)
+                    logging.info("all hosts ready")
         
                     # initialize a set of done servers
                     self.server.done = set()
@@ -216,7 +209,7 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
                         self.config["master"]["port"])
                     # TODO, create a thread for this step
                     for h in hosts:
-                        print "send next step to", h
+                        logging.info("send next step to " + str(h))
                         self.StartStep(h)
             return
 
@@ -227,8 +220,8 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
         return
 
     def StartHostServer(self, remote, master):
-        print "starting host server on host %s, port %s" % (
-                    remote["host"], remote["port"])
+        logging.info("starting host server on host %s, port %s" % (
+                    remote["host"], remote["port"]))
 
         #cmd = "ssh %s python git/rok/snapworld/host.py -i %s -p %s -m %s:%s" % (
         #cmd = "ssh %s python git/rok/snapworld/host.py -d -i %s -p %s -m %s:%s" % (
@@ -238,7 +231,7 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
         cmd = "ssh %s %s %s %s %s %s" % (
                     remote["host"], init_script, remote["id"], remote["port"],
                     master["host"], master["port"])
-        print cmd
+        logging.info(cmd)
         os.system(cmd)
 
     def GetStartInfo(self, config):
@@ -273,7 +266,7 @@ class ThreadedHTTPServer(SocketServer.ThreadingMixIn,
         while self.running:
             self.handle_request()
 
-        print "exit"
+        logging.debug("exit")
         sys.exit(0)
 
     def self_dummy(self):
@@ -282,8 +275,10 @@ class ThreadedHTTPServer(SocketServer.ThreadingMixIn,
 
 if __name__ == '__main__':
 
+    logging.basicConfig(level=logging.DEBUG, format='[%(levelname)s] [%(asctime)s] [%(process)d] [%(filename)s] [%(funcName)s] %(message)s')
+
     dconf = config.readconfig("snapw.config")
-    print dconf
+    logging.info(str(dconf))
 
     master = dconf["master"]
 
@@ -313,6 +308,6 @@ if __name__ == '__main__':
 
     dconf["tasks"] = config.assign(dconf)
 
-    print 'Starting head server on port %d, use <Ctrl-C> to stop' % (port)
+    logging.info('Starting head server on port %d, use <Ctrl-C> to stop' % (port))
     server.execute()
 
