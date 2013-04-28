@@ -385,7 +385,16 @@ if __name__ == '__main__':
 
     os.chdir(workdir)
     pid = os.getpid()
+
+    fname1 = "log-snapw-host-%d.txt" % (port)
     fname = "log-swhost-%d.txt" % (pid)
+
+    fd = os.open(fname1, os.O_APPEND | os.O_WRONLY) # standard input (0)
+    #flog = open(fname, "a") # standard input (0)
+
+    # Duplicate standard input to standard output and standard error.
+    os.dup2(0, 1)           # standard output (1)
+    os.dup2(0, 2)           # standard error (2)
     
     # Set up logging
     logging.basicConfig(filename=fname, level=logging.DEBUG, format='[%(levelname)s] [%(asctime)s] [%(process)d] [%(filename)s] [%(funcName)s] %(message)s')
