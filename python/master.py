@@ -160,7 +160,6 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
                     logging.debug("hosts " + str(hosts))
                     for h in hosts:
                         logging.debug("send prepare to " + str(h))
-                        sys.stdout.flush()
                         self.Prepare(h)
                         logging.debug("done sending prepare to " + str(h))
             return

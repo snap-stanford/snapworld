@@ -28,8 +28,7 @@ def GetResults(msglist):
         start = msg["start"]
         dist = msg["dist"]
 
-        #print edges
-        sw.log.debug("node %s, distances %s" % (start, str(dist)))
+        sw.log.info("node %s, distances %s" % (start, str(dist)))
 
 def Worker(sw):
     Finish(sw)
