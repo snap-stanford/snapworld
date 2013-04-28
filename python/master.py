@@ -257,6 +257,12 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
         haddr = "%s:%s" % (host["host"], host["port"])
         client.quit(haddr)
 
+    def log_request(self, code=None, size=None):
+        pass
+
+    def log_message(self, format, *args):
+        pass
+
 class ThreadedHTTPServer(SocketServer.ThreadingMixIn,
                             BaseHTTPServer.HTTPServer):
     """Handle requests in a separate thread."""
@@ -271,6 +277,7 @@ class ThreadedHTTPServer(SocketServer.ThreadingMixIn,
     def self_dummy(self):
         haddr = "%s:%s" % (self.host, self.port)
         client.dummy(haddr)
+
 
 if __name__ == '__main__':
 
