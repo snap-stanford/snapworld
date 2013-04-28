@@ -4,19 +4,19 @@ class Timer(object):
     def __init__(self, log, tag=None):
         self.log = log
         self.tag = tag
+        self.start_times = {}
 
     def start(self, tag=None):
-        if tag is not None:
-            self.tag = tag
-        self._start_time = time.time()
+        self.start_times[tag] = time.time()
 
-    def stop(self):
-        time_taken = time.time() - self._start_time
-        self.log.debug("[timer] [%s] %d ms" % (self.tag, time_taken))
+    def stop(self, tag=None):
+        time_taken = time.time() - self.start_times[tag]
+        self.log.debug("[timer] [%s] %d ms" % (tag, time_taken))
+        del self.start_times[tag]
 
     def __enter__(self):
-        self.start()
+        self.start(self.tag)
 
     def __exit__(self, type, value, traceback):
-        self.stop()
+        self.stop(self.tag)
 

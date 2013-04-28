@@ -70,7 +70,7 @@ class SnapWorld:
         self.log = None
         self.log_filename = None
         
-    def SetLog(self, filename, level=logging.DEBUG):
+    def SetLog(self, filename, level=logging.INFO):
         self.log_filename = filename
         self.log = logging.getLogger(self.log_filename)
         self.log.setLevel(level)
