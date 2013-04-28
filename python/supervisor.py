@@ -4,7 +4,7 @@ import time
 import json
 import threading
 import urlparse
-import urllib2
+import subprocess, shlex
 
 import BaseHTTPServer
 import SocketServer
@@ -18,7 +18,6 @@ sys.path.append(bindir)
 import client
 import config
 import daemon
-import pexec
 
 class Server(BaseHTTPServer.BaseHTTPRequestHandler):
     
@@ -374,7 +373,7 @@ def Execute(args):
         args.flog.flush()
      
         # start the work process
-        p = pexec.Exec(tdir,cmd)
+        p = subprocess.Popen(shlex.split(cmd), cwd=tdir)
         return p
      
     # Dynamically check what the number of processors we have on each host
@@ -396,10 +395,10 @@ def Execute(args):
                 
         for p in procs:
             # wait for the process to complete
-            pid = pexec.GetPid(p)
+            pid = p.pid
             args.flog.write("polling " + str(pid) + "\n")
             args.flog.flush()
-            status = pexec.Poll(p)
+            status = p.poll()
             if status is not None:
                 args.flog.write("finished " + str(pid) + "\n")
                 args.flog.flush()
