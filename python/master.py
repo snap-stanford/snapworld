@@ -95,7 +95,7 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
                 ptime = int(dargs.get("t"))
             except:
                 pass
-            logging.debug("get executable: " + str(pname) + str(ptime))
+            logging.debug("get executable: " + str(pname) + " " + str(ptime))
 
             stat = os.stat(pname)
             mtime = int(stat.st_mtime)
@@ -220,8 +220,8 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
         return
 
     def StartHostServer(self, remote, master):
-        logging.info("starting host server on host %s, port %s" % (
-                    remote["host"], remote["port"]))
+        logging.info("starting host server on host %s, port %s" % \
+                (remote["host"], remote["port"]))
 
         #cmd = "ssh %s python git/rok/snapworld/host.py -i %s -p %s -m %s:%s" % (
         #cmd = "ssh %s python git/rok/snapworld/host.py -d -i %s -p %s -m %s:%s" % (
