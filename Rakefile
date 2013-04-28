@@ -1,5 +1,8 @@
 require 'rake'
 
+PORT = 9102
+################################
+
 def sh2(cmd)
     begin
         sh cmd
@@ -22,7 +25,7 @@ desc "Run C++ BFS (not Python BFS)"
 task :deploy do
     # NOTE: Assumptions:
     
-    cleanup = "rm -rf /lfs/local/0/${USER}/supervisor/*"
+    cleanup = "rm -rf /lfs/local/0/${USER}/supervisors/*"
     for i in 1..2
         sh2 "ssh ild#{1} #{cleanup}"
     end
@@ -40,23 +43,23 @@ task :deploy do
 end
 
 task :start do
-    sh "curl -i http://ild1.stanford.edu:9102/start"
+    sh "curl -i http://ild1.stanford.edu:#{PORT}/start"
 end
 
 
 task :stop do
-    sh "curl -i http://ild1.stanford.edu:9102/quit"
+    sh "curl -i http://ild1.stanford.edu:#{PORT}/quit"
 end
 
 task :test do
     begin
-        sh "sleep 3; rake start &"
+        sh "sleep 3 && rake start &"
         sh "rake deploy"
     rescue
-        sh "rake stop"
-        sh "rake cleanup"
-        # sh "rm -rf bin/"
+        sh2 "rake stop"
     end
+    sh2 "rake cleanup"
+    # sh "rm -rf bin/"
 end
 
 

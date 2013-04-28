@@ -1,7 +1,12 @@
 #!/bin/bash
 
+SNAPWID=$1
+SNAPWPORT=$2
+SNAPWMASTER=$3
+SNAPWMASTERPORT=$4
+
 # NOTE: no trailing / for directories
-HOMELOCAL=/lfs/local/0/${USER}/supervisor
+HOMELOCAL=/lfs/local/0/${USER}/supervisors/${SNAPWPORT}
 export SNAPWBIN=${HOMELOCAL}/bin
 export SNAPWEXEC=${HOMELOCAL}/execute
 export SNAPWOUTPUT=${HOMELOCAL}/output
@@ -22,10 +27,6 @@ else
 fi
 ###############
 
-SNAPWID=$1
-SNAPWPORT=$2
-SNAPWMASTER=$3
-SNAPWMASTERPORT=$4
 
 echo $SNAPWID $SNAPWPORT $SNAPWMASTER $SNAPWMASTERPORT
 echo ${PYTHON} ${SNAPWBIN}/host.py -d -i ${SNAPWID} -p ${SNAPWPORT} -m ${SNAPWMASTER}:${SNAPWMASTERPORT}
