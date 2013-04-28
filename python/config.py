@@ -5,6 +5,8 @@ import sys
 def readconfig(fname):
 
     dconf = {}
+    dconf['debug'] = True
+
     f = open(fname)
     for line in f:
         cline = line.strip()
@@ -132,6 +134,15 @@ def readconfig(fname):
 
         elif key == "init":
             dconf["init"] = words[1]
+        elif key == "debug":
+            debug_flag = words[1].lower()
+            if debug_flag == "true":
+                debug_flag = True
+            elif debug_flag == "false":
+                debug_flag = False
+            else:
+                debug_flag = bool(debug_flag)
+            dconf["debug"] = debug_flag
 
     f.close()
 

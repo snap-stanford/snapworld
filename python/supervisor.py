@@ -6,6 +6,7 @@ import threading
 import urlparse
 import logging
 import subprocess
+import shutil
 
 import BaseHTTPServer
 import SocketServer
@@ -57,13 +58,18 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
             qactname = "snapw.%d/qact" % (self.pid)
 
             # rename an existing qact
-            qactnewname = "none"
             if os.path.exists(qactname):
-                t = time.time()
-                s = time.strftime("%Y%m%d-%H%M%S", time.localtime(t))
-                mus = "%06d" % (t*1000000 - int(t)*1000000)
-                qactnewname = "%s-%s-%s" % (qactname, s, mus)
-                os.rename(qactname, qactnewname)
+                qactnewname = "none"
+                if self.config['debug']:
+                    t = time.time()
+                    s = time.strftime("%Y%m%d-%H%M%S", time.localtime(t))
+                    mus = "%06d" % (t*1000000 - int(t)*1000000)
+                    qactnewname = "%s-%s-%s" % (qactname, s, mus)
+                    os.rename(qactname, qactnewname)
+                    logging.debug("renamed %s to %s" % (qactname, qactnewname))
+                else:
+                    shutil.rmtree(qactname)
+                    logging.debug("removed dir %s" % qactname)
 
             # get the number of active tasks, rename existing qin
             numtasks = 0
@@ -75,8 +81,8 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
             # create new qin
             config.mkdir_p(qinname)
     
-            logging.info("preparing next step: %s, %s, %s" % \
-                    (qinname, qactname, qactnewname))
+            logging.info("preparing next step: %s, %s" % \
+                    (qinname, qactname))
 
             # send ready to master
             client.ready(self.master, self.id, numtasks)
