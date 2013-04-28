@@ -2,6 +2,7 @@ import client
 import os
 import sys
 import json
+import logging
 
 gotsnap = False
 
@@ -66,16 +67,18 @@ class SnapWorld:
         self.range = None
 
         self.target = None
-        self.flog = None
-
-    def SetLog(self, flog):
-        self.flog = flog
-
-        self.flog.write("Starting task %s with host %s, queue %s\n" % (self.taskname, self.host, self.qin))
-        self.flog.flush()
+        self.log = None
+        self.log_filename = None
+        
+    def SetLog(self, filename, level=logging.DEBUG):
+        self.log_filename = filename
+        self.log = logging.getLogger(self.log_filename)
+        self.log.setLevel(level)
+        self.log.setFormatter(logging.Formatter('[%(levelname)s] [%(asctime)s] [%(process)d] [%(filename)s] [%(funcName)s] %(message)s'))
+        self.log.addHandler(logging.FileHandler(self.log_filename))
 
     def GetLog(self):
-        return self.flog
+        return self.log_filename
 
     def GetConfig(self):
         # get configuration from the host
@@ -125,10 +128,8 @@ class SnapWorld:
         for h in hostlist:
             self.hosts[h["id"]] = h["host"] + ":" + h["port"]
 
-        self.flog.write(str(self.config))
-        self.flog.write("\n")
-        self.flog.write("Got configuration size %d\n" % (len(str(self.config))))
-        self.flog.flush()
+        self.log.debug("Configuration: %s" % str(self.config))
+        self.log.debug("config size %d" % (len(str(self.config))))
 
         return self.config
 
