@@ -27,7 +27,7 @@ task :deploy do
     
     cleanup = "rm -rf /lfs/local/0/${USER}/supervisors/*"
     for i in 1..2
-        sh2 "ssh ild#{1} #{cleanup}"
+        sh2 "ssh ild#{i} #{cleanup}"
     end
 
     # Create `bin` directory, which is a staging directory to run
