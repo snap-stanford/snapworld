@@ -1,6 +1,6 @@
 require 'rake'
 
-PORT = 9102
+PORT = 8102
 ################################
 
 def sh2(cmd)
@@ -64,8 +64,8 @@ end
 
 
 task :cleanup do
-    sh "ps x | grep master.py | grep -v grep | awk '{print $1}'| xargs --no-run-if-empty kill -SIGKILL"
-    killcmd_sup = "ps x | grep supervisor.py | grep -v grep | awk '{print \\$1}'| xargs --no-run-if-empty kill -SIGKILL"
+    sh "ps x | grep python | grep master.py | grep -v grep | awk '{print $1}'| xargs --no-run-if-empty kill -SIGKILL"
+    killcmd_sup = "ps x | grep python | grep supervisor.py | grep -v grep | awk '{print \\$1}'| xargs --no-run-if-empty kill -SIGKILL"
     for i in 1..2
         sh2 "ssh ild#{i} \"#{killcmd_sup}\""
     end

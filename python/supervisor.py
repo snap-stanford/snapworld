@@ -5,6 +5,7 @@ import json
 import threading
 import urlparse
 import urllib2
+import logging
 
 import BaseHTTPServer
 import SocketServer
@@ -48,17 +49,11 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
         message_parts.append('')
         message = '\r\n'.join(message_parts)
 
-        #print message
-        #self.flog.write(message)
-        #self.flog.flush()
-
         subpath = self.path.split("/")
-        #print subpath
 
         if self.path == "/prepare":
 
             # move qin to qact
-
             qinname = "snapw.%d/qin" % (self.pid)
             qactname = "snapw.%d/qact" % (self.pid)
 
@@ -81,10 +76,8 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
             # create new qin
             config.mkdir_p(qinname)
     
-            line = "preparing next step: %s, %s, %s\n" % (
-                        qinname, qactname, qactnewname)
-            self.flog.write(line)
-            self.flog.flush()
+            logging.info("preparing next step: %s, %s, %s" % \
+                    (qinname, qactname, qactnewname))
 
             # send ready to master
             client.ready(self.master, self.id, numtasks)
@@ -114,9 +107,7 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
 
         elif self.path == "/step":
     
-            line = "execute next step\n"
-            self.flog.write(line)
-            self.flog.flush()
+            logging.info("execute next step")
 
             self.send_response(200)
             self.send_header('Content-Length', 0)
@@ -132,9 +123,7 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
             if os.path.exists(qactname):
                 active = os.listdir(qactname)
 
-            line = "active tasks %s\n" % (str(active))
-            self.flog.write(line)
-            self.flog.flush()
+            logging.debug("active tasks %s" % (str(active)))
 
             self.qactname = qactname
             self.active = active
@@ -145,9 +134,7 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
 
         elif self.path == "/config":
     
-            line = "get configuration\n"
-            self.flog.write(line)
-            self.flog.flush()
+            logging.debug("get configuration")
 
             body = json.dumps(self.config)
             self.send_response(200)
@@ -159,9 +146,7 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
 
         elif self.path == "/quit":
     
-            line = "terminate execution\n"
-            self.flog.write(line)
-            self.flog.flush()
+            logging.info("terminate execution")
 
             self.send_response(200)
             self.send_header('Content-Length', 0)
@@ -169,7 +154,6 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
             sys.exit(0)
 
         self.send_response(200)
-        #self.send_header('Last-Modified', self.date_time_string(time.time()))
         self.end_headers()
         self.wfile.write(message)
         return
@@ -199,27 +183,18 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
             message_parts.append('%s=%s' % (name, value.rstrip()))
         message_parts.append('')
         message = '\r\n'.join(message_parts)
-        #print message
 
         length = int(self.headers.get("Content-Length"))
-        #print "Content-Length", length
 
         body = ""
         if length  and  length > 0:
             body = self.rfile.read(length)
 
-        #print "length", length
-        #print "body"
-        #print body
-
         subpath = self.path.split("/")
-        #print subpath
         
         if subpath[1] == "msg":
             dst = subpath[2]
             src = subpath[3]
-            #print "msg", dst, src
-            #print "body", body
 
             dirname = "snapw.%d/qin/%s" % (self.pid, dst)
             config.mkdir_p(dirname)
@@ -229,9 +204,7 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
             f.write(body)
             f.close()
     
-            line = "message %s length %d\n" % (fnew,  length)
-            self.flog.write(line)
-            self.flog.flush()
+            logging.info("message %s length %d" % (fnew,  length))
 
             self.send_response(200)
             self.send_header('Content-Length', 0)
@@ -296,7 +269,7 @@ class ThreadedHTTPServer(SocketServer.ThreadingMixIn,
         client.dummy(haddr)
 
 def Execute(args):
-    args.flog.write("Execute " + str(args.active) + "\n")
+    logging.info("Execute " + str(args.active) + "")
     tnow = time.time()
      
     if len(args.active) > 0:
@@ -331,10 +304,10 @@ def Execute(args):
                 if content:
                     swc = str(len(content))
      
-                print "Host received %s" % (swc)
+                logging.debug("Host received %s" % (swc))
                 if content:
                     if len(content) > 0:
-                        print "Host saving to %s" % (execpath)
+                        logging.debug("Host saving to %s" % (execpath))
                         f = open(execpath,"w")
                         f.write(content)
                         f.close()
@@ -342,14 +315,11 @@ def Execute(args):
                     os.utime(execpath,(tnow, tnow))
      
         prog = execlist[0]
-        print "Task %s, exec %s" % (prog, execlist)
+        logging.debug("Task %s, exec %s" % (prog, execlist))
         progpath = os.path.join(execdir, prog)
      
         if not os.path.exists(progpath):
-            line = "*** Error: task %s not started, program %s not found\n" % (
-                task, progpath)
-            args.flog.write(line)
-            args.flog.flush()
+            logging.error("task %s not started, program %s not found" % (task, progpath))
             return
      
         taskdir = "snapw.%d/tasks/%s" % (args.pid, task)
@@ -358,11 +328,8 @@ def Execute(args):
         qdir = os.path.join(args.workdir, args.qactname, task)
         tdir = os.path.join(args.workdir, taskdir)
      
-        line = "starting task %s, prog %s, workdir %s, qdir %s\n" % (
-            task, prog, tdir, qdir)
-        args.flog.write(line)
-        args.flog.flush()
-     
+        logging.info("starting task %s, prog %s, workdir %s, qdir %s\n" % (task, prog, tdir, qdir))
+             
         # get server information
         host = args.server.host
         port = args.server.port
@@ -370,8 +337,7 @@ def Execute(args):
         # construct a command line
         cmd = python + " %s -t %s -h %s:%d -q %s" % (
             progpath, task, host, port, qdir)
-        args.flog.write("starting cmd %s\n" % (cmd))
-        args.flog.flush()
+        logging.info("starting cmd %s" % (cmd))
      
         # start the work process
         p = pexec.Exec(tdir,cmd)
@@ -383,7 +349,7 @@ def Execute(args):
         max_tasks = os.sysconf('SC_NPROCESSORS_ONLN')
     except:
         max_tasks = 1
-    args.flog.write("Running tasks with " + str(max_tasks) + "-way parallelism\n")
+    logging.info("Running tasks with " + str(max_tasks) + "-way parallelism")
      
     # execute the tasks in a parallel fashion by running
     # at most max_tasks processes at any point.
@@ -397,12 +363,10 @@ def Execute(args):
         for p in procs:
             # wait for the process to complete
             pid = pexec.GetPid(p)
-            args.flog.write("polling " + str(pid) + "\n")
-            args.flog.flush()
+            logging.debug("polling %d" % pid)
             status = pexec.Poll(p)
             if status is not None:
-                args.flog.write("finished " + str(pid) + "\n")
-                args.flog.flush()
+                logging.debug("finished %d" % pid)
                 procs.remove(p)
  
         if not procs and not task_list:
@@ -419,10 +383,7 @@ if __name__ == '__main__':
         print "Usage: " + sys.argv[0] + " -d -i <id> -p <port> -m <host>:<port>"
         sys.exit(1)
 
-    print __file__ + " started"
-
-    #host = "localhost"
-    #host = "bruce.stanford.edu"
+    
     host = "0.0.0.0"
     port = None
     master = None
@@ -449,43 +410,24 @@ if __name__ == '__main__':
         print "Usage: " + sys.argv[0] + " -d -i <id> -p <port> -m <host>:<port>"
         sys.exit(1)
 
-    print "bindir", bindir
-    print "workdir", workdir
-    sys.stdout.flush()
-
-    #daemon_mode = False
     if daemon_mode:
+        # TODO(nkhadke): How to log this? Do we need to log this?
         print "daemon"
         retCode = daemon.createDaemon()
 
     os.chdir(workdir)
-
     pid = os.getpid()
-    #print "pid", pid
-
-    fname1 = "log-snapw-host-%d.txt" % (port)
     fname = "log-swhost-%d.txt" % (pid)
+    
+    # Set up logging
+    logging.basicConfig(filename=fname, level=logging.DEBUG, format='[%(levelname)s] [%(asctime)s] [%(processName)s] [%(filename)s] [%(funcName)s] %(message)s')
 
-    fd = os.open(fname1, os.O_APPEND | os.O_WRONLY) # standard input (0)
-    #flog = open(fname, "a") # standard input (0)
-
-    # Duplicate standard input to standard output and standard error.
-    os.dup2(0, 1)           # standard output (1)
-    os.dup2(0, 2)           # standard error (2)
-
-    #flog = os.fdopen(fd)
-
-    #flog = sys.stdout
-    flog = open(fname,"a")
-
-    print "host %s, port %d" % (host, port)
     server = ThreadedHTTPServer((host, port), Server)
     server.host = host
     server.port = port
     server.running = True
 
     handler = BaseHTTPServer.BaseHTTPRequestHandler
-    handler.flog = flog
     handler.port = port
     handler.id = id
     handler.pid = os.getpid()
@@ -499,11 +441,9 @@ if __name__ == '__main__':
         dconf = json.loads(sconf)
         handler.config = dconf
     
-        flog.write("Got configuration size %d\n" % (len(sconf)))
-        flog.write(str(dconf))
-        flog.write("\n")
-        flog.flush()
-    
+        logging.debug("Config size: %d" % (len(sconf)))
+        logging.debug(str(dconf))
+            
         # send done to master
         client.done(master, id)
 
@@ -514,13 +454,9 @@ if __name__ == '__main__':
         # Comment: the constructor might already activate the server,
         #       so there is no problem.
     
-        flog.write("Sent done\n")
-        flog.flush()
+        logging.debug("Supervisor sent /done to master")
 
-    flog.write(
-        "Starting host server pid %d, id %s, port %d with master %s\n" %
-            (pid, id, port, master))
-    flog.flush()
-
+    logging.info("Starting host server pid %d, id %s, port %d with master %s\n" % (pid, id, port, master))
+    
     server.execute()
 
