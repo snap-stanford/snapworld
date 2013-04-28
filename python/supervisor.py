@@ -70,8 +70,7 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
                     os.rename(qactname, qactnewname)
                     logging.debug("renamed %s to %s" % (qactname, qactnewname))
                 else:
-                    with perf.Timer(logging, 'shutile.rmtree'):
-                        shutil.rmtree(qactname)
+                    shutil.rmtree(qactname)
                     logging.debug("removed dir %s" % qactname)
 
             # get the number of active tasks, rename existing qin
@@ -261,6 +260,10 @@ def Execute(args):
         except:
             pass
      
+
+        timer = perf.Timer(logging)
+        timer.start('provision-execlist')
+        # provision execlist on disk
         for item in execlist:
             execpath = os.path.join(execdir, item)
             # check if the program exists and its mtime
@@ -271,9 +274,9 @@ def Execute(args):
             except:
                 pass
      
-            if not mtime  or  mtime < tnow:
-                # the file does not exist or it is older than current time,
-                #   contact the head task
+            if not mtime or mtime < tnow:
+                # if the file does not exist or it is older than current time,
+                # contact the head task
      
                 content = client.getexec(args.master,item,mtime)
                 swc = "None"
@@ -289,6 +292,7 @@ def Execute(args):
                         f.close()
        
                     os.utime(execpath,(tnow, tnow))
+        timer.stop('provision-execlist')
      
         prog = execlist[0]
         logging.debug("Task %s, exec %s" % (prog, execlist))
@@ -325,16 +329,21 @@ def Execute(args):
         max_tasks = os.sysconf('SC_NPROCESSORS_ONLN')
     except:
         max_tasks = 1
-    logging.info("Running tasks with " + str(max_tasks) + "-way parallelism")
      
     # execute the tasks in a parallel fashion by running
     # at most max_tasks processes at any point.
     task_list = args.active[:]
     procs = []
+    logging.info("Running %d tasks with %d-way parallelism" % \
+            (len(task_list), max_tasks))
+
+    timer = perf.Timer(logging)
     while True:
         while task_list and len(procs) < max_tasks:
             task = task_list.pop()
-            procs.append(execute_single_task(task))
+            p = execute_single_task(task)
+            procs.append(p)
+            timer.start('worker-pid-%d' % p.pid)
                 
         for p in procs:
             # wait for the process to complete
@@ -344,6 +353,7 @@ def Execute(args):
             status = p.poll()
             if status is not None:
                 logging.debug("finished %d" % pid)
+                timer.stop('worker-pid-%d' % p.pid)
                 procs.remove(p)
  
         if not procs and not task_list:

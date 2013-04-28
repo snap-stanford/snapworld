@@ -39,7 +39,7 @@ task :deploy do
         sh "cp ../../snap-python/swig-sw/_snap.so ../../snap-python/swig-sw/snap.py ."
         sh "cp ../snapw.config ." # override config File
 
-        sh "python master.py"
+        sh "time python master.py"
     end
 end
 

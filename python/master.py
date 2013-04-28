@@ -53,20 +53,7 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
                 self.StartHostServer(h, master)
 
         elif self.path == "/quit":
-            logging.info("terminating host servers")
-
-            master = self.config["master"]
-            hosts = self.config["hosts"]
-            for h in hosts:
-                self.QuitHostServer(h)
-
-            self.send_response(200)
-            self.send_header('Content-Length', 0)
-            self.end_headers()
-
-            # set the flag to terminate the server
-            self.server.running = False
-            self.server.self_dummy()
+            self._quit()
             return
 
         elif self.path == "/dummy":
@@ -194,6 +181,7 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
                         logging.info("all tasks completed")
                         self.server.executing = False
                         self.server.iterate = False
+                        self._quit() # FIXME: Added by @mteh
                         return
 
                     logging.info("all hosts ready")
@@ -217,6 +205,22 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(message)
         return
+
+    def _quit(self):
+        logging.info("terminating host servers")
+
+        master = self.config["master"]
+        hosts = self.config["hosts"]
+        for h in hosts:
+            self.QuitHostServer(h)
+
+        self.send_response(200)
+        self.send_header('Content-Length', 0)
+        self.end_headers()
+
+        # set the flag to terminate the server
+        self.server.running = False
+        self.server.self_dummy()
 
     def StartHostServer(self, remote, master):
         logging.info("starting host server on host %s, port %s" % \
