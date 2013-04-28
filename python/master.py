@@ -71,7 +71,7 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header('Content-Length', len(body))
             self.end_headers()
-            self.wfile.write(body)
+#            self.wfile.write(body)
             return
 
         elif command == "/exec":
@@ -106,7 +106,7 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header('Content-Length', len(content))
             self.end_headers()
-            self.wfile.write(content)
+#            self.wfile.write(content)
             return
 
         elif subpath[1] == "done":
@@ -203,7 +203,7 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
         self.send_response(200)
         #self.send_header('Last-Modified', self.date_time_string(time.time()))
         self.end_headers()
-        self.wfile.write(message)
+#        self.wfile.write(message)
         return
 
     def _quit(self):
@@ -261,6 +261,12 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
         haddr = "%s:%s" % (host["host"], host["port"])
         client.quit(haddr)
 
+    def log_request(self, code=None, size=None):
+        pass
+
+    def log_message(self, format, *args):
+        pass
+
 class ThreadedHTTPServer(SocketServer.ThreadingMixIn,
                             BaseHTTPServer.HTTPServer):
     """Handle requests in a separate thread."""
@@ -275,6 +281,7 @@ class ThreadedHTTPServer(SocketServer.ThreadingMixIn,
     def self_dummy(self):
         haddr = "%s:%s" % (self.host, self.port)
         client.dummy(haddr)
+
 
 if __name__ == '__main__':
 
