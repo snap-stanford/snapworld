@@ -5,7 +5,7 @@ import json
 import threading
 import urlparse
 import logging
-import subprocess, shlex
+import subprocess
 
 import BaseHTTPServer
 import SocketServer
@@ -339,7 +339,7 @@ def Execute(args):
         logging.info("starting cmd %s" % (cmd))
      
         # start the work process
-        p = subprocess.Popen(shlex.split(cmd), cwd=tdir)
+        p = subprocess.Popen(cmd.split(), cwd=tdir)
         return p
      
     # Dynamically check what the number of processors we have on each host
