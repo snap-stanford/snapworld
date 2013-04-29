@@ -207,12 +207,12 @@ def mkdir_p(path):
             pass
         else: raise
 
-if __name__ == '__main__':
+def get_master_info(fname):
+    dconf = readconfig(fname)
+    print "%s:%d" % (dconf['master']['host'], int(dconf['master']['port']))
 
-    if len(sys.argv) < 2:
-        print "Usage: %s <file>" % (sys.argv[0])
-        sys.exit(1)
 
+def main():
     fname = sys.argv[1]
 
     # read the configuration file
@@ -226,4 +226,16 @@ if __name__ == '__main__':
 
     for key,value in dtasks.iteritems():
         print "%s: %s" % (key, str(value))
+
+if __name__ == '__main__':
+
+    if len(sys.argv) < 2:
+        print "Usage: %s <file>" % (sys.argv[0])
+        sys.exit(1)
+
+    if len(sys.argv) >= 3 and sys.argv[2] == 'master':
+        get_master_info(sys.argv[1])
+    else:
+        main()
+
 

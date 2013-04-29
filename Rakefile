@@ -1,6 +1,7 @@
 require 'rake'
 
-PORT = 8102
+PORT = 9102
+HOST = "ild1.stanford.edu"
 ################################
 
 def sh2(cmd)
@@ -8,6 +9,15 @@ def sh2(cmd)
         sh cmd
     rescue
     end
+end
+
+
+def task_start(host, port)
+    sh "curl -i http://#{host}:#{port}/start"
+end
+
+def task_stop(host, port)
+    sh "curl -i http://#{host}:#{port}/stop"
 end
 
 task :setup do
@@ -21,8 +31,7 @@ task :setup do
     end
 end
 
-desc "Run C++ BFS (not Python BFS)"
-task :deploy do
+def task_deploy()
     # NOTE: Assumptions:
     
     cleanup = "rm -rf /lfs/local/0/${USER}/supervisors/*"
@@ -30,29 +39,47 @@ task :deploy do
         sh2 "ssh ild#{i} #{cleanup}"
     end
 
-    # Create `bin` directory, which is a staging directory to run
-    sh "mkdir -p bin/"
-    Dir.chdir("bin/") do
-        sh "cp -f ../python/* ."
-        sh "cp ../app/libbfs/* ../app/cppbfs/* ."
-        sh "cp ../app/pybfs/* ."
-        sh "cp ../../snap-python/swig-sw/_snap.so ../../snap-python/swig-sw/snap.py ."
-        sh "cp ../snapw.config ." # override config File
+    config_filepath = "snapw.config"
 
+    # Create `bin` directory, which is a staging directory to run
+    stage_dir = "bin/"
+    sh "mkdir -p #{stage_dir}"
+
+    sh "cp -f python/* #{stage_dir}"
+    sh "cp app/libbfs/* app/cppbfs/* #{stage_dir}"
+    sh "cp app/pybfs/* #{stage_dir}"
+    sh "cp ../snap-python/swig-sw/_snap.so ../snap-python/swig-sw/snap.py #{stage_dir}"
+    # override config File
+    sh "cp #{config_filepath} #{stage_dir}"
+
+    Dir.chdir("bin/") do
         sh "time python master.py"
     end
 end
 
+desc "Run C++ BFS (not Python BFS)"
+task :deploy do
+    task_deploy()
+end
+
 task :start do
-    sh "curl -i http://ild1.stanford.edu:#{PORT}/start"
+    task_start(HOST, PORT)
 end
 
 
 task :stop do
-    sh "curl -i http://ild1.stanford.edu:#{PORT}/quit"
+    task_stop(HOST, PORT)
 end
 
 task :test do
+    # if ARGV[1].to_s == ''
+        # config_filepath = "snapw.config"
+    # else
+        # config_filepath = ARGV[1]
+    # end
+    # host_port = `cd python; python -mconfig ../#{config_filepath} master`
+    # host, port = host_port.split(":")
+
     begin
         sh "sleep 3 && rake start &"
         sh "rake deploy"
