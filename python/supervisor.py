@@ -61,20 +61,23 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
 
             # rename an existing qact
             if os.path.exists(qactname):
-                qactnewname = "none"
-                if self.config['debug']:
+
+                removed = False
+                if not self.config['debug']:
+                    try:
+                        shutil.rmtree(qactname)
+                        logging.debug("removed dir %s" % qactname)
+                        removed = True
+                    except:
+                        logging.error("error on removing dir %s" % qactname)
+
+                if not removed:
                     t = time.time()
                     s = time.strftime("%Y%m%d-%H%M%S", time.localtime(t))
                     mus = "%06d" % (t*1000000 - int(t)*1000000)
                     qactnewname = "%s-%s-%s" % (qactname, s, mus)
                     os.rename(qactname, qactnewname)
                     logging.debug("renamed %s to %s" % (qactname, qactnewname))
-                else:
-                    try:
-                        shutil.rmtree(qactname)
-                    except:
-                        logging.error("error on removing dir %s" % qactname)
-                    logging.debug("removed dir %s" % qactname)
                     
             # get the number of active tasks, rename existing qin
             numtasks = 0

@@ -1,7 +1,19 @@
 require 'rake'
 
-PORT = 8102
-HOST = "ild1.stanford.edu"
+USER = ENV['USER']
+if USER == 'minghan'
+    PORT = 9102
+elsif USER == 'nkhadke'
+    PORT = 8102
+end
+
+HOSTNAME = `hostname`
+if HOSTNAME.include? "ild"
+    HOST = "ild1.stanford.edu"
+elsif HOSTNAME .include? "iln"
+    HOST = "iln01.stanford.edu"
+end
+
 ################################
 
 def sh2(cmd)
@@ -31,15 +43,25 @@ task :setup do
     end
 end
 
-def task_deploy()
-    # NOTE: Assumptions:
-    
+def pre_deploy_cleanup()
     sh "fs flushvolume -path ." # flush AFS cache
 
     cleanup = "rm -rf /lfs/local/0/${USER}/supervisors/*"
-    for i in 1..2
-        sh2 "ssh ild#{i} #{cleanup}"
+    if HOSTNAME.include? "ild"
+        for i in 1..2
+            sh2 "ssh ild#{i} #{cleanup}"
+        end
+    elsif HOSTNAME .include? "iln"
+        for i in 1..0
+            sh2 "ssh iln0#{i} #{cleanup}"
+        end
     end
+end
+
+def task_deploy()
+    # NOTE: Assumptions:
+    
+    pre_deploy_cleanup()
 
     config_filepath = "snapw.config"
 
@@ -83,7 +105,7 @@ task :test do
     # host, port = host_port.split(":")
 
     begin
-        sh "sleep 3 && rake start &"
+        sh "sleep 6 && rake start &"
         sh "rake deploy"
     rescue
         sh2 "rake stop"
@@ -94,9 +116,15 @@ end
 
 
 task :cleanup do
-    sh "ps x | grep python | grep master.py | grep -v grep | awk '{print $1}'| xargs --no-run-if-empty kill -SIGKILL"
-    killcmd_sup = "ps x | grep python | grep supervisor.py | grep -v grep | awk '{print \\$1}'| xargs --no-run-if-empty kill -SIGKILL"
-    for i in 1..2
-        sh2 "ssh ild#{i} \"#{killcmd_sup}\""
+    sh "ps x | grep python | grep -v grep | grep -v emacs | grep -v vim | awk '{print $1}'| xargs -r kill -SIGKILL"
+    killcmd_sup = "ps x | grep python | grep -v grep | grep -v emacs | grep -v vim | awk '{print \\$1}'| xargs -r kill -SIGKILL"
+    if HOSTNAME.include? "ild"
+        for i in 1..2
+            sh2 "ssh ild#{i} \"#{killcmd_sup}\""
+        end
+    elsif HOSTNAME .include? "iln"
+        for i in 1..9
+            sh2 "ssh iln0#{i} \"#{killcmd_sup}\""
+        end
     end
 end
