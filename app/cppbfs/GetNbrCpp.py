@@ -71,7 +71,7 @@ def GetNeighbors(sw, AdjLists, Nodes):
     Hood = Snap.TIntV()
     Snap.GetNeighborhood(Nodes, AdjLists, Hood);
 
-    print "Hood len %d" % (Hood.Len())
+    # print "Hood len %d" % (Hood.Len())
 
     sw.Send(tdst,Hood,swsnap=True)
 

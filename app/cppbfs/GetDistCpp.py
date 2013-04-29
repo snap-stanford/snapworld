@@ -67,7 +67,7 @@ def AddNewNodes(taskindex, sw, ds, msglist):
     ds["dist"] += 1
     distance = ds["dist"]
     Visited = ds["visit"]
-    print "Visited", type(Visited)
+    # print "Visited", type(Visited)
     
     # nodes to add are on the input
     NewNodes = Snap.TIntH() 
@@ -76,7 +76,7 @@ def AddNewNodes(taskindex, sw, ds, msglist):
 
         name = sw.GetMsgName(item)
 
-        print "input", name
+        # print "input", name
         # read the input nodes
         FIn = Snap.TFIn(Snap.TStr(name))
         Vec = Snap.TIntV(FIn)

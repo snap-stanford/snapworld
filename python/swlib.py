@@ -225,7 +225,7 @@ class SnapWorld:
         else:
             # json dict
             s = json.dumps(d)
-            print "send  task %s, host %s, msg %s" % (dstname, dshost, s)
+            # print "send task %s, host %s, msg %s" % (dstname, dshost, s)
 
             if self.local:
                 f = open(fname,"w")
