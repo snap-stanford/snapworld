@@ -70,9 +70,12 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
                     os.rename(qactname, qactnewname)
                     logging.debug("renamed %s to %s" % (qactname, qactnewname))
                 else:
-                    shutil.rmtree(qactname)
+                    try:
+                        shutil.rmtree(qactname)
+                    except:
+                        logging.error("error on removing dir %s" % qactname)
                     logging.debug("removed dir %s" % qactname)
-
+                    
             # get the number of active tasks, rename existing qin
             numtasks = 0
             if os.path.exists(qinname):
