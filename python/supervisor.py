@@ -321,7 +321,7 @@ def Execute(args):
      
         # start the work process
         p = subprocess.Popen(cmd.split(), cwd=tdir)
-        return p
+        return p, prog
      
     # Dynamically check what the number of processors we have on each host
     # In any error, default to 1.
@@ -341,9 +341,10 @@ def Execute(args):
     while True:
         while task_list and len(procs) < max_tasks:
             task = task_list.pop()
-            p = execute_single_task(task)
+            p, prog = execute_single_task(task)
             procs.append(p)
-            timer.start('worker-pid-%d' % p.pid)
+            if ex
+            timer.start('worker-pid-%d' % p.pid, extra=prog)
                 
         for p in procs:
             # wait for the process to complete
