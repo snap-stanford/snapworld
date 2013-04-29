@@ -359,6 +359,7 @@ def Execute(args):
             if status is not None:
                 logging.debug("finished %d" % pid)
                 timer.stop(counter_map[p.pid])
+                del counter_map[p.pid]
                 procs.remove(p)
  
         if not procs and not task_list:
