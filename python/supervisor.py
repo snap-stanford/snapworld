@@ -249,12 +249,18 @@ class ThreadedHTTPServer(SocketServer.ThreadingMixIn,
 def Execute(args):
     logging.info("Execute " + str(args.active) + "")
     tnow = time.time()
-     
+    overall_timer = perf.Timer(logging)
+    task_name = "(overall: )"
+    if len(args.active) > 0:
+        # Get's the task name
+        task_name = "(overall: %s)" % args.active[0].split('-')[0]
+    overall_timer.start(task_name)
+
     if len(args.active) > 0:
         execdir = os.path.join(args.workdir, "snapw.%d/exec" % (args.pid))
         config.mkdir_p(execdir)
      
-    def execute_single_task(task):     
+    def execute_single_task(task):
         # get the executables
         bunch = "%s" % (task.split("-",1)[0])
         execlist = []
@@ -369,7 +375,8 @@ def Execute(args):
             break
         else:
             time.sleep(1.0)
- 
+
+    overall_timer.stop(task_name)
     # send done to master
     client.done(args.master, args.id)
 
