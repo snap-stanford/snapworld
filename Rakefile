@@ -10,9 +10,13 @@ end
 HOSTNAME = `hostname`
 if HOSTNAME.include? "ild"
     HOST = "ild1.stanford.edu"
+    SLEEPTIME = 5
 elsif HOSTNAME .include? "iln"
     HOST = "iln01.stanford.edu"
+    SLEEPTIME = 15
 end
+
+LFS = "/lfs/local/0/${USER}"
 
 ################################
 
@@ -46,7 +50,7 @@ end
 def pre_deploy_cleanup()
     sh "fs flushvolume -path ." # flush AFS cache
 
-    cleanup = "rm -rf /lfs/local/0/${USER}/supervisors/*"
+    cleanup = "rm -rf #{LFS}/supervisors/*"
     if HOSTNAME.include? "ild"
         for i in 1..2
             sh2 "ssh ild#{i} #{cleanup}"
@@ -77,7 +81,8 @@ def task_deploy()
     sh "cp #{config_filepath} #{stage_dir}"
 
     Dir.chdir("bin/") do
-        sh "time python master.py 2>&1 | tee /lfs/local/0/${USER}/master.log"
+        sh "mkdir -p #{LFS}"
+        sh "time python master.py 2>&1 | tee #{LFS}/master.log"
     end
 end
 
@@ -105,7 +110,7 @@ task :test do
     # host, port = host_port.split(":")
 
     begin
-        sh "sleep 6 && rake start &"
+        sh "sleep #{SLEEPTIME} && rake start &"
         sh "rake deploy"
     rescue
         sh2 "rake stop"
