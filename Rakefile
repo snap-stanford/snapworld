@@ -56,7 +56,7 @@ def pre_deploy_cleanup()
             sh2 "ssh ild#{i} #{cleanup}"
         end
     elsif HOSTNAME .include? "iln"
-        for i in 1..0
+        for i in 1..9
             sh2 "ssh iln0#{i} #{cleanup}"
         end
     end
