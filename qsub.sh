@@ -1,7 +1,7 @@
 #!/bin/sh
 
-PPN=16
-for var in {1..5}
+PPN=8
+for var in {1..9}
 do
     if [ -z $NODES ]; then
         NODES="iln0${var}.stanford.edu:ppn=${PPN}"
@@ -12,4 +12,4 @@ done
 
 echo ${NODES}
 
-qsub ${NODES}
+qsub -I -l nodes=${NODES}
