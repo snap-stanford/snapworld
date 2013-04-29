@@ -35,7 +35,7 @@ def getexec(server,prog,timestamp):
     else:
         url = "http://%s/exec?p=%s&t=%s" % (server, prog, str(timestamp))
 
-    print "exec", server, prog, timestamp
+    # print "exec", server, prog, timestamp
 
     httpcode = 200
     try:
@@ -103,7 +103,7 @@ def message(server, src, dst, body):
     url = "http://%s/msg/%s/%s" % (server,dst,src)
     length = len(body)
 
-    print "message url", url
+    # print "message url", url
 
     request = urllib2.Request(url, data=body)
     request.add_header('Content-Length', '%d' % length)

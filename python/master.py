@@ -9,10 +9,12 @@ import logging
 
 import client
 import config
+import perf
 
 class Server(BaseHTTPServer.BaseHTTPRequestHandler):
     
     def do_GET(self):
+
         parsed_path = urlparse.urlparse(self.path)
         message_parts = [
                 'CLIENT VALUES:',
@@ -46,6 +48,8 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
 
         if self.path == "/start":
             logging.info("starting host servers")
+
+            self.timer.start("master")
 
             master = self.config["master"]
             hosts = self.config["hosts"]
@@ -82,7 +86,7 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
                 ptime = int(dargs.get("t"))
             except:
                 pass
-            logging.debug("get executable: " + str(pname) + " " + str(ptime))
+            # logging.debug("get executable: " + str(pname) + " " + str(ptime))
 
             stat = os.stat(pname)
             mtime = int(stat.st_mtime)
@@ -91,7 +95,7 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
             if mtime > ptime:
                 swnew = True
             
-            logging.debug("stat " + str(pname) + " " + str(ptime) + " " + str(mtime) + " " + str("NEW" if swnew else "OLD"))
+            # logging.debug("stat " + str(pname) + " " + str(ptime) + " " + str(mtime) + " " + str("NEW" if swnew else "OLD"))
             if not swnew:
                 # the file has not changed
                 self.send_response(304)
@@ -157,8 +161,14 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
             self.send_header('Content-Length', 0)
             self.end_headers()
 
+
             if len(subpath) > 2:
                 host = subpath[2]
+
+                if self.timer.has_tag("ready-%s" % host):
+                    self.timer.stop("ready-%s" % host)
+                self.timer.start("ready-%s" % host)
+
                 # TODO make this update thread safe, which it is not now
                 self.server.ready.add(host)
 
@@ -222,6 +232,9 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
         # set the flag to terminate the server
         self.server.running = False
         self.server.self_dummy()
+
+        if self.timer.has_tag("master"):
+            self.timer.stop("master")
 
     def StartHostServer(self, remote, master):
         logging.info("starting host server on host %s, port %s" % \
@@ -316,6 +329,7 @@ if __name__ == '__main__':
 
     handler = BaseHTTPServer.BaseHTTPRequestHandler
     handler.config = dconf
+    handler.timer = perf.Timer(logging)
 
     dconf["tasks"] = config.assign(dconf)
 

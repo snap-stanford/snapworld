@@ -1,6 +1,6 @@
 require 'rake'
 
-PORT = 9102
+PORT = 8102
 HOST = "ild1.stanford.edu"
 ################################
 
@@ -34,6 +34,8 @@ end
 def task_deploy()
     # NOTE: Assumptions:
     
+    sh "fs flushvolume -path ." # flush AFS cache
+
     cleanup = "rm -rf /lfs/local/0/${USER}/supervisors/*"
     for i in 1..2
         sh2 "ssh ild#{i} #{cleanup}"
@@ -53,7 +55,7 @@ def task_deploy()
     sh "cp #{config_filepath} #{stage_dir}"
 
     Dir.chdir("bin/") do
-        sh "time python master.py"
+        sh "time python master.py 2>&1 | tee /lfs/local/0/${USER}/master.log"
     end
 end
 
