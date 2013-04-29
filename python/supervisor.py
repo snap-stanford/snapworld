@@ -343,7 +343,6 @@ def Execute(args):
             task = task_list.pop()
             p, prog = execute_single_task(task)
             procs.append(p)
-            if ex
             timer.start('worker-pid-%d' % p.pid, extra=prog)
                 
         for p in procs:
