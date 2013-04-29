@@ -13,7 +13,7 @@ class Timer(object):
 
     def stop(self, tag=None):
         time_taken = time.time() - self.start_times[tag]
-        extra = extras[tag]
+        extra = self.extras[tag]
         if extra is not None:
             self.log.debug("[timer] [%s] (%s) %d ms" % (tag, extra, time_taken))
         else:
