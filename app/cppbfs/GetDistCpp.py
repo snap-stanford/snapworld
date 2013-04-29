@@ -82,10 +82,10 @@ def AddNewNodes(taskindex, sw, ds, msglist):
         Vec = Snap.TIntV(FIn)
 
         # TODO iterate through nodes
-        print "len", Vec.Len()
+        # print "len", Vec.Len()
         for i in range(0,Vec.Len()):
             Node = Vec.GetVal(i).Val
-            print "Vec", i, Node
+            # print "Vec", i, Node
 
             if Visited.IsKey(Node):
                 continue
