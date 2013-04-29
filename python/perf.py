@@ -21,6 +21,9 @@ class Timer(object):
         del self.start_times[tag]
         del self.extras[tag]
 
+    def update_extra(self, tag, extra):
+        self.extras[tag] = extra
+
     def __enter__(self):
         self.start(self.tag)
 

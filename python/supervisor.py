@@ -334,17 +334,22 @@ def Execute(args):
     # at most max_tasks processes at any point.
     task_list = args.active[:]
     procs = []
-    logging.info("Running %d tasks with %d-way parallelism" % \
-            (len(task_list), max_tasks))
+    logging.info("Running %d tasks with %d-way parallelism: %s" % \
+            (len(task_list), max_tasks, str(task_list)))
 
     timer = perf.Timer(logging)
+    pcounter = 0
+    counter_map = {}
     while True:
         while task_list and len(procs) < max_tasks:
             task = task_list.pop()
+            timer.start(str(pcounter))
             p, prog = execute_single_task(task)
+            timer.update_extra(str(pcounter), "%d %s" % (p.pid, prog))
+            counter_map[p.pid] = pcounter
+            pcounter += 1
             procs.append(p)
-            timer.start('worker-pid-%d' % p.pid, extra=prog)
-                
+
         for p in procs:
             # wait for the process to complete
             
@@ -353,7 +358,7 @@ def Execute(args):
             status = p.poll()
             if status is not None:
                 logging.debug("finished %d" % pid)
-                timer.stop('worker-pid-%d' % p.pid)
+                timer.stop(counter_map[p.pid])
                 procs.remove(p)
  
         if not procs and not task_list:
