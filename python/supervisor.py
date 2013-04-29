@@ -343,9 +343,9 @@ def Execute(args):
     while True:
         while task_list and len(procs) < max_tasks:
             task = task_list.pop()
-            timer.start(str(pcounter))
+            timer.start(pcounter)
             p, prog = execute_single_task(task)
-            timer.update_extra(str(pcounter), "%d %s" % (p.pid, prog))
+            timer.update_extra(pcounter, "%d %s" % (p.pid, prog))
             counter_map[p.pid] = pcounter
             pcounter += 1
             procs.append(p)
