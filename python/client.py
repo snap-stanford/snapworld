@@ -1,5 +1,6 @@
 import httplib
 import urllib2
+import urllib
 
 def config(server):
     # get configuration
@@ -133,3 +134,10 @@ def messagevec(server, src, dst, Vec):
 
     h.close()
 
+
+def error(server, src_id, msg):
+    encoded_msg = urllib.urlencode({ 'msg': str(msg) })
+    url = "http://%s/error/%s/%s" % (str(server), str(src_id), encoded_msg)
+    f = urllib2.urlopen(url)
+    body = f.read()
+    f.close()

@@ -15,9 +15,9 @@ class Timer(object):
         time_taken = time.time() - self.start_times[tag]
         extra = self.extras[tag]
         if extra is not None:
-            self.log.debug("[timer] [%s] (%s) %.2f s" % (str(tag), str(extra), time_taken))
+            self.log.info("[timer] [%s] (%s) %.2f s" % (str(tag), str(extra), time_taken))
         else:
-            self.log.debug("[timer] [%s] %.2f s" % (str(tag), time_taken))
+            self.log.info("[timer] [%s] %.2f s" % (str(tag), time_taken))
         del self.start_times[tag]
         del self.extras[tag]
 

@@ -3,6 +3,7 @@ import os
 import sys
 import json
 import logging
+import perf
 
 gotsnap = False
 
@@ -172,6 +173,7 @@ class SnapWorld:
     def LoadState(self):
         fname = "swstate-%s.txt" % (self.taskname)
 
+    
         try:
             f = open(fname,"r")
         except:
@@ -198,40 +200,42 @@ class SnapWorld:
 
     def Send(self, dstid, d, channel = "1", swsnap = False):
 
-        #dstnum = dstid / self.range
-        #dstname = self.target + "-" + str(dstnum)
-        dstname = self.target[channel] + "-" + str(dstid)
-        dsthostid = self.tasks.get(dstname)
-        dshost = self.hosts.get(dsthostid)
+        with perf.Timer(self.log, "Send"):
 
-        if self.local:
-            fname = self.GetOutName(dstname)
-
-        if swsnap:
-            if not gotsnap:
-                print "*** Error: Snap module is not available"
-                sys.exit(1)
-                
-            # Snap vector
-            if self.local:
-                FOut = Snap.TFOut(Snap.TStr(fname))
-                d.Save(FOut)
-                FOut.Flush()
-                #print "send Snap task %s, host %s, *** Error: local 'Send' not yet implemented" % (dstname, dshost)
-                return
-
-            client.messagevec(dshost,self.taskname,dstname,d)
-
-        else:
-            # json dict
-            s = json.dumps(d)
-            # print "send task %s, host %s, msg %s" % (dstname, dshost, s)
+            #dstnum = dstid / self.range
+            #dstname = self.target + "-" + str(dstnum)
+            dstname = self.target[channel] + "-" + str(dstid)
+            dsthostid = self.tasks.get(dstname)
+            dshost = self.hosts.get(dsthostid)
 
             if self.local:
-                f = open(fname,"w")
-                f.write(s)
-                f.close()
-                return
+                fname = self.GetOutName(dstname)
 
-            client.message(dshost,self.taskname,dstname,s)
+            if swsnap:
+                if not gotsnap:
+                    print "*** Error: Snap module is not available"
+                    sys.exit(1)
+                    
+                # Snap vector
+                if self.local:
+                    FOut = Snap.TFOut(Snap.TStr(fname))
+                    d.Save(FOut)
+                    FOut.Flush()
+                    #print "send Snap task %s, host %s, *** Error: local 'Send' not yet implemented" % (dstname, dshost)
+                    return
+
+                client.messagevec(dshost,self.taskname,dstname,d)
+
+            else:
+                # json dict
+                s = json.dumps(d)
+                # print "send task %s, host %s, msg %s" % (dstname, dshost, s)
+
+                if self.local:
+                    f = open(fname,"w")
+                    f.write(s)
+                    f.close()
+                    return
+
+                client.message(dshost,self.taskname,dstname,s)
 

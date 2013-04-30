@@ -1,6 +1,6 @@
 #!/bin/sh
 
-PPN=8
+PPN=10
 for var in {1..9}
 do
     if [ -z $NODES ]; then
@@ -10,6 +10,6 @@ do
     fi
 done
 
-echo ${NODES}
+echo "qsub -I -l nodes=${NODES}"
 
-qsub -I -l nodes=${NODES}
+# qsub -I -l nodes=${NODES}

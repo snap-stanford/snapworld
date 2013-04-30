@@ -7,12 +7,12 @@ elsif USER == 'nkhadke'
     PORT = 8102
 end
 
+HOST = (`python python/config.py snapw.config master`).split(':')[0]
 HOSTNAME = `hostname`
-if HOSTNAME.include? "ild"
-    HOST = "ild1.stanford.edu"
+
+if HOST.include? "ild"
     SLEEPTIME = 5
-elsif HOSTNAME .include? "iln"
-    HOST = "iln01.stanford.edu"
+elsif HOST.include? "iln"
     SLEEPTIME = 15
 end
 
@@ -27,6 +27,17 @@ def sh2(cmd)
     end
 end
 
+def task_dsh(cmd)
+    if HOST.include? "ild"
+        for i in 1..2
+            sh2 "ssh ild#{i} \"#{cmd}\""
+        end
+    elsif HOST.include? "iln"
+        for i in 1..9
+            sh2 "ssh iln0#{i} \"#{cmd}\""
+        end
+    end
+end
 
 def task_start(host, port)
     sh "curl -i http://#{host}:#{port}/start"
@@ -49,17 +60,8 @@ end
 
 def pre_deploy_cleanup()
     sh "fs flushvolume -path ." # flush AFS cache
-
     cleanup = "rm -rf #{LFS}/supervisors/*"
-    if HOSTNAME.include? "ild"
-        for i in 1..2
-            sh2 "ssh ild#{i} #{cleanup}"
-        end
-    elsif HOSTNAME .include? "iln"
-        for i in 1..9
-            sh2 "ssh iln0#{i} #{cleanup}"
-        end
-    end
+    task_dsh(cleanup)
 end
 
 def task_deploy()
@@ -123,13 +125,14 @@ end
 task :cleanup do
     sh "ps x | grep python | grep -v grep | grep -v emacs | grep -v vim | awk '{print $1}'| xargs -r kill -SIGKILL"
     killcmd_sup = "ps x | grep python | grep -v grep | grep -v emacs | grep -v vim | awk '{print \\$1}'| xargs -r kill -SIGKILL"
-    if HOSTNAME.include? "ild"
-        for i in 1..2
-            sh2 "ssh ild#{i} \"#{killcmd_sup}\""
-        end
-    elsif HOSTNAME .include? "iln"
-        for i in 1..9
-            sh2 "ssh iln0#{i} \"#{killcmd_sup}\""
-        end
-    end
+    task_dsh(killcmd_sup)
+end
+
+task :dsh do
+    task_dsh(ARGV[1].to_s) # FIXME
+end
+
+task :check do
+    task_dsh("ps aux | grep python | grep ${USER} | grep -v grep")
+    task_dsh("grep -r 15966 #{LFS}")
 end

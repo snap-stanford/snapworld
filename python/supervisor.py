@@ -111,7 +111,7 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
             return
 
         elif self.path == "/dummy":
-            print "dummy request"
+            logging.debug("dummy request")
 
             self.send_response(200)
             self.send_header('Content-Length', 0)
@@ -139,7 +139,7 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
             logging.debug("active tasks %s" % (str(active)))
 
             self.qactname = qactname
-            self.active = active
+            self.active = active # the task list
             # start a thread to execute the work tasks
             t = threading.Thread(target=Execute, args=(self, ))
             t.start()
@@ -213,7 +213,7 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
             config.mkdir_p(dirname)
 
             fname = "%s/%s" % (dirname, src)
-            f,fnew = config.uniquefile(fname)
+            f, fnew = config.uniquefile(fname)
             f.write(body)
             f.close()
     
@@ -249,6 +249,9 @@ class ThreadedHTTPServer(SocketServer.ThreadingMixIn,
         haddr = "%s:%s" % (self.host, self.port)
         client.dummy(haddr)
 
+def get_task_name(task):
+    return str(task.split('-', 1)[0])
+
 def Execute(args):
     logging.info("Execute " + str(args.active) + "")
     tnow = time.time()
@@ -256,7 +259,7 @@ def Execute(args):
     task_name = "(overall: )"
     if len(args.active) > 0:
         # Get's the task name
-        task_name = "(overall: %s)" % args.active[0].split('-')[0]
+        task_name = "(overall: %s)" % get_task_name(args.active[0])
     overall_timer.start(task_name)
 
     if len(args.active) > 0:
@@ -265,7 +268,7 @@ def Execute(args):
      
     def execute_single_task(task):
         # get the executables
-        bunch = "%s" % (task.split("-",1)[0])
+        bunch = get_task_name(task)
         execlist = []
         try:
             execlist = args.config["bunch"][bunch]["exec"].split(",")
@@ -332,7 +335,7 @@ def Execute(args):
         logging.info("starting cmd %s" % (cmd))
      
         # start the work process
-        p = subprocess.Popen(cmd.split(), cwd=tdir)
+        p = subprocess.Popen(cmd.split(), cwd=tdir, close_fds=True)
         return p, prog
      
     # Dynamically check what the number of processors we have on each host
@@ -369,10 +372,17 @@ def Execute(args):
             logging.debug("polling %d" % pid)
             status = p.poll()
             if status is not None:
-                logging.debug("finished %d" % pid)
                 timer.stop(counter_map[p.pid])
                 del counter_map[p.pid]
-                procs.remove(p)
+
+                logging.debug("finished %d with status %s" % (pid, str(status)))
+                # error reporting
+                if status <> 0:
+                    msg = "Pid %d terminated unexpectedly" % pid
+                    logging.error(msg)
+                    client.error(args.master, args.id, msg)
+
+                procs.remove(p) 
  
         if not procs and not task_list:
             break

@@ -5,11 +5,11 @@ import sys
 import snap as Snap
 import swlib
 
-#distmean = 150
-#distvar  = 22.5
-distmean = 8.0
-#distmean = 3
-distvar  = 1.0
+distmean = 50
+distvar  = 10.0
+# distmean = 8.0
+# distmean = 3
+# distvar  = 1.0
 
 def GenStubs(sw):
     """

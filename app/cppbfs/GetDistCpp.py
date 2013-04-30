@@ -5,6 +5,8 @@ import sys
 import snap as Snap
 import swlib
 
+import perf
+
 def GetDist(sw):
     """
     find the node distance
@@ -16,7 +18,9 @@ def GetDist(sw):
     msglist = sw.GetMsgList()
     sw.log.debug("msglist %s" % str(msglist))
 
-    ds = LoadState()
+    ds = None
+    with perf.Timer(sw.log, "LoadState-GetDistCpp"):
+        ds = LoadState()
 
     # process initialization
     if ds == None:
@@ -28,7 +32,8 @@ def GetDist(sw):
         # successive iterations: input are the new nodes
         AddNewNodes(taskindex, sw, ds, msglist)
 
-    SaveState(ds)
+    with perf.Timer(sw.log, "SaveState-GetDistCpp"):
+        SaveState(ds)
 
 def InitState(taskindex, msglist):
     # TODO move all the message formats to SNAP

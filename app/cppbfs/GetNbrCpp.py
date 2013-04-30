@@ -5,6 +5,8 @@ import sys
 import snap as Snap
 import swlib
 
+import perf
+
 def GetNbr(sw):
     """
     provide graph neighbors
@@ -15,7 +17,9 @@ def GetNbr(sw):
     msglist = sw.GetMsgList()
     sw.log.debug("msglist %s" % str(msglist))
 
-    AdjLists = LoadState()
+    AdjLists = None
+    with perf.Timer(sw.log, "LoadState-GetNbrCpp"):
+        AdjLists = LoadState()
 
     if AdjLists:
         # state is available, process requests for neighbors
@@ -44,7 +48,8 @@ def GetNbr(sw):
     AdjLists = GetEdges(Edges)
     sw.log.debug("state %s" % str(AdjLists.Len()))
     
-    SaveState(AdjLists)
+    with perf.Timer(sw.log, "SaveState-GetNbrCpp"):
+        SaveState(AdjLists)
 
     dmsgout = {}
     dmsgout["src"] = sw.GetName()

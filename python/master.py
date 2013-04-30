@@ -6,6 +6,8 @@ import sys
 import urlparse
 import json
 import logging
+import threading
+import time
 
 import client
 import config
@@ -120,16 +122,25 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
 
             if len(subpath) > 2:
                 host = subpath[2]
-                # TODO make this update thread safe, which it is not now
+                
+                self.server.done_lock.acquire()
                 self.server.done.add(host)
                 logging.info("host %s completed work" % (str(self.server.done)))
-                if len(self.server.done) == len(self.config["hosts"]):
+                done_size = len(self.server.done)
+                self.server.done_lock.release()
+
+                if done_size == len(self.config["hosts"]):
 
                     logging.info("all hosts completed")
+                    # Fix possible concurrency issue with supervisor.py
+                    time.sleep(5)
 
                     # initialize a set of ready servers,
                     # clear the continue indicator
+                    self.server.ready_lock.acquire()
                     self.server.ready = set()
+                    self.server.ready_lock.release()
+
                     self.server.iterate = False
 
                     # send a start message at the beginning
@@ -157,10 +168,8 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
 
         elif subpath[1] == "ready":
             self.send_response(200)
-            #self.send_header('Last-Modified', self.date_time_string(time.time()))
             self.send_header('Content-Length', 0)
             self.end_headers()
-
 
             if len(subpath) > 2:
                 host = subpath[2]
@@ -168,9 +177,6 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
                 if self.timer.has_tag("ready-%s" % host):
                     self.timer.stop("ready-%s" % host)
                 self.timer.start("ready-%s" % host)
-
-                # TODO make this update thread safe, which it is not now
-                self.server.ready.add(host)
 
                 # get the number of active tasks on the host
                 numtasks = 0
@@ -183,8 +189,13 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
                 if numtasks > 0:
                     self.server.iterate = True
 
+                self.server.ready_lock.acquire()
+                self.server.ready.add(host)
                 logging.debug("host %s ready" % (str(self.server.ready)))
-                if len(self.server.ready) == len(self.config["hosts"]):
+                ready_size = len(self.server.ready)
+                self.server.ready_lock.release()
+
+                if ready_size == len(self.config["hosts"]):
 
                     # stop the execution, if there are no more tasks to execute
                     if not self.server.iterate:
@@ -197,21 +208,39 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
                     logging.info("all hosts ready")
         
                     # initialize a set of done servers
+                    self.server.done_lock.acquire()
                     self.server.done = set()
+                    self.server.done_lock.release()
 
                     # send a step start command to all the hosts
                     hosts = self.config["hosts"]
                     master = "%s:%s" % (
                         self.config["master"]["host"],
                         self.config["master"]["port"])
-                    # TODO, create a thread for this step
+
+                    # TODO: create a thread for this step
                     for h in hosts:
                         logging.info("send next step to " + str(h))
                         self.StartStep(h)
             return
 
+        elif subpath[1] == "error":
+
+            self.send_response(200)
+            self.send_header('Content-Length', 0)
+            self.end_headers()
+
+            if len(subpath) > 3:
+                src_host = subpath[2]
+                encoded_msg = subpath[3]
+                msg_dict = urlparse.parse_qs(encoded_msg)
+                logging.critical("Error msg from supervisor %s: %s" % (src_host, msg_dict['msg']))
+                logging.critical("Terminating master now")
+                self._quit(force=True)
+
+            return
+
         self.send_response(200)
-        #self.send_header('Last-Modified', self.date_time_string(time.time()))
         self.end_headers()
         self.wfile.write(message)
         return
@@ -219,7 +248,7 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
     def _quit(self, force=False):
         logging.info("terminating host servers")
 
-        master = self.config["master"]
+        # master = self.config["master"]
         hosts = self.config["hosts"]
         for h in hosts:
             self.QuitHostServer(h)
@@ -275,11 +304,11 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
         haddr = "%s:%s" % (host["host"], host["port"])
         client.quit(haddr)
 
-    def log_request(self, code=None, size=None):
-        pass
+    # def log_request(self, code=None, size=None):
+    #     pass
 
-    def log_message(self, format, *args):
-        pass
+    # def log_message(self, format, *args):
+    #     pass
 
 class ThreadedHTTPServer(SocketServer.ThreadingMixIn,
                             BaseHTTPServer.HTTPServer):
@@ -316,8 +345,10 @@ if __name__ == '__main__':
     server.port = port
     # set of hosts completed their step
     server.done = set()
+    server.done_lock = threading.Lock()
     # set of hosts ready for the next step
     server.ready = set()
+    server.ready_lock = threading.Lock()
     # indicator, if an application has started yet
     server.start = False
     # indicator that the head service is running
