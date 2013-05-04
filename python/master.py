@@ -304,11 +304,11 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
         haddr = "%s:%s" % (host["host"], host["port"])
         client.quit(haddr)
 
-    # def log_request(self, code=None, size=None):
-    #     pass
+    def log_request(self, code=None, size=None):
+        pass
 
-    # def log_message(self, format, *args):
-    #     pass
+    def log_message(self, format, *args):
+        pass
 
 class ThreadedHTTPServer(SocketServer.ThreadingMixIn,
                             BaseHTTPServer.HTTPServer):

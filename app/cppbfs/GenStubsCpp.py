@@ -1,6 +1,6 @@
 import os
-import random
 import sys
+import traceback
 
 import snap as Snap
 import swlib
@@ -61,8 +61,7 @@ def GenStubs(sw):
 def Worker(sw):
     GenStubs(sw)
 
-if __name__ == '__main__':
-    
+def main():   
     sw = swlib.SnapWorld()
     sw.Args(sys.argv)
 
@@ -75,4 +74,14 @@ if __name__ == '__main__':
     Worker(sw)
 
     sw.log.debug("finished")
+
+if __name__ == '__main__':
+
+    try:
+        main()
+    except:
+        sys.stdout.write("Exception in main()\n")
+        traceback.print_exc(file=sys.stdout)
+        sys.stdout.flush()
+        sys.exit(2)
 

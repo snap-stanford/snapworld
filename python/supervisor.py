@@ -242,7 +242,11 @@ class ThreadedHTTPServer(SocketServer.ThreadingMixIn,
         while self.running:
             self.handle_request()
 
-        print "exit"
+        # For *-py-*.log
+        logging.info("Exit")
+        # For *-sh-*.log
+        print "Exit"
+        sys.stdout.flush()
         sys.exit(0)
 
     def self_dummy(self):
@@ -423,27 +427,34 @@ if __name__ == '__main__':
         index += 1
 
     if port == None:
-        print "Usage: " + sys.argv[0] + " -d -i <id> -p <port> -m <host>:<port>"
+        print "Usage: %s -d -i <id> -p <port> -m <host>:<port>" % sys.argv[0]
         sys.exit(1)
 
     if daemon_mode:
-        # TODO(nkhadke): How to log this? Do we need to log this?
-        print "daemon"
+        # TODO: How to log this? Do we need to log this?
+        # print "Daemonizing..."
+        # sys.stdout.flush()
         retCode = daemon.createDaemon()
+
+    # print "Starting Supervisor..."
+    # sys.stdout.flush()
+
+    # NOTE: Cannot do sys.stdout.flush()
+    # Will have funny behavior...
 
     os.chdir(workdir)
     pid = os.getpid()
 
-    fname1 = "log-snapw-host-%d.txt" % (port)
-    fname = "log-swhost-%d.txt" % (pid)
+    fname = "supervisor-py-%d.log" % pid
 
+    ### Daemon Stuff
+    fname1 = "supervisor-sh-%d.log" % port
     fd = os.open(fname1, os.O_APPEND | os.O_WRONLY) # standard input (0)
-    #flog = open(fname, "a") # standard input (0)
-
     # Duplicate standard input to standard output and standard error.
     os.dup2(0, 1)           # standard output (1)
     os.dup2(0, 2)           # standard error (2)
-    
+    ###
+
     # Set up logging
     logging.basicConfig(filename=fname, level=logging.DEBUG, format='[%(levelname)s] [%(asctime)s] [%(process)d] [%(filename)s] [%(funcName)s] %(message)s')
 
@@ -472,13 +483,14 @@ if __name__ == '__main__':
         # send done to master
         client.done(master, id)
 
-        # TODO time conflict. The master might already send 'step' request,
+        # NOTE: Time conflict. The master might already send 'step' request,
         #       before server_forever() is started, so 'step' might be lost.
         #       Delay done until the server is up and running.
-        # check out Asynchronous Mixins example for SocketServer
+        # Check out Asynchronous Mixins example for SocketServer
         # Comment: the constructor might already activate the server,
         #       so there is no problem.
-    
+        # NOTE: Fixed using time.sleep(5) in master.py
+
         logging.debug("Supervisor sent /done to master")
 
     logging.info("Starting host server pid %d, id %s, port %d with master %s\n" % (pid, id, port, master))

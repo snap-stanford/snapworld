@@ -7,10 +7,11 @@ HOST_PORT = (`python python/config.py snapw.config master`).strip().split(':')
 HOST = HOST_PORT[0]
 PORT = HOST_PORT[1]
 
+
 if HOST.include? "ild"
-    SLEEPTIME = 5
+    SLEEPTIME = 10
 elsif HOST.include? "iln"
-    SLEEPTIME = 15
+    SLEEPTIME = 10
 end
 
 LFS = "/lfs/local/0/${USER}"
@@ -31,6 +32,7 @@ def task_dsh(cmd)
         end
     elsif HOST.include? "iln"
         for i in 1..9
+            puts "=" * 60
             sh2 "ssh iln0#{i} \"#{cmd}\""
         end
     end
@@ -62,10 +64,6 @@ def pre_deploy_cleanup()
 end
 
 def task_deploy()
-    # NOTE: Assumptions:
-    
-    pre_deploy_cleanup()
-
     config_filepath = "snapw.config"
 
     # Create `bin` directory, which is a staging directory to run
@@ -87,6 +85,7 @@ end
 
 desc "Run C++ BFS (not Python BFS)"
 task :deploy do
+    pre_deploy_cleanup()
     task_deploy()
 end
 
@@ -101,8 +100,9 @@ end
 
 task :test do
     begin
+        pre_deploy_cleanup()
         sh "sleep #{SLEEPTIME} && rake start &"
-        sh "rake deploy"
+        task_deploy()
     rescue
         sh2 "rake stop"
     end
@@ -117,11 +117,17 @@ task :cleanup do
     task_dsh(killcmd_sup)
 end
 
-task :dsh do
-    task_dsh(ARGV[1].to_s) # FIXME
+# Example: $ rake dsh["pkill python"]
+task :dsh, :cmd do |t, args|
+    cmd = args.cmd
+    task_dsh(cmd)
 end
 
 task :check do
     task_dsh("ps aux | grep python | grep ${USER} | grep -v grep")
-    task_dsh("grep -r 15966 #{LFS}")
+end
+
+task :dshgrep, :txt do |t, args|
+    txt = args.txt
+    task_dsh("grep -r #{txt} #{LFS}")
 end
