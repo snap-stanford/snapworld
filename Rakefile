@@ -1,14 +1,11 @@
 require 'rake'
 
-USER = ENV['USER']
-if USER == 'minghan'
-    PORT = 9102
-elsif USER == 'nkhadke'
-    PORT = 8102
-end
-
-HOST = (`python python/config.py snapw.config master`).split(':')[0]
 HOSTNAME = `hostname`
+USER = ENV['USER']
+HOST_PORT = (`python python/config.py snapw.config master`).strip().split(':')
+
+HOST = HOST_PORT[0]
+PORT = HOST_PORT[1]
 
 if HOST.include? "ild"
     SLEEPTIME = 5
@@ -103,14 +100,6 @@ task :stop do
 end
 
 task :test do
-    # if ARGV[1].to_s == ''
-        # config_filepath = "snapw.config"
-    # else
-        # config_filepath = ARGV[1]
-    # end
-    # host_port = `cd python; python -mconfig ../#{config_filepath} master`
-    # host, port = host_port.split(":")
-
     begin
         sh "sleep #{SLEEPTIME} && rake start &"
         sh "rake deploy"
