@@ -38,7 +38,7 @@ if __name__ == '__main__':
     sw = swlib.SnapWorld()
     sw.Args(sys.argv)
 
-    fname = "log-swwork-%s.txt" % (sw.GetName())
+    fname = "swwork-%s.log" % (sw.GetName())
 
     sw.SetLog(fname)
     sw.GetConfig()

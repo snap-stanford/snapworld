@@ -163,7 +163,7 @@ def createDaemon():
    for fd in range(0, maxfd):
       try:
          os.close(fd)
-      except OSError:	# ERROR, fd wasn't open to begin with (ignored)
+      except OSError:   # fd wasn't open to begin with (ignored)
          pass
 
    return(0)

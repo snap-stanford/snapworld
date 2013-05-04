@@ -5,10 +5,16 @@ import traceback
 import snap as Snap
 import swlib
 
-distmean = 50
-distvar  = 10.0
+# distmean = 100
+# distvar  = 15.0
+
+distmean = 150
+distvar  = 22.5
+
+# distmean = 50
+# distvar  = 10.0
+
 # distmean = 8.0
-# distmean = 3
 # distvar  = 1.0
 
 def GenStubs(sw):
@@ -19,38 +25,36 @@ def GenStubs(sw):
     taskname = sw.GetName()
 
     msglist = sw.GetMsgList()
-    sw.log.debug("msglist " + str(msglist))
+    sw.log.debug("msglist: %s" % str(msglist))
 
     ntasks = int(sw.GetVar("gen_tasks"))
-    sw.log.debug("__tasks__ %s\t%s" % (taskname, str(ntasks)))
+    sw.log.debug("__tasks__ %s\t%d" % (taskname, ntasks))
 
     for item in msglist:
         dmsg = sw.GetMsg(item)
         d = dmsg["body"]
-        sw.log.debug("task %s, args %s" % (taskname, str(d)))
-
         ns = d["s"]
         nrange = d["r"]
 
-        sw.log.debug("task %s, start %d, range %d" % (taskname, ns, nrange))
+        sw.log.debug("task: %s, args: %s, start: %d, range: %d" % (taskname, str(d), ns, nrange))
 
         # determine node degrees
         DegV = Snap.TIntV(nrange)
         Snap.GetDegrees(DegV,distmean,distvar)
 
-        sw.log.debug("1: got degrees")
+        # 1: got degrees (above)
 
         # randomly assign stubs to tasks
         Tasks = Snap.TIntIntVV(ntasks)
         Snap.AssignRndTask(DegV, Tasks)
 
-        sw.log.debug("2: assigned stubs")
+        # 2: assigned stubs (above)
 
         # add ns to all values in Tasks
         for i in range(0,Tasks.Len()):
             Snap.IncVal(Tasks.GetVal(i), ns)
 
-        sw.log.debug("3: incremented base")
+        # 3: incremented base (above)
 
         # send messages
         for i in range(0,Tasks.Len()):
@@ -65,7 +69,7 @@ def main():
     sw = swlib.SnapWorld()
     sw.Args(sys.argv)
 
-    fname = "log-swwork-%s.txt" % (sw.GetName())
+    fname = "swwork-%s.log" % (sw.GetName())
 
     sw.SetLog(fname)
     sw.GetConfig()

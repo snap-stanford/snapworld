@@ -108,6 +108,8 @@ task :test do
     end
     sh2 "rake cleanup"
     # sh "rm -rf bin/"
+    
+    sh2 "rake dshgrep[ERROR]"
 end
 
 
@@ -129,5 +131,6 @@ end
 
 task :dshgrep, :txt do |t, args|
     txt = args.txt
-    task_dsh("grep -r #{txt} #{LFS}")
+    task_dsh("grep -I --include='*.log' -r #{txt} #{LFS}")
 end
+

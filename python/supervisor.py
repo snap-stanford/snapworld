@@ -260,10 +260,10 @@ def Execute(args):
     logging.info("Execute " + str(args.active) + "")
     tnow = time.time()
     overall_timer = perf.Timer(logging)
-    task_name = "(overall: )"
+    task_name = "overall: "
     if len(args.active) > 0:
         # Get's the task name
-        task_name = "(overall: %s)" % get_task_name(args.active[0])
+        task_name = "overall: %s" % get_task_name(args.active[0])
     overall_timer.start(task_name)
 
     if len(args.active) > 0:
@@ -362,9 +362,9 @@ def Execute(args):
     while True:
         while task_list and len(procs) < max_tasks:
             task = task_list.pop()
-            timer.start(pcounter)
+            timer.start("prog-%d" % pcounter)
             p, prog = execute_single_task(task)
-            timer.update_extra(pcounter, "%d %s" % (p.pid, prog))
+            timer.update_extra("prog-%d" % pcounter, "%d, %s" % (p.pid, prog))
             counter_map[p.pid] = pcounter
             pcounter += 1
             procs.append(p)
@@ -376,7 +376,7 @@ def Execute(args):
             logging.debug("polling %d" % pid)
             status = p.poll()
             if status is not None:
-                timer.stop(counter_map[p.pid])
+                timer.stop("prog-%d" % counter_map[p.pid])
                 del counter_map[p.pid]
 
                 logging.debug("finished %d with status %s" % (pid, str(status)))

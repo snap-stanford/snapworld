@@ -12,12 +12,16 @@ class Timer(object):
         self.extras[tag] = extra
 
     def stop(self, tag):
+        # Hack so that func name in log will report `timer` instead of `stop`
+        self.timer(tag)
+
+    def timer(self, tag):
         time_taken = time.time() - self.start_times[tag]
         extra = self.extras[tag]
         if extra is not None:
-            self.log.info("[timer] [%s] (%s) %.2f s" % (str(tag), str(extra), time_taken))
+            self.log.info("[%s] (%s) %.2f s" % (str(tag), str(extra), time_taken))
         else:
-            self.log.info("[timer] [%s] %.2f s" % (str(tag), time_taken))
+            self.log.info("[%s] %.2f s" % (str(tag), time_taken))
         del self.start_times[tag]
         del self.extras[tag]
 
