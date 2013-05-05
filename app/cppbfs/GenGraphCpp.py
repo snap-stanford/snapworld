@@ -47,29 +47,26 @@ def GenGraph(sw):
     taskname = sw.GetName()
 
     msglist = sw.GetMsgList()
-    sw.log.debug("msglist %s" % str(msglist))
+    sw.log.debug("msglist: %s" % msglist)
 
-    Stubs = Snap.TIntV()
+    Stubs = Snap.TIntV() # Stubs is an empty vector
     for item in msglist:
 
-        sw.log.debug("1: got item " + item)
+        # 1) Get item in msglist
 
+        # 2) Get name of item
         name = sw.GetMsgName(item)
 
-        sw.log.debug("2: got name " + name)
-
+        # 3) Get vector associated with name
         FIn = Snap.TFIn(Snap.TStr(name))
         Vec = Snap.TIntV(FIn)
 
-        sw.log.debug("3: got vector %d" % (Vec.Len()))
-
+        # 4) Add vector to Stubs
         Stubs.AddV(Vec)
 
-        sw.log.debug("4: got stubs %d" % (Stubs.Len()))
+    # 5) Got all stubs, which is of length msglist
 
-    sw.log.debug("5: got all stubs")
-
-    # randomize the items
+    # Randomize the items (aka shuffle)
     Snap.Randomize(Stubs)
 
     # nodes in each task and the number of tasks
@@ -77,21 +74,18 @@ def GenGraph(sw):
     ntasks = int(sw.GetVar("gen_tasks"))
 
     # get edges for a specific task
-    Tasks = Snap.TIntIntVV(ntasks)
+    Tasks = Snap.TIntIntVV(ntasks)  # vector of length ntasks containing vectors
     Snap.AssignEdges(Stubs, Tasks, tsize)
-
-    #print taskname,edges
 
     # send messages
     for i in xrange(0,Tasks.Len()):
-        sw.log.debug("sending task %d, len %d" % (i, Tasks.GetVal(i).Len()))
+        sw.log.debug("sending task: %d, len: %d" % (i, Tasks.GetVal(i).Len()))
         sw.Send(i,Tasks.GetVal(i),swsnap=True)
 
 def Worker(sw):
     GenGraph(sw)
 
-if __name__ == '__main__':
-    
+def main():    
     sw = swlib.SnapWorld()
     sw.Args(sys.argv)
 
@@ -104,4 +98,7 @@ if __name__ == '__main__':
     Worker(sw)
 
     sw.log.info("finished")
+
+if __name__ == '__main__':
+    main()
 

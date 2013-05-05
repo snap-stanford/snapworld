@@ -17,7 +17,7 @@ def GetDist(sw):
     taskindex = int(taskname.split("-")[1])
 
     msglist = sw.GetMsgList()
-    sw.log.debug("msglist %s" % str(msglist))
+    sw.log.debug("msglist: %s" % msglist)
 
     with perf.Timer(sw.log, "LoadState-GetDistCpp"):
         ds = LoadState(sw)
@@ -75,8 +75,6 @@ def AddNewNodes(taskindex, sw, ds, msglist):
     distance = ds["dist"]
     Visited = ds["visit"]
     # print "Visited", type(Visited)
-
-    sw.log.info("dist-msglist: %s" % msglist)
 
     timer = perf.Timer(sw.log)
     
@@ -169,12 +167,7 @@ def AddNewNodes(taskindex, sw, ds, msglist):
     timer.start("dist-send-all")
     for tn,args in dtasks.iteritems():
 
-        # Commented by @mteh
-        # dmsg = {}
-        # dmsg["task"] = taskindex
-        # dmsg["nodes"] = args
-
-        # output is composed of: nodes, task#
+        # output is composed of: nodes, task-num
         Vec1 = Snap.TIntV()
         for node in args:
             Vec1.Add(node)

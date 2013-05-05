@@ -36,36 +36,35 @@ def GenStubs(sw):
         ns = d["s"]
         nrange = d["r"]
 
-        sw.log.debug("task: %s, args: %s, start: %d, range: %d" % (taskname, str(d), ns, nrange))
+        sw.log.debug("task: %s, args: %s, start: %d, range: %d" % \
+                (taskname, str(d), ns, nrange))
 
+        # 1) Get degrees
         # determine node degrees
-        DegV = Snap.TIntV(nrange)
-        Snap.GetDegrees(DegV,distmean,distvar)
+        DegV = Snap.TIntV(nrange)               # vector of vertices' degree
+        Snap.GetDegrees(DegV,distmean,distvar)  # populate
 
-        # 1: got degrees (above)
-
+        # 2) Assign stubs
         # randomly assign stubs to tasks
-        Tasks = Snap.TIntIntVV(ntasks)
-        Snap.AssignRndTask(DegV, Tasks)
+        Tasks = Snap.TIntIntVV(ntasks)  # vector of tasks, with each cell a vector
+        Snap.AssignRndTask(DegV, Tasks) # each task is assigned a vec of vertex ids
 
-        # 2: assigned stubs (above)
-
+        # 3) Incremented base (above)
         # add ns to all values in Tasks
         for i in xrange(0,Tasks.Len()):
+            # inc the values in each list by ns (num_start)
+            # so that they are true vectex ids
             Snap.IncVal(Tasks.GetVal(i), ns)
-
-        # 3: incremented base (above)
 
         # send messages
         for i in xrange(0,Tasks.Len()):
-            sw.log.debug("sending task %d, len %d" % \
-                    (i, Tasks.GetVal(i).Len()))
+            sw.log.debug("sending task %d, len %d" % (i, Tasks.GetVal(i).Len()))
             sw.Send(i,Tasks.GetVal(i),swsnap=True)
 
 def Worker(sw):
     GenStubs(sw)
 
-def main():   
+def main():
     sw = swlib.SnapWorld()
     sw.Args(sys.argv)
 

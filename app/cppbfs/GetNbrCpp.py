@@ -15,9 +15,8 @@ def GetNbr(sw):
     taskname = sw.GetName()
 
     msglist = sw.GetMsgList()
-    sw.log.debug("msglist %s" % str(msglist))
+    sw.log.debug("msglist %s" % msglist)
 
-    AdjLists = None
     with perf.Timer(sw.log, "LoadState-GetNbrCpp"):
         AdjLists = LoadState(sw)
 
@@ -46,7 +45,7 @@ def GetNbr(sw):
 
     # first iteration: input are edges, save the state
     AdjLists = GetEdges(sw, Edges)
-    sw.log.debug("state %s" % str(AdjLists.Len()))
+    sw.log.debug("state: %d" % AdjLists.Len())
     
     with perf.Timer(sw.log, "SaveState-GetNbrCpp"):
         SaveState(sw, AdjLists)
@@ -59,7 +58,7 @@ def GetNbr(sw):
 
 def GetEdges(sw, Edges):
 
-    sw.log.debug("edges %s" % str(Edges.Len()))
+    sw.log.debug("edges: %d" % Edges.Len())
 
     AdjLists = Snap.TIntIntVH()
     Snap.GetAdjLists(Edges, AdjLists)
