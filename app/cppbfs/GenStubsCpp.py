@@ -51,13 +51,13 @@ def GenStubs(sw):
         # 2: assigned stubs (above)
 
         # add ns to all values in Tasks
-        for i in range(0,Tasks.Len()):
+        for i in xrange(0,Tasks.Len()):
             Snap.IncVal(Tasks.GetVal(i), ns)
 
         # 3: incremented base (above)
 
         # send messages
-        for i in range(0,Tasks.Len()):
+        for i in xrange(0,Tasks.Len()):
             sw.log.debug("sending task %d, len %d" % \
                     (i, Tasks.GetVal(i).Len()))
             sw.Send(i,Tasks.GetVal(i),swsnap=True)
@@ -84,7 +84,7 @@ if __name__ == '__main__':
     try:
         main()
     except:
-        sys.stdout.write("Exception in main()\n")
+        sys.stdout.write("[ERROR] Exception in GenStubsCpp.main()\n")
         traceback.print_exc(file=sys.stdout)
         sys.stdout.flush()
         sys.exit(2)

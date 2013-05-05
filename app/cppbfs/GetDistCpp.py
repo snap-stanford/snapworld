@@ -1,6 +1,7 @@
 import os
 import random
 import sys
+import traceback
 
 import snap as Snap
 import swlib
@@ -18,24 +19,25 @@ def GetDist(sw):
     msglist = sw.GetMsgList()
     sw.log.debug("msglist %s" % str(msglist))
 
-    ds = None
     with perf.Timer(sw.log, "LoadState-GetDistCpp"):
-        ds = LoadState()
+        ds = LoadState(sw)
 
     # process initialization
     if ds == None:
 
         # first iteration: input is the start node
-        ds = InitState(taskindex, msglist)
+        with perf.Timer(sw.log, "InitState-GetDistCpp"):
+            ds = InitState(sw, taskindex, msglist)
 
     else:
         # successive iterations: input are the new nodes
-        AddNewNodes(taskindex, sw, ds, msglist)
+        with perf.Timer(sw.log, "AddNewNodes-GetDistCpp"):
+            AddNewNodes(taskindex, sw, ds, msglist)
 
     with perf.Timer(sw.log, "SaveState-GetDistCpp"):
-        SaveState(ds)
+        SaveState(sw, ds)
 
-def InitState(taskindex, msglist):
+def InitState(sw, taskindex, msglist):
     # TODO move all the message formats to SNAP
     # TODO move all the iterators to SNAP
 
@@ -73,10 +75,15 @@ def AddNewNodes(taskindex, sw, ds, msglist):
     distance = ds["dist"]
     Visited = ds["visit"]
     # print "Visited", type(Visited)
+
+    sw.log.info("dist-msglist: %s" % msglist)
+
+    timer = perf.Timer(sw.log)
     
     # nodes to add are on the input
     NewNodes = Snap.TIntH() 
 
+    timer.start("dist-msglist-iter")
     for item in msglist:
 
         name = sw.GetMsgName(item)
@@ -88,7 +95,9 @@ def AddNewNodes(taskindex, sw, ds, msglist):
 
         # TODO iterate through nodes
         # print "len", Vec.Len()
-        for i in range(0,Vec.Len()):
+
+        timer.start("dist-nodes-iter")
+        for i in xrange(0,Vec.Len()):
             Node = Vec.GetVal(i).Val
             # print "Vec", i, Node
 
@@ -96,9 +105,13 @@ def AddNewNodes(taskindex, sw, ds, msglist):
                 continue
             NewNodes.AddDat(Node,0)
             Visited.AddDat(Node,distance)
+        timer.stop("dist-nodes-iter")
+
+    timer.stop("dist-msglist-iter")
 
     # done, no new nodes
     if NewNodes.Len() <= 0:
+        timer.start("dist-get-distribution")
         # get distance distribution
         dcount = {}
         VIter = Visited.BegI()
@@ -113,7 +126,7 @@ def AddNewNodes(taskindex, sw, ds, msglist):
 
         nnodes = int(sw.GetVar("nodes"))
         l = []
-        for i in range(0, nnodes):
+        for i in xrange(0, nnodes):
             if not dcount.has_key(i):
                 break
             l.append(dcount[i])
@@ -131,12 +144,16 @@ def AddNewNodes(taskindex, sw, ds, msglist):
 
         sw.log.info("final %s %s" % (str(ds["start"]), str(distance)))
         sw.log.info("distances %s" % str(l))
+
+        timer.stop("dist-get-distribution")
         return
 
     # nodes in each task
     tsize = sw.GetRange()
 
     # collect nodes for the same task
+    timer.start("dist-collect-nodes")
+
     dtasks = {}
     NIter = NewNodes.BegI()
     while not NIter.IsEnd():
@@ -146,14 +163,16 @@ def AddNewNodes(taskindex, sw, ds, msglist):
             dtasks[tn] = []
         dtasks[tn].append(ndst)
         NIter.Next()
-
-    #print "dtasks", dtasks
+    timer.stop("dist-collect-nodes")
 
     # send the messages
+    timer.start("dist-send-all")
     for tn,args in dtasks.iteritems():
-        dmsg = {}
-        dmsg["task"] = taskindex
-        dmsg["nodes"] = args
+
+        # Commented by @mteh
+        # dmsg = {}
+        # dmsg["task"] = taskindex
+        # dmsg["nodes"] = args
 
         # output is composed of: nodes, task#
         Vec1 = Snap.TIntV()
@@ -163,6 +182,7 @@ def AddNewNodes(taskindex, sw, ds, msglist):
         Vec1.Add(taskindex)
 
         sw.Send(tn,Vec1,swsnap=True)
+    timer.stop("dist-send-all")
 
 def TaskId(node,tsize):
     """
@@ -171,7 +191,7 @@ def TaskId(node,tsize):
 
     return node/tsize
 
-def LoadState():
+def LoadState(sw):
     fname = sw.GetStateName()
     if not os.path.exists(fname):
         return None
@@ -187,7 +207,7 @@ def LoadState():
     ds["visit"] = Visited
     return ds
 
-def SaveState(ds):
+def SaveState(sw, ds):
     fname = sw.GetStateName()
 
     Start = Snap.TInt(ds["start"])
@@ -203,8 +223,7 @@ def SaveState(ds):
 def Worker(sw):
     GetDist(sw)
 
-if __name__ == '__main__':
-    
+def main():
     sw = swlib.SnapWorld()
     sw.Args(sys.argv)
 
@@ -216,4 +235,13 @@ if __name__ == '__main__':
     Worker(sw)
 
     sw.log.info("finished")
+
+if __name__ == '__main__':
+    try:
+        main()
+    except:
+        sys.stdout.write("[ERROR] Exception in GenDistCpp.main()\n")
+        traceback.print_exc(file=sys.stdout)
+        sys.stdout.flush()
+        sys.exit(2)
 

@@ -225,7 +225,7 @@ class SnapWorld:
                     #print "send Snap task %s, host %s, *** Error: local 'Send' not yet implemented" % (dstname, dshost)
                     return
 
-                for i in xrange(2):
+                for i in xrange(3):
                     try:
                         client.messagevec(dshost,self.taskname,dstname,d)
                         return

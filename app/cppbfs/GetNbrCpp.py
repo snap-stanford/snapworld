@@ -19,7 +19,7 @@ def GetNbr(sw):
 
     AdjLists = None
     with perf.Timer(sw.log, "LoadState-GetNbrCpp"):
-        AdjLists = LoadState()
+        AdjLists = LoadState(sw)
 
     if AdjLists:
         # state is available, process requests for neighbors
@@ -45,11 +45,11 @@ def GetNbr(sw):
         Edges.AddV(Vec)
 
     # first iteration: input are edges, save the state
-    AdjLists = GetEdges(Edges)
+    AdjLists = GetEdges(sw, Edges)
     sw.log.debug("state %s" % str(AdjLists.Len()))
     
     with perf.Timer(sw.log, "SaveState-GetNbrCpp"):
-        SaveState(AdjLists)
+        SaveState(sw, AdjLists)
 
     dmsgout = {}
     dmsgout["src"] = sw.GetName()
@@ -57,7 +57,7 @@ def GetNbr(sw):
     dmsgout["body"] = {}
     sw.Send(0,dmsgout,"2")
 
-def GetEdges(Edges):
+def GetEdges(sw, Edges):
 
     sw.log.debug("edges %s" % str(Edges.Len()))
 
@@ -80,7 +80,7 @@ def GetNeighbors(sw, AdjLists, Nodes):
 
     sw.Send(tdst,Hood,swsnap=True)
 
-def LoadState():
+def LoadState(sw):
     fname = sw.GetStateName()
     if not os.path.exists(fname):
         return None
@@ -89,7 +89,7 @@ def LoadState():
     AdjLists = Snap.TIntIntVH(FIn)
     return AdjLists
 
-def SaveState(AdjLists):
+def SaveState(sw, AdjLists):
     fname = sw.GetStateName()
     FOut = Snap.TFOut(Snap.TStr(fname))
     AdjLists.Save(FOut)
@@ -98,8 +98,7 @@ def SaveState(AdjLists):
 def Worker(sw):
     GetNbr(sw)
 
-if __name__ == '__main__':
-    
+def main():   
     sw = swlib.SnapWorld()
     sw.Args(sys.argv)
 
@@ -112,3 +111,5 @@ if __name__ == '__main__':
 
     sw.log.info("finished")
 
+if __name__ == '__main__':
+    main()

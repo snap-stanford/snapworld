@@ -28,7 +28,7 @@ def SelectNodes(sw):
     nsample = int(sw.GetVar("stat_tasks"))
 
     s = set()
-    for i in range(0, nsample):
+    for i in xrange(0, nsample):
         while 1:
             n = int(random.random() * nnodes)
             if not n in s:
@@ -64,23 +64,13 @@ def GenGraph(sw):
         sw.log.debug("3: got vector %d" % (Vec.Len()))
 
         Stubs.AddV(Vec)
-        #for i in range(0,Vec.Len()):
-        #    stubs.append(Vec.GetVal(i).Val)
 
         sw.log.debug("4: got stubs %d" % (Stubs.Len()))
 
     sw.log.debug("5: got all stubs")
 
-    #print taskname,stubs
-
     # randomize the items
     Snap.Randomize(Stubs)
-    #random.shuffle(stubs)
-    #print taskname + "-r",stubs
-
-    # get the pairs
-    #pairs = zip(stubs[::2], stubs[1::2])
-    #print taskname,pairs
 
     # nodes in each task and the number of tasks
     tsize = sw.GetRange()
@@ -93,7 +83,7 @@ def GenGraph(sw):
     #print taskname,edges
 
     # send messages
-    for i in range(0,Tasks.Len()):
+    for i in xrange(0,Tasks.Len()):
         sw.log.debug("sending task %d, len %d" % (i, Tasks.GetVal(i).Len()))
         sw.Send(i,Tasks.GetVal(i),swsnap=True)
 
