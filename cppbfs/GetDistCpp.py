@@ -32,8 +32,6 @@ def GetDist(sw):
     SaveState(ds)
 
 def InitState(taskindex, msglist):
-    # TODO move all the message formats to SNAP
-    # TODO move all the iterators to SNAP
 
     # the original node is on input
     node = None
@@ -62,13 +60,11 @@ def InitState(taskindex, msglist):
     return ds
 
 def AddNewNodes(taskindex, sw, ds, msglist):
-    # TODO move all the message formats to SNAP
-    # TODO move all the iterators to SNAP
 
     ds["dist"] += 1
     distance = ds["dist"]
     Visited = ds["visit"]
-    print "Visited", type(Visited)
+    #print "Visited", type(Visited)
     
     # nodes to add are on the input
     NewNodes = Snap.TIntH() 
@@ -77,26 +73,20 @@ def AddNewNodes(taskindex, sw, ds, msglist):
 
         name = sw.GetMsgName(item)
 
-        print "input", name
+        #print "input", name
         # read the input nodes
         FIn = Snap.TFIn(Snap.TStr(name))
         Vec = Snap.TIntV(FIn)
 
-        # TODO iterate through nodes
-        print "len", Vec.Len()
-        for i in range(0,Vec.Len()):
-            Node = Vec.GetVal(i).Val
-            print "Vec", i, Node
-
-            if Visited.IsKey(Node):
-                continue
-            NewNodes.AddDat(Node,0)
-            Visited.AddDat(Node,distance)
+        #print "len", Vec.Len()
+        # get new nodes, not visited before
+        Snap.GetNewNodes(Vec, Visited, NewNodes, distance);
 
     # done, no new nodes
     if NewNodes.Len() <= 0:
         # get distance distribution
         dcount = {}
+        # TODO move this loop to SNAP C++
         VIter = Visited.BegI()
         while not VIter.IsEnd():
             snode = VIter.GetKey().Val
@@ -107,6 +97,7 @@ def AddNewNodes(taskindex, sw, ds, msglist):
 
             VIter.Next()
 
+        # TODO move this loop to SNAP C++
         nnodes = int(sw.GetVar("nodes"))
         l = []
         for i in range(0, nnodes):
@@ -123,6 +114,7 @@ def AddNewNodes(taskindex, sw, ds, msglist):
         dmsgout["cmd"] = "results"
         dmsgout["body"] = dmsg
 
+        # TODO move this send to SNAP C++
         sw.Send(0,dmsgout,"2")
 
         sw.flog.write("final %s %s" % (str(ds["start"]), str(distance)))
@@ -134,32 +126,24 @@ def AddNewNodes(taskindex, sw, ds, msglist):
     tsize = sw.GetRange()
 
     # collect nodes for the same task
-    dtasks = {}
-    NIter = NewNodes.BegI()
-    while not NIter.IsEnd():
-        ndst = NIter.GetKey().Val
-        tn = TaskId(ndst,tsize)
-        if not dtasks.has_key(tn):
-            dtasks[tn] = []
-        dtasks[tn].append(ndst)
-        NIter.Next()
+    ntasks = int(sw.GetVar("gen_tasks"))
+    Tasks = Snap.TIntIntVV(ntasks)
 
-    #print "dtasks", dtasks
+    # assign nodes to tasks
+    Snap.Nodes2Tasks(NewNodes, Tasks, tsize)
+
+    #for i in range(0,Tasks.Len()):
+    #    print "sending task %d, len %d" % (i, Tasks.GetVal(i).Len())
 
     # send the messages
-    for tn,args in dtasks.iteritems():
-        dmsg = {}
-        dmsg["task"] = taskindex
-        dmsg["nodes"] = args
+    for i in range(0,Tasks.Len()):
+        Vec1 = Tasks.GetVal(i)
+        if Vec1.Len() <= 0:
+            continue
 
-        # output is composed of: nodes, task#
-        Vec1 = Snap.TIntV()
-        for node in args:
-            Vec1.Add(node)
-
+        # add task# at the end
         Vec1.Add(taskindex)
-
-        sw.Send(tn,Vec1,swsnap=True)
+        sw.Send(i,Vec1,swsnap=True)
 
 def TaskId(node,tsize):
     """
