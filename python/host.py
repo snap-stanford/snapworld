@@ -203,13 +203,6 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
         message = '\r\n'.join(message_parts)
         #print message
 
-        length = int(self.headers.get("Content-Length"))
-        #print "Content-Length", length
-
-        body = ""
-        if length  and  length > 0:
-            body = self.rfile.read(length)
-
         #print "length", length
         #print "body"
         #print body
@@ -228,7 +221,21 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
 
             fname = "%s/%s" % (dirname, src)
             f,fnew = config.uniquefile(fname)
-            f.write(body)
+
+            length = int(self.headers.get("Content-Length"))
+            #print "Content-Length", length
+
+            nleft = length
+            while nleft > 0:
+                nread = 1000000
+                if nleft < nread:
+                    nread = nleft
+
+                body = self.rfile.read(nread)
+                f.write(body)
+
+                nleft -= nread
+
             f.close()
     
             line = "message %s length %d\n" % (fnew,  length)
@@ -239,6 +246,13 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
             self.send_header('Content-Length', 0)
             self.end_headers()
             return
+
+        length = int(self.headers.get("Content-Length"))
+        #print "Content-Length", length
+
+        body = ""
+        if length  and  length > 0:
+            body = self.rfile.read(length)
 
         # Begin the response
         self.send_response(200)
