@@ -213,8 +213,22 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
             config.mkdir_p(dirname)
 
             fname = "%s/%s" % (dirname, src)
-            f, fnew = config.uniquefile(fname)
-            f.write(body)
+            f,fnew = config.uniquefile(fname)
+
+            length = int(self.headers.get("Content-Length"))
+            #print "Content-Length", length
+
+            nleft = length
+            while nleft > 0:
+                nread = 1000000
+                if nleft < nread:
+                    nread = nleft
+
+                body = self.rfile.read(nread)
+                f.write(body)
+
+                nleft -= nread
+
             f.close()
     
             logging.info("message %s length %d" % (fnew,  length))
@@ -223,6 +237,13 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
             self.send_header('Content-Length', 0)
             self.end_headers()
             return
+
+        length = int(self.headers.get("Content-Length"))
+        #print "Content-Length", length
+
+        body = ""
+        if length  and  length > 0:
+            body = self.rfile.read(length)
 
         # Begin the response
         self.send_response(200)
