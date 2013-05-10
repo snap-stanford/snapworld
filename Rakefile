@@ -7,7 +7,6 @@ HOST_PORT = (`python python/config.py snapw.config master`).strip().split(':')
 HOST = HOST_PORT[0]
 PORT = HOST_PORT[1]
 
-
 if HOST.include? "ild"
     SLEEPTIME = 10
 elsif HOST.include? "iln"
@@ -70,6 +69,7 @@ def task_deploy()
     stage_dir = "bin/"
     sh "mkdir -p #{stage_dir}"
 
+    sh "cp -f Rakefile #{stage_dir}"
     sh "cp -f python/* #{stage_dir}"
     sh "cp app/libbfs/* app/cppbfs/* #{stage_dir}"
     sh "cp app/pybfs/* #{stage_dir}"

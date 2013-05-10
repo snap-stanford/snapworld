@@ -176,6 +176,11 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
 
                 if self.timer.has_tag("ready-%s" % host):
                     self.timer.stop("ready-%s" % host)
+                    cmd = "./snapshot.sh %d" % self.snapshot_counter
+                    self.snapshot_counter += 1
+                    logging.info(cmd)
+                    os.system(cmd)
+
                 self.timer.start("ready-%s" % host)
 
                 # get the number of active tasks on the host
@@ -361,6 +366,7 @@ if __name__ == '__main__':
     handler = BaseHTTPServer.BaseHTTPRequestHandler
     handler.config = dconf
     handler.timer = perf.Timer(logging)
+    handler.snapshot_counter = 0
 
     dconf["tasks"] = config.assign(dconf)
 
