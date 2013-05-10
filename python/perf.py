@@ -1,4 +1,5 @@
 import time
+import os
 
 class Timer(object):
     def __init__(self, log, tag=None):
@@ -36,3 +37,24 @@ class Timer(object):
 
     def has_tag(self, tag):
         return tag in self.start_times
+
+
+def _get_dir_size(target_dirpath):
+    """
+    Sums up only files size, and does not include directory metadata size
+    Returns size in bytes
+    """
+    cur_size = 0
+    for dirpath, dirnames, filenames in os.walk(target_dirpath):
+        print dirpath, dirnames, filenames
+
+        print "==" * 50
+        for f in filenames:
+            path = os.path.join(dirpath, f)
+            if os.path.exists(path):
+                cur_size += os.path.getsize(path)
+    return cur_size
+
+def DirSize(log, dirpath, tag):
+    num_bytes = _get_dir_size(dirpath)
+    log.info("[%s] %.2f MB" % (str(tag), num_bytes/1048576.0))

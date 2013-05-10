@@ -78,6 +78,9 @@ def AddNewNodes(taskindex, sw, ds, msglist):
     NewNodes = Snap.TIntH() 
 
     timer.start("dist-msglist-iter")
+
+    perf.DirSize(sw.log, sw.qin, "GetDist-qin")
+
     for item in msglist:
 
         name = sw.GetMsgName(item)
@@ -111,7 +114,6 @@ def AddNewNodes(taskindex, sw, ds, msglist):
 
             VIter.Next()
 
-        # TODO move this loop to SNAP C++
         nnodes = int(sw.GetVar("nodes"))
         l = []
         for i in xrange(0, nnodes):
@@ -128,7 +130,6 @@ def AddNewNodes(taskindex, sw, ds, msglist):
         dmsgout["cmd"] = "results"
         dmsgout["body"] = dmsg
 
-        # TODO move this send to SNAP C++
         sw.Send(0,dmsgout,"2")
 
         sw.log.info("final %s %s" % (str(ds["start"]), str(distance)))
