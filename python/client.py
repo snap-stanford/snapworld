@@ -1,4 +1,8 @@
 import httplib
+import os
+import random
+import socket
+import time
 import urllib2
 import urllib
 
@@ -114,7 +118,37 @@ def message(server, src, dst, body):
 
 def messagevec(server, src, dst, Vec):
     h = httplib.HTTPConnection(server)
-    h.connect()
+    for i in range(0,10):
+        swok = False
+        try:
+            h.connect()
+            swok = True
+        except socket.error, e:
+            # check out for socket.error: [Errno 110] Connection timed out
+            if e.errno != 110:
+                # break out of the loop and fail later
+                swok = True
+
+        if swok:
+            break
+
+        pid = "%6d " % os.getpid()
+        print pid, time.ctime(), "*** ERROR *** retry ", i
+        sleeptime = random.random()*10 + 5
+        time.sleep(sleeptime)
+
+    #Exception sample:
+    #Traceback (most recent call last):
+    #  File "testnet.py", line 85, in <module>
+    #    SendVec(host,"TaskA-0","TaskA-0",Vec)
+    #  File "testnet.py", line 24, in SendVec
+    #    h.connect()
+    #  File "/usr/lib64/python2.6/httplib.py", line 720, in connect
+    #    self.timeout)
+    #  File "/usr/lib64/python2.6/socket.py", line 567, in create_connection
+    #    raise error, msg
+    #socket.error: [Errno 110] Connection timed out
+
     url = "/msg/%s/%s" % (dst,src)
     h.putrequest("POST",url)
     h.putheader("Content-Length", str(Vec.GetMemSize()))

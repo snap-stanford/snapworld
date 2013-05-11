@@ -217,7 +217,7 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
 
             nleft = length
             while nleft > 0:
-                nread = min(4096, nleft)
+                nread = min(102400, nleft)
                 body = self.rfile.read(nread)
                 f.write(body)
                 nleft -= nread
