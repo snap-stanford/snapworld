@@ -58,7 +58,7 @@ end
 
 def pre_deploy_cleanup()
     sh "fs flushvolume -path ." # flush AFS cache
-    cleanup = "rm -rf #{LFS}/supervisors/*"
+    cleanup = "rm -rf #{LFS}/supervisors/*; rm -rf #{LFS}/snapshot-*"
     task_dsh(cleanup)
 end
 
@@ -69,11 +69,10 @@ def task_deploy()
     stage_dir = "bin/"
     sh "mkdir -p #{stage_dir}"
 
-    sh "cp -f Rakefile #{stage_dir}"
-    sh "cp -f python/* #{stage_dir}"
+    sh "cp -f -p python/* #{stage_dir}"
     sh "cp app/libbfs/* app/cppbfs/* #{stage_dir}"
     sh "cp app/pybfs/* #{stage_dir}"
-    sh "cp ../snap-python/swig-sw/_snap.so ../snap-python/swig-sw/snap.py #{stage_dir}"
+    sh "cp -p ../snap-python/swig-sw/_snap.so ../snap-python/swig-sw/snap.py #{stage_dir}"
     # override config File
     sh "cp #{config_filepath} #{stage_dir}"
 

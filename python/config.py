@@ -2,10 +2,24 @@ import errno
 import os
 import sys
 
+
 def readconfig(fname):
 
+    def get_boolean(word):
+        boolflag = word.lower()
+        if boolflag == "true":
+            boolflag = True
+        elif boolflag == "false":
+            boolflag = False
+        else:
+            boolflag = bool(boolflag)
+        return boolflag
+
     dconf = {}
+
+    # Initializations
     dconf['debug'] = True
+    dconf['snapshot'] = False
 
     f = open(fname)
     for line in f:
@@ -134,15 +148,10 @@ def readconfig(fname):
 
         elif key == "init":
             dconf["init"] = words[1]
+        elif key == "snapshot":
+            dconf["snapshot"] = get_boolean(words[1])
         elif key == "debug":
-            debug_flag = words[1].lower()
-            if debug_flag == "true":
-                debug_flag = True
-            elif debug_flag == "false":
-                debug_flag = False
-            else:
-                debug_flag = bool(debug_flag)
-            dconf["debug"] = debug_flag
+            dconf["debug"] = get_boolean(words[1])
 
     f.close()
 

@@ -200,9 +200,6 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
         length = int(self.headers.get("Content-Length"))
 
         body = ""
-        if length  and  length > 0:
-            body = self.rfile.read(length)
-
         subpath = self.path.split("/")
         
         if subpath[1] == "msg":
@@ -220,13 +217,9 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
 
             nleft = length
             while nleft > 0:
-                nread = 4096
-                if nleft < nread:
-                    nread = nleft
-
+                nread = min(4096, nleft)
                 body = self.rfile.read(nread)
                 f.write(body)
-
                 nleft -= nread
 
             f.close()

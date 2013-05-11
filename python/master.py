@@ -176,8 +176,12 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
 
                 if self.timer.has_tag("ready-%s" % host):
                     self.timer.stop("ready-%s" % host)
-                    cmd = "./snapshot.sh %d" % self.snapshot_counter
-                    self.snapshot_counter += 1
+                    cmd = "./snapshot.sh %d" % self.server.snapshot_counter
+
+                    self.server.done_lock.acquire()
+                    self.server.snapshot_counter += 1
+                    self.server.done_lock.release()
+
                     logging.info(cmd)
                     os.system(cmd)
 
@@ -362,11 +366,13 @@ if __name__ == '__main__':
     server.executing = False
     # indicator that an application should execute the next step
     server.iterate = False
+    # Number of snapshots mades
+    server.snapshot_counter = 0
+    server.snapshot_lock = threading.Lock()
 
     handler = BaseHTTPServer.BaseHTTPRequestHandler
     handler.config = dconf
     handler.timer = perf.Timer(logging)
-    handler.snapshot_counter = 0
 
     dconf["tasks"] = config.assign(dconf)
 
