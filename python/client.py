@@ -118,6 +118,8 @@ def message(server, src, dst, body):
 
 def messagevec(server, src, dst, Vec):
     h = httplib.HTTPConnection(server)
+    
+    wait_time = 1
     for i in range(0,10):
         swok = False
         try:
@@ -134,7 +136,9 @@ def messagevec(server, src, dst, Vec):
 
         pid = "%6d " % os.getpid()
         print pid, time.ctime(), "*** ERROR *** retry ", i
-        sleeptime = random.random()*10 + 5
+        wait_time *= 2
+        # Exponential Backoff 
+        sleeptime = wait_time
         time.sleep(sleeptime)
 
     #Exception sample:

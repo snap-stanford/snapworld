@@ -225,14 +225,9 @@ class SnapWorld:
                     #print "send Snap task %s, host %s, *** Error: local 'Send' not yet implemented" % (dstname, dshost)
                     return
 
-                for i in xrange(3):
-                    try:
-                        client.messagevec(dshost,self.taskname,dstname,d)
-                        return
-                    except:
-                        self.log.error("[send_attempt %d] FAILED dstname: %s, dshost: %s" % (i, dstname, dshost))
-                        time.sleep(5)
-
+                client.messagevec(dshost,self.taskname,dstname,d)
+                return
+         
             else:
                 # json dict
                 s = json.dumps(d)
