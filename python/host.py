@@ -227,7 +227,7 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
 
             nleft = length
             while nleft > 0:
-                nread = 1000000
+                nread = 102400
                 if nleft < nread:
                     nread = nleft
 

@@ -1,5 +1,7 @@
 import httplib
+import random
 import os
+import socket
 import sys
 import time
 import urllib2
@@ -21,7 +23,36 @@ def ReadVec(fname):
 
 def SendVec(server, src, dst, Vec):
     h = httplib.HTTPConnection(server)
-    h.connect()
+    for i in range(0,10):
+        swok = False
+        try:
+            h.connect()
+            swok = True
+        except socket.error, e:
+            # check out for socket.error: [Errno 110] Connection timed out
+            if e.errno != 110:
+                # break out of the loop and fail later
+                swok = True
+
+        if swok:
+            break
+
+        pid = "%6d " % os.getpid()
+        print pid, time.ctime(), "*** ERROR *** retry ", i
+        sleeptime = random.random()*10 + 5
+        time.sleep(sleeptime)
+
+    #Traceback (most recent call last):
+    #  File "testnet.py", line 85, in <module>
+    #    SendVec(host,"TaskA-0","TaskA-0",Vec)
+    #  File "testnet.py", line 24, in SendVec
+    #    h.connect()
+    #  File "/usr/lib64/python2.6/httplib.py", line 720, in connect
+    #    self.timeout)
+    #  File "/usr/lib64/python2.6/socket.py", line 567, in create_connection
+    #    raise error, msg
+    #socket.error: [Errno 110] Connection timed out
+
     url = "/msg/%s/%s" % (dst,src)
     h.putrequest("POST",url)
     h.putheader("Content-Length", str(Vec.GetMemSize()))
@@ -40,7 +71,6 @@ def SendVec(server, src, dst, Vec):
     #print data
 
     h.close()
-
 
 if __name__ == '__main__':
 
@@ -67,22 +97,30 @@ if __name__ == '__main__':
 
         index += 1
 
-    print "port", port
-    print "length", length
-    print "file", fname
+    #print "port", port
+    #print "length", length
+    #print "file", fname
 
     host = "127.0.0.1:%s" % (port)
-    print "host", host
+    #print "host", host
+
+    pid = "%6d " % os.getpid()
 
     if not fname:
-        print time.ctime(), "generating vector with %d elements ..." % (length)
+        print pid, "generating %d elements ..." % (length)
+        sys.stdout.flush()
         Vec = CreateVec(length)
     else:
-        print time.ctime(), "reading file %s ..." % (fname)
+        print pid, time.ctime(), "reading file %s ..." % (fname)
+        sys.stdout.flush()
         Vec = ReadVec(fname)
 
-    print time.ctime(), "sending vector with %d elements, size %.1fMb ..." % (Vec.Len(), float(Vec.GetMemSize())/1000000.0)
-    SendVec(host,"TaskA-0","TaskA-0",Vec)
+    print pid, time.ctime(), "sending %d elements, size %.1fMb ..." % (Vec.Len(), float(Vec.GetMemSize())/1000000.0)
+    sys.stdout.flush()
+    src = "TaskA-%d" % (int(random.random()*500))
+    SendVec(host,src,"TaskA-0",Vec)
 
-    print time.ctime(), "done"
+    print pid, time.ctime(), "done"
+    sys.stdout.flush()
+
 
