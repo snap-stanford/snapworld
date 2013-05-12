@@ -135,7 +135,7 @@ def messagevec(server, src, dst, Vec):
             break
 
         pid = "%6d " % os.getpid()
-        print pid, time.ctime(), "*** ERROR *** retry ", i
+        # TODO: log errors that are not due to timeouts.
         wait_time *= 2
         # Exponential Backoff 
         sleeptime = wait_time
