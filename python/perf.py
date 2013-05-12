@@ -46,9 +46,7 @@ def _get_dir_size(target_dirpath):
     """
     cur_size = 0
     for dirpath, dirnames, filenames in os.walk(target_dirpath):
-        print dirpath, dirnames, filenames
 
-        print "==" * 50
         for f in filenames:
             path = os.path.join(dirpath, f)
             if os.path.exists(path):
