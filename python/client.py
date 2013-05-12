@@ -120,7 +120,7 @@ def messagevec(server, src, dst, Vec):
     h = httplib.HTTPConnection(server)
     
     wait_time = 1
-    for i in range(0,10):
+    for i in range(0,8):
         swok = False
         try:
             h.connect()
