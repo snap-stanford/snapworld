@@ -137,7 +137,7 @@ end
 
 task :agglogs do
 
-    task_dsh("rm -rf /tmp/agglogs_#{USER}/; mkdir -p /tmp/agglogs/")
+    task_dsh("rm -rf /tmp/agglogs_#{USER}/; mkdir -p /tmp/agglogs_#{USER}/")
     cmd = "find #{LFS}/supervisors/ -name '*.log' | parallel python ~/hanworks/snapworld/misc/parselog.py"
     task_dsh(cmd)
 
