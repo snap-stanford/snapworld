@@ -134,7 +134,6 @@ def messagevec(server, src, dst, Vec):
         if swok:
             break
 
-        pid = "%6d " % os.getpid()
         # TODO: log errors that are not due to timeouts.
         wait_time *= 2
         # Exponential Backoff 
