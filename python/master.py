@@ -179,9 +179,9 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
                     if self.server.snapshot_enabled:
                         cmd = "./snapshot.sh %d" % self.server.snapshot_counter
 
-                        self.server.done_lock.acquire()
+                        self.server.snapshot_lock.acquire()
                         self.server.snapshot_counter += 1
-                        self.server.done_lock.release()
+                        self.server.snapshot_lock.release()
 
                         logging.info(cmd)
                         os.system(cmd)
