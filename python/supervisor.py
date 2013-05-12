@@ -259,7 +259,7 @@ class ThreadedHTTPServer(SocketServer.ThreadingMixIn,
         # For *-py-*.log
         logging.info("Exit")
         # For *-sh-*.log
-        print "Exit"
+        # print "Exit"
         sys.stdout.flush()
         sys.exit(0)
 
