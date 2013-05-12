@@ -20,7 +20,9 @@ def main():
         input_filename2 = input_filename[len(prefix):]
     else:
         input_filename2 = input_filename
-    output_filename = ("/tmp/agglogs_%s/" % user) + host + "+" + "_".join(input_filename2.split('/'))
+
+    partial_filename = host + "+" + "_".join(input_filename2.split('/'))
+    output_filename = ("/tmp/agglogs_%s/" % user) + partial_filename
 
     print "%s -> %s" % (input_filename, output_filename)
 
@@ -34,7 +36,7 @@ def main():
         try:
             a = line.index(']')
             b = line.index(']', a+1)
-            newline = "%s [%s]%s" % (line[:b+1], output_filename, line[b+1:])
+            newline = "%s [%s]%s" % (line[:b+1], partial_filename, line[b+1:])
 
             f.write(newline)
             f.write('\n')
