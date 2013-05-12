@@ -1,6 +1,6 @@
 require 'rake'
 
-HOSTNAME = `hostname`
+HOSTNAME = `hostname`.strip()
 USER = ENV['USER']
 HOST_PORT = (`python python/config.py snapw.config master`).strip().split(':')
 
@@ -142,8 +142,9 @@ task :agglogs do
     task_dsh(cmd)
 
     sh "mkdir -p #{LFS}/all_logs"
-    task_dsh("scp /tmp/aggslogs/\*.log #{HOSTNAME}:/#{LFS}/all_logs/")
-    
+    task_dsh("scp /tmp/agglogs/\*.log #{HOSTNAME}:#{LFS}/all_logs/")
+    sh2 "cp -f #{LFS}/master.log #{LFS}/all_logs"
+
 end
 
 

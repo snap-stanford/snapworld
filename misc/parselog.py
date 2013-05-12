@@ -6,6 +6,10 @@ Usage: python parselog.py oldlog.log
 """
 
 def main():
+    if len(sys.argv) < 2:
+        print "Usage: python parselog.py <file>"
+        sys.exit()
+
     hostname = commands.getoutput("hostname")
     host = hostname.split('.', 1)[0]
 
@@ -14,22 +18,27 @@ def main():
     if input_filename.startswith(prefix):
         input_filename2 = input_filename[len(prefix):]
     else:
-        input_filename2 = input_filename2
+        input_filename2 = input_filename
     output_filename = "/tmp/agglogs/" + host + "+" + "_".join(input_filename2.split('/'))
 
     print "%s -> %s" % (input_filename, output_filename)
 
-    fin = open(input_filename)
-    f = open("/tmp/agglogs/" + output_filename, 'w')
+    fin = open(input_filename, 'r')
+    f = open(output_filename, 'w')
 
     for line in fin:
         line = line.strip()
-        a = line.index(']')
-        b = line.index(']', a+1)
-        newline = "%s [%s]%s" % (line[:b+1], output_filename, line[b+1:])
+        if line == "": continue
 
-        f.write(newline)
-        f.write('\n')
+        try:
+            a = line.index(']')
+            b = line.index(']', a+1)
+            newline = "%s [%s]%s" % (line[:b+1], output_filename, line[b+1:])
+
+            f.write(newline)
+            f.write('\n')
+        except:
+            print "Cannot parse: %s" % line
     
     f.close()
     fin.close()
