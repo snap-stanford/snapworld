@@ -470,7 +470,7 @@ if __name__ == '__main__':
     ###
 
     # Set up logging
-    logging.basicConfig(filename=fname, level=logging.DEBUG, format='[%(levelname)s] [%(asctime)s] [%(process)d] [%(filename)s] [%(funcName)s] %(message)s')
+    logging.basicConfig(filename=fname, level=logging.DEBUG, format='[%(asctime)s] [%(levelname)s] [%(process)d] [%(filename)s] [%(funcName)s] %(message)s')
 
     server = ThreadedHTTPServer((host, port), Server)
     server.host = host

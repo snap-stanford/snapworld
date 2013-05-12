@@ -338,7 +338,7 @@ class ThreadedHTTPServer(SocketServer.ThreadingMixIn,
 
 if __name__ == '__main__':
 
-    logging.basicConfig(level=logging.DEBUG, format='[%(levelname)s] [%(asctime)s] [%(process)d] [%(filename)s] [%(funcName)s] %(message)s')
+    logging.basicConfig(level=logging.DEBUG, format='[%(asctime)s] [%(levelname)s] [%(process)d] [%(filename)s] [%(funcName)s] %(message)s')
 
     dconf = config.readconfig("snapw.config")
     logging.info(str(dconf))
