@@ -137,14 +137,13 @@ end
 
 task :agglogs do
 
-    task_dsh("rm -rf /tmp/agglogs/; mkdir -p /tmp/agglogs/")
-    cmd = "find #{LFS}/super_10m/ -name '*.log' | parallel python ~/hanworks/snapworld/misc/parselog.py"
+    task_dsh("rm -rf /tmp/agglogs_#{USER}/; mkdir -p /tmp/agglogs/")
+    cmd = "find #{LFS}/supervisors/ -name '*.log' | parallel python ~/hanworks/snapworld/misc/parselog.py"
     task_dsh(cmd)
 
     sh "mkdir -p #{LFS}/all_logs"
-    task_dsh("scp /tmp/agglogs/\*.log #{HOSTNAME}:#{LFS}/all_logs/")
+    task_dsh("scp /tmp/agglogs_#{USER}/\*.log #{HOSTNAME}:#{LFS}/all_logs/")
     sh2 "cp -f #{LFS}/master.log #{LFS}/all_logs"
 
 end
-
 

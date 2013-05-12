@@ -11,6 +11,7 @@ def main():
         sys.exit()
 
     hostname = commands.getoutput("hostname")
+    user = os.environ['USER'].strip()
     host = hostname.split('.', 1)[0]
 
     input_filename = sys.argv[1]
@@ -19,7 +20,7 @@ def main():
         input_filename2 = input_filename[len(prefix):]
     else:
         input_filename2 = input_filename
-    output_filename = "/tmp/agglogs/" + host + "+" + "_".join(input_filename2.split('/'))
+    output_filename = ("/tmp/agglogs_%s/" % user) + host + "+" + "_".join(input_filename2.split('/'))
 
     print "%s -> %s" % (input_filename, output_filename)
 
