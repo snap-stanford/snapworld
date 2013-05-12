@@ -27,6 +27,7 @@ end
 def task_dsh(cmd)
     if HOST.include? "ild"
         for i in 1..2
+            puts "=" * 60
             sh2 "ssh ild#{i} \"#{cmd}\""
         end
     elsif HOST.include? "iln"
@@ -132,4 +133,17 @@ task :dshgrep, :txt do |t, args|
     txt = args.txt
     task_dsh("grep -I --include='*.log' -r #{txt} #{LFS}")
 end
+
+
+task :agglogs do
+
+    task_dsh("rm -rf /tmp/agglogs/; mkdir -p /tmp/agglogs/")
+    cmd = "find #{LFS}/super_10m/ -name '*.log' | parallel python ~/hanworks/snapworld/misc/parselog.py"
+    task_dsh(cmd)
+
+    sh "mkdir -p #{LFS}/all_logs"
+    task_dsh("scp /tmp/aggslogs/\*.log #{HOSTNAME}:/#{LFS}/all_logs/")
+    
+end
+
 
