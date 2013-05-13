@@ -61,7 +61,7 @@ def SendVec(server, src, dst, Vec):
     fileno = h.sock.fileno()
     #print "fileno", fileno
 
-    n = Vec.Send(fileno)
+    n = Snap.SendVec_TIntV(Vec, fileno)
     #print n
 
     res = h.getresponse()

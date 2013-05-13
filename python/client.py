@@ -156,7 +156,8 @@ def messagevec(server, src, dst, Vec):
     fileno = h.sock.fileno()
     #print "fileno", fileno
 
-    n = Vec.Send(fileno)
+    #n = Vec.Send(fileno)
+    n = SendVec_TIntV(Vec, fileno)
     #print n
 
     res = h.getresponse()
