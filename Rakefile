@@ -54,7 +54,7 @@ task :setup do
         sh "cd snap/; git pull; git checkout master;"
         # NOTE: (1) snap-python requires snap to compie (2) we also need swig
         sh "git clone git@github.com:minghan/snap-python.git" unless File.exists?("snap-python")
-        sh "cd snap-python/; git pull; git checkout master; cd swig-sw/; make;"
+        sh "cd snap-python/; git pull; git checkout master; cd swig-sw/; make clean; make;"
     end
 end
 
