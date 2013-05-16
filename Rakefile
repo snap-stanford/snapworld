@@ -33,7 +33,8 @@ def task_dsh(cmd)
     elsif HOST.include? "iln"
         for i in 1..9
             puts "=" * 60
-            sh2 "ssh iln0#{i} \"#{cmd}\""
+            ii = "%.2i" % i
+            sh2 "ssh iln#{ii} \"#{cmd}\""
         end
     end
 end
