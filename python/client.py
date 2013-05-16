@@ -6,6 +6,8 @@ import time
 import urllib2
 import urllib
 
+import snap as Snap
+
 def config(server):
     # get configuration
     url = "http://%s/config" % (server)
@@ -161,7 +163,7 @@ def messagevec(server, src, dst, Vec):
     #print "fileno", fileno
 
     #n = Vec.Send(fileno)
-    n = SendVec_TIntV(Vec, fileno)
+    n = Snap.SendVec_TIntV(Vec, fileno)
     #print n
 
     res = h.getresponse()
