@@ -1,14 +1,8 @@
 #!/bin/sh
 
 PPN=24
-for var in {1..9}
-do
-    if [ -z $NODES ]; then
-        NODES="iln0${var}.stanford.edu:ppn=${PPN}"
-    else
-        NODES="${NODES}+iln0${var}.stanford.edu:ppn=${PPN}"
-    fi
-done
+
+NODES=`seq -f "iln%02g.stanford.edu:ppn=${PPN}" -s "+" 1 20`
 
 CMD="qsub -I -l nodes=${NODES}"
 

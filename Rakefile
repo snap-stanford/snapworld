@@ -7,12 +7,7 @@ HOST_PORT = (`python python/config.py snapw.config master`).strip().split(':')
 HOST = HOST_PORT[0]
 PORT = HOST_PORT[1]
 
-if HOST.include? "ild"
-    SLEEPTIME = 10
-elsif HOST.include? "iln"
-    SLEEPTIME = 10
-end
-
+SLEEPTIME = 10
 LFS = "/lfs/local/0/${USER}"
 
 ################################
@@ -150,3 +145,20 @@ task :agglogs do
 
 end
 
+
+task :benchmark1 do
+    sh2 "rm -rf   #{LFS}/fake_test"
+    sh2 "mkdir -p #{LFS}/fake_test"
+
+    Dir.chdir("misc/") do
+        sh2 "python fake_super.py -p 1337"
+    end
+end
+
+task :benchmark2 do
+    cmd = "seq 1 | parallel python ~/hanworks/snapworld/misc/fake_worker.py -hp iln01.stanford.edu:1337 -f ~/file200.dat"
+    # cmd = "pwd"
+
+    # 17 - 2 + 1 = 16 supr machines
+    sh2 "seq -f '%02g' 2 2 | parallel ssh iln{} \"#{cmd}\""
+end

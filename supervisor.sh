@@ -18,10 +18,11 @@ mkdir -p $SNAPWEXEC
 mkdir -p $SNAPWOUTPUT
 
 ###############
-SRC=~/hanworks/snapworld/python/
+SRC=~/hanworks
 if [ -d  "$SRC" ]; then
     fs flushvolume -path ${SRC}
-    cp ${SRC}/* $SNAPWBIN
+    cp ${SRC}/snapworld/python/* ${SNAPWBIN}
+    # cp -p ${SRC}/snap-python/swig-sw/_snap.so ${SRC}/snap-python/swig-sw/snap.py ${SNAPWBIN}
     echo "Provisioning SNAPWBIN"
 else
     echo "Not provisioning SNAPWBIN via AFS"

@@ -5,8 +5,9 @@ import socket
 import time
 import urllib2
 import urllib
+import logging
 
-import snap as Snap
+logging.basicConfig(level=logging.DEBUG, format='[%(asctime)s] [%(levelname)s] [%(process)d] [%(filename)s] [%(funcName)s] %(message)s')
 
 def config(server):
     # get configuration
@@ -154,15 +155,20 @@ def messagevec(server, src, dst, Vec):
     #    raise error, msg
     #socket.error: [Errno 110] Connection timed out
 
+    context_length = Vec.GetMemSize()
+    logging.debug("messagevec context-length: %d" % context_length)
+
     url = "/msg/%s/%s" % (dst,src)
-    h.putrequest("POST",url)
-    h.putheader("Content-Length", str(Vec.GetMemSize()))
+    h.putrequest("POST", url)
+    h.putheader("Content-Length", str(context_length))
     h.endheaders()
 
     fileno = h.sock.fileno()
     #print "fileno", fileno
 
     #n = Vec.Send(fileno)
+
+    import snap as Snap
     n = Snap.SendVec_TIntV(Vec, fileno)
     #print n
 
