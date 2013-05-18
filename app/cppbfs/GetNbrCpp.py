@@ -1,6 +1,7 @@
 import os
 import random
 import sys
+import traceback
 
 import snap as Snap
 import swlib
@@ -111,4 +112,11 @@ def main():
     sw.log.info("finished")
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except:
+        sys.stdout.write("[ERROR] Exception in GetNbrCpp.main()\n")
+        traceback.print_exc(file=sys.stdout)
+        sys.stdout.flush()
+        sys.exit(2)
+

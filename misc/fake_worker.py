@@ -21,8 +21,10 @@ def SendVec(server, src, dst, fname):
             h.connect()
             swok = True
         except socket.error, e:
-            # check out for socket.error: [Errno 110] Connection timed out
-            if e.errno != 110:
+            # check out for socket.error:
+            # [Errno 110] Connection timed out
+            # [Errno 111] Connection refused
+            if e.errno != 110 and e.errno != 111:
                 # break out of the loop and fail later
                 swok = True
 
@@ -36,8 +38,6 @@ def SendVec(server, src, dst, fname):
         print "BACKOFF for", sleeptime
         sys.stdout.flush()
         time.sleep(sleeptime)
-
-    time.sleep(0.001)
 
     left = mm.size()
 
@@ -53,6 +53,7 @@ def SendVec(server, src, dst, fname):
         nbytes = min(102400, left)
         data = mm.read(nbytes)
         while nbytes > 0:
+            # error: [Errno 104] Connection reset by peer; in send()
             nsent = h.sock.send(data)
             if nsent != nbytes:
                 print "OOPS: sent: %d, expected: %d" % (nsent, nbytes)

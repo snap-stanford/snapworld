@@ -33,22 +33,6 @@ USER = os.environ["USER"]
 workdir = "/lfs/local/0/%s/fake_test/" % USER
 python = "python"
 
-def uniquefile(fpath):
-
-    fparts = os.path.splitext(fpath)
-
-    fname = fpath
-    
-    counter = 1
-    while 1:
-        try:
-            fd = os.open(fname, os.O_CREAT | os.O_EXCL | os.O_RDWR)
-            return os.fdopen(fd,"w"), fname
-        except OSError:
-            pass
-        fname = fparts[0] + '_' + str(counter) + fparts[1]
-        counter += 1
-
 def mkdir_p(path):
     try:
         os.makedirs(path)
@@ -60,7 +44,6 @@ def mkdir_p(path):
 class Server(BaseHTTPServer.BaseHTTPRequestHandler):
 
     def do_POST(self):
-        time.sleep(0.001)
 
         #print "POST path", self.path
         parsed_path = urlparse.urlparse(self.path)
@@ -109,10 +92,10 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
             src = "TaskA-%d" % self.server.input_id
             self.server.glock.release()
 
-
             fname = "%s/%s" % (dirname, src)
 
-            f, fnew = uniquefile(fname)
+            fd = os.open(fname, os.O_CREAT | os.O_EXCL | os.O_RDWR)
+            f = os.fdopen(fd,"w")
 
             length = int(self.headers.get("Content-Length"))
             #print "Content-Length", length
@@ -140,7 +123,7 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
                 self.server.start_time = start_time
             if self.server.end_time == 0 or end_time > self.server.end_time:
                 self.server.end_time = end_time
-            print "message: %s, length: %.2f MB" % (fnew, length/float(1024*1024))
+            print "message: %s, length: %.2f MB" % (fname, length/float(1024*1024))
             throughput = (self.server.consumed/float(1024*1024)) / float(self.server.end_time - self.server.start_time)
             # print "latest", self.server.start_time, self.server.end_time, 
             print "Throughput: %.2f MB/s, Input Count: %d" % (throughput, self.server.input_count)

@@ -145,6 +145,8 @@ task :agglogs do
 
 end
 
+################################
+
 
 task :benchmark1 do
     sh2 "rm -rf   #{LFS}/fake_test"
@@ -156,9 +158,15 @@ task :benchmark1 do
 end
 
 task :benchmark2 do
-    cmd = "seq 1 | parallel python ~/hanworks/snapworld/misc/fake_worker.py -hp iln01.stanford.edu:1337 -f ~/file200.dat"
+    cmd = "seq 20 | parallel python ~/hanworks/snapworld/misc/fake_worker.py -hp iln01.stanford.edu:1337 -f ~/file200.dat"
     # cmd = "pwd"
 
     # 17 - 2 + 1 = 16 supr machines
-    sh2 "seq -f '%02g' 2 2 | parallel ssh iln{} \"#{cmd}\""
+    sh2 "seq -f '%02g' 2 17 | parallel ssh iln{} \"#{cmd}\""
 end
+
+task :benchmark0 do
+    cmd = "pkill python"
+    sh2 "seq -f '%02g' 1 19 | parallel ssh iln{} \"#{cmd}\""
+end
+
