@@ -210,8 +210,9 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
             config.mkdir_p(dirname)
 
             fname = "%s/%s" % (dirname, src)
-            f,fnew = config.uniquefile(fname)
-            logging.info("uniquefile?: %s; %s; %s; %s;" % (dirname, src, fname, fnew))
+            f, fnew = config.uniquefile(fname)
+            if fname <> fnew:
+                logging.warn("uniquefile?: %s; %s; %s; %s;" % (dirname, src, fname, fnew))
 
             length = int(self.headers.get("Content-Length"))
             #print "Content-Length", length
@@ -359,11 +360,16 @@ def Execute(args):
      
     # Dynamically check what the number of processors we have on each host
     # In any error, default to 1.
-    try:
-        max_tasks = os.sysconf('SC_NPROCESSORS_ONLN')
-    except:
-        max_tasks = 1
-     
+    max_tasks = 1
+    var_par_tasks = int(args.config['par_tasks'])
+    if var_par_tasks <= 0:
+        try:
+            max_tasks = os.sysconf('SC_NPROCESSORS_ONLN')
+        except:
+            max_tasks = 1
+    else:
+        max_tasks = var_par_tasks
+
     # execute the tasks in a parallel fashion by running
     # at most max_tasks processes at any point.
     task_list = args.active[:]

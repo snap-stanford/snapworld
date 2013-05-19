@@ -105,7 +105,7 @@ task :test do
     sh2 "rake cleanup"
     # sh "rm -rf bin/"
     
-    sh2 "rake dshgrep[\"WARNING|ERROR|CRITICAL\"]"
+    sh2 "rake dshgrep[\"WARNING|ERROR|CRITICAL|traceback\"]"
 end
 
 

@@ -20,6 +20,7 @@ def readconfig(fname):
     # Initializations
     dconf['debug'] = True
     dconf['snapshot'] = False
+    dconf["par_tasks"] = 0
 
     f = open(fname)
     for line in f:
@@ -152,6 +153,8 @@ def readconfig(fname):
             dconf["snapshot"] = get_boolean(words[1])
         elif key == "debug":
             dconf["debug"] = get_boolean(words[1])
+        elif key == "par_tasks":
+            dconf["par_tasks"] = int(words[1])
 
     f.close()
 
