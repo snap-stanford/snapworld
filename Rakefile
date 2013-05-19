@@ -105,7 +105,7 @@ task :test do
     sh2 "rake cleanup"
     # sh "rm -rf bin/"
     
-    sh2 "rake dshgrep[ERROR]"
+    sh2 "rake dshgrep['WARNING|ERROR|CRITICAL']"
 end
 
 
@@ -127,7 +127,7 @@ end
 
 task :dshgrep, :txt do |t, args|
     txt = args.txt
-    task_dsh("grep -I --include='*.log' -r #{txt} #{LFS}")
+    task_dsh("egrep -I -i --include='*.log' -r #{txt} #{LFS}")
 end
 
 
@@ -149,6 +149,7 @@ end
 
 
 task :benchmark1 do
+    sh2 "rake benchmark0"
     sh2 "rm -rf   #{LFS}/fake_test"
     sh2 "mkdir -p #{LFS}/fake_test"
 
@@ -158,7 +159,7 @@ task :benchmark1 do
 end
 
 task :benchmark2 do
-    cmd = "seq 20 | parallel python ~/hanworks/snapworld/misc/fake_worker.py -hp iln01.stanford.edu:1337 -f ~/file200.dat"
+    cmd = "seq 8 | parallel python ~/hanworks/snapworld/misc/fake_worker.py -hp iln01.stanford.edu:1337 -f ~/file200.dat"
     # cmd = "pwd"
 
     # 17 - 2 + 1 = 16 supr machines

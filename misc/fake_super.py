@@ -82,10 +82,8 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
             dst = subpath[2]
             src = subpath[3]
 
-
             dirname = "snapw.%d/qin/%s" % (self.pid, dst)
             mkdir_p(dirname)
-
 
             self.server.glock.acquire()
             self.server.input_id += 1
@@ -104,7 +102,7 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
             while nleft > 0:
                 nread = min(102400, nleft)
                 body = self.rfile.read(nread)
-                f.write(body)
+                # f.write(body)
                 nleft -= len(body)
 
             f.close()

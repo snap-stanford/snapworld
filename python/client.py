@@ -7,7 +7,9 @@ import urllib2
 import urllib
 import logging
 
-logging.basicConfig(level=logging.DEBUG, format='[%(asctime)s] [%(levelname)s] [%(process)d] [%(filename)s] [%(funcName)s] %(message)s')
+logging.basicConfig(level=logging.INFO, format='[%(asctime)s] [%(levelname)s] [%(process)d] [%(filename)s] [%(funcName)s] %(message)s')
+
+Snap = None
 
 def config(server):
     # get configuration
@@ -120,66 +122,55 @@ def message(server, src, dst, body):
     f.close()
 
 def messagevec(server, src, dst, Vec):
+    global Snap
+
     h = httplib.HTTPConnection(server)
     
     wait_time = 1
     for i in range(0,8):
-        swok = False
+        sw_ok = False
         try:
             h.connect()
             swok = True
         except socket.error, e:
             # check out for socket.error: [Errno 110] Connection timed out
-            if e.errno != 110:
+            if e.errno == 110:
+                logging.warn("[Error 110] Connection timed out; attempt: %d, dest: %s" % (i, str(dst)))
+            elif e.errno == 111:
+                logging.warn("[Errno 111] Connection refused; attempt: %d, dest: %s" % (i, str(dst)))
+            else:
+                logging.critical("socket.error: %s" % str(e))
                 # break out of the loop and fail later
-                swok = True
+                sw_ok = True
+        if sw_ok: break
 
-        if swok:
-            break
-
-        # TODO: log errors that are not due to timeouts.
-        wait_time *= 2
-        # Exponential Backoff 
-        sleeptime = wait_time
-        time.sleep(sleeptime)
-
-    #Exception sample:
-    #Traceback (most recent call last):
-    #  File "testnet.py", line 85, in <module>
-    #    SendVec(host,"TaskA-0","TaskA-0",Vec)
-    #  File "testnet.py", line 24, in SendVec
-    #    h.connect()
-    #  File "/usr/lib64/python2.6/httplib.py", line 720, in connect
-    #    self.timeout)
-    #  File "/usr/lib64/python2.6/socket.py", line 567, in create_connection
-    #    raise error, msg
-    #socket.error: [Errno 110] Connection timed out
+        time.sleep(wait_time)
+        wait_time *= 2 # Exponential Backoff 
 
     context_length = Vec.GetMemSize()
     logging.debug("messagevec context-length: %d" % context_length)
 
-    url = "/msg/%s/%s" % (dst,src)
+    url = "/msg/%s/%s" % (dst, src)
     h.putrequest("POST", url)
     h.putheader("Content-Length", str(context_length))
     h.endheaders()
 
     fileno = h.sock.fileno()
-    #print "fileno", fileno
 
-    #n = Vec.Send(fileno)
-
-    import snap as Snap
-    n = Snap.SendVec_TIntV(Vec, fileno)
-    #print n
+    if Snap is None:
+        import snap as Snap
+    r = Snap.SendVec_TIntV(Vec, fileno)
+    if r < 0:
+        logging.critical("Snap.SendVec_TIntV returned with error %d" % r)
+        h.close()
+        raise Exception("Snap.SendVec_TIntV error %d" % r)
 
     res = h.getresponse()
     #print res.status, res.reason
+
     data = res.read()
-    #print len(data)
-    #print data
 
     h.close()
-
 
 def error(server, src_id, msg):
     encoded_msg = urllib.urlencode({ 'msg': str(msg) })

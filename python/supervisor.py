@@ -211,6 +211,7 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
 
             fname = "%s/%s" % (dirname, src)
             f,fnew = config.uniquefile(fname)
+            logging.info("uniquefile?: %s; %s; %s; %s;" % (dirname, src, fname, fnew))
 
             length = int(self.headers.get("Content-Length"))
             #print "Content-Length", length
@@ -220,7 +221,9 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
                 nread = min(102400, nleft)
                 body = self.rfile.read(nread)
                 f.write(body)
-                nleft -= len(body)
+                assert len(body) == nread
+                # nleft -= len(body)
+                nleft -= nread
 
             f.close()
     

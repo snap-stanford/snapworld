@@ -4,7 +4,6 @@ import sys
 import json
 import logging
 import perf
-import time
 
 gotsnap = False
 
@@ -214,8 +213,8 @@ class SnapWorld:
 
             if swsnap:
                 if not gotsnap:
-                    print "*** Error: Snap module is not available"
-                    sys.exit(1)
+                    self.log.error("Snap module is not available")
+                    sys.exit(2)
                     
                 # Snap vector
                 if self.local:
