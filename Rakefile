@@ -55,7 +55,7 @@ end
 
 def pre_deploy_cleanup()
     sh "fs flushvolume -path ." # flush AFS cache
-    cleanup = "rm -rf #{LFS}/supervisors/*; rm -rf #{LFS}/snapshot-*"
+    cleanup = "rm -rf #{LFS}/supervisors/*; rm -rf #{LFS}/snapshot-*; rm -rf #{LFS}/master.log"
     task_dsh(cleanup)
 end
 
@@ -105,7 +105,7 @@ task :test do
     sh2 "rake cleanup"
     # sh "rm -rf bin/"
     
-    sh2 "rake dshgrep['WARNING|ERROR|CRITICAL']"
+    sh2 "rake dshgrep[\"WARNING|ERROR|CRITICAL\"]"
 end
 
 
@@ -127,7 +127,7 @@ end
 
 task :dshgrep, :txt do |t, args|
     txt = args.txt
-    task_dsh("egrep -I -i --include='*.log' -r #{txt} #{LFS}")
+    task_dsh("egrep -I -i --include='*.log' -r '#{txt}' #{LFS}")
 end
 
 
@@ -160,7 +160,6 @@ end
 
 task :benchmark2 do
     cmd = "seq 8 | parallel python ~/hanworks/snapworld/misc/fake_worker.py -hp iln01.stanford.edu:1337 -f ~/file200.dat"
-    # cmd = "pwd"
 
     # 17 - 2 + 1 = 16 supr machines
     sh2 "seq -f '%02g' 2 17 | parallel ssh iln{} \"#{cmd}\""

@@ -131,7 +131,7 @@ def messagevec(server, src, dst, Vec):
         sw_ok = False
         try:
             h.connect()
-            swok = True
+            sw_ok = True
         except socket.error, e:
             # check out for socket.error: [Errno 110] Connection timed out
             if e.errno == 110:
