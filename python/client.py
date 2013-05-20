@@ -1,5 +1,5 @@
 import httplib
-import os
+import os, sys
 import random
 import socket
 import time
@@ -138,8 +138,11 @@ def messagevec(server, src, dst, Vec):
                 logging.warn("[Error 110] Connection timed out; attempt: %d, dest: %s" % (i, str(dst)))
             elif e.errno == 111:
                 logging.warn("[Errno 111] Connection refused; attempt: %d, dest: %s" % (i, str(dst)))
+            elif e.errno == -2:
+                logging.warn("[Errno -2] Name or service not know: attempt: %d, dest: %s" % (i, str(dst)))
             else:
-                logging.critical("socket.error: %s" % str(e))
+                logging.critical("socket.error: %s: attempt: %d, dest: %s" % (str(e), i, str(dst)))
+                sys.exit(-2)
                 # break out of the loop and fail later
                 sw_ok = True
         if sw_ok: break
@@ -162,8 +165,9 @@ def messagevec(server, src, dst, Vec):
     r = Snap.SendVec_TIntV(Vec, fileno)
     if r < 0:
         logging.critical("Snap.SendVec_TIntV returned with error %d" % r)
-        h.close()
-        raise Exception("Snap.SendVec_TIntV error %d" % r)
+        sys.exit(-2)
+        # h.close()
+        # raise Exception("Snap.SendVec_TIntV error %d" % r)
 
     res = h.getresponse()
     #print res.status, res.reason
