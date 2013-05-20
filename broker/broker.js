@@ -46,7 +46,7 @@ var TokenType = function(type, max_tokens) {
       delete this.issued[srcID];
       this.used_tokens--;
       socket.end("RELEASED\n");
-      console.log("Token released for: " + this.srcID);
+      console.log("Token released for: " + srcID);
     } else {
       socket.end("ERROR: srcID not found\n");
       console.log("srcID " + srcID + " not found");
@@ -66,7 +66,7 @@ var TokenType = function(type, max_tokens) {
         this.issued[token.srcID] = token;
         console.log("Token acquired for: " + token.srcID);
       } catch (e) {
-        console.log("Cannot write to socket for src: " + this.token.srcID);
+        console.log("Cannot write to socket for src: " + token.srcID);
       }
     }
   }
@@ -111,6 +111,7 @@ var server = net.createServer(function(socket) {
 
   var inputParser = new Lazy(socket).lines.forEach(function(msg) {
     var data = msg.toString();
+    console.log("RECV > " + data);
     var tokens = data.split("|");
     var cmd = tokens[0];
 

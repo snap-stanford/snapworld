@@ -124,8 +124,11 @@ def message(server, src, dst, body):
 def messagevec(server, src, dst, Vec):
     global Snap
 
-    # Acquire and release a token needed to make a request to supervisors from local broker.
-    acquire_token()
+    content_length = Vec.GetMemSize()
+    
+    need_token = (content_length >= 64*1024*1024)
+
+    if need_token: acquire_token()
 
     h = httplib.HTTPConnection(server)
     
@@ -145,7 +148,6 @@ def messagevec(server, src, dst, Vec):
                 logging.warn("[Errno -2] Name or service not know: attempt: %d, dest: %s" % (i, str(dst)))
             else:
                 logging.critical("socket.error: %s: attempt: %d, dest: %s" % (str(e), i, str(dst)))
-                sys.exit(-2)
                 # break out of the loop and fail later
                 sw_ok = True
         if sw_ok: break
@@ -153,12 +155,15 @@ def messagevec(server, src, dst, Vec):
         time.sleep(wait_time)
         wait_time *= 2 # Exponential Backoff 
 
-    context_length = Vec.GetMemSize()
-    logging.debug("messagevec context-length: %d" % context_length)
+    if not sw_ok:
+        logging.critical("Could not establish connection to dest: %s" % str(dst))
+        sys.exit(2)
+
+    logging.debug("messagevec content-length: %d" % content_length)
 
     url = "/msg/%s/%s" % (dst, src)
     h.putrequest("POST", url)
-    h.putheader("Content-Length", str(context_length))
+    h.putheader("Content-Length", str(content_length))
     h.endheaders()
 
     fileno = h.sock.fileno()
@@ -169,8 +174,8 @@ def messagevec(server, src, dst, Vec):
     if r < 0:
         logging.critical("Snap.SendVec_TIntV returned with error %d" % r)
         h.close()
-        release_token()
-        sys.exit(-2)
+        if need_token: release_token()
+        sys.exit(2)
 
     res = h.getresponse()
     #print res.status, res.reason
@@ -179,7 +184,7 @@ def messagevec(server, src, dst, Vec):
 
     h.close()
 
-    release_token()
+    if need_token: release_token()
 
 def error(server, src_id, msg):
     encoded_msg = urllib.urlencode({ 'msg': str(msg) })
@@ -189,9 +194,10 @@ def error(server, src_id, msg):
     f.close()
 
 def acquire_token():
-    broker_sock = None
+    broker_sock = socket.socket()
     pid = os.getpid()
     try:
+        broker_sock.connect(("127.0.0.1", 1337))
         acq_cmd = "acquire|net|%d\n" % pid
         broker_sock.send(acq_cmd)
         rv = broker_sock.recv(1024).strip()
@@ -209,11 +215,10 @@ def acquire_token():
 
 
 def release_token():
-    broker_sock = None
+    broker_sock = socket.socket()
     pid = os.getpid()
     try:
-        broker_sock = socket.socket()
-        broker_sock.connect("127.0.0.1", 1337)
+        broker_sock.connect(("127.0.0.1", 1337))
         rel_cmd = "release|net|%d\n" % pid
         broker_sock.send(rel_cmd)
         rv = broker_sock.recv(1024).strip()

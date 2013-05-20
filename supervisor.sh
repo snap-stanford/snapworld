@@ -22,6 +22,7 @@ SRC=~/hanworks
 if [ -d  "$SRC" ]; then
     fs flushvolume -path ${SRC}
     cp ${SRC}/snapworld/python/* ${SNAPWBIN}
+    cp -r ${SRC}/snapworld/broker ${SNAPWBIN}/
     # cp -p ${SRC}/snap-python/swig-sw/_snap.so ${SRC}/snap-python/swig-sw/snap.py ${SNAPWBIN}
     echo "Provisioning SNAPWBIN"
 else
@@ -29,6 +30,7 @@ else
 fi
 ###############
 
+node ${SNAPWBIN}/broker/broker.js 1337 &> ${SNAPWOUTPUT}/broker.log &
 
 echo $SNAPWID $SNAPWPORT $SNAPWMASTER $SNAPWMASTERPORT
 echo ${PYTHON} ${SNAPWBIN}/supervisor.py -d -i ${SNAPWID} -p ${SNAPWPORT} -m ${SNAPWMASTER}:${SNAPWMASTERPORT}

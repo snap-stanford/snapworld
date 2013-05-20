@@ -1,8 +1,8 @@
 #!/bin/sh
 
-PPN=24
+PPN=10
 
-NODES=`seq -f "iln%02g.stanford.edu:ppn=${PPN}" -s "+" 1 10`
+NODES=`seq -f "iln%02g.stanford.edu:ppn=${PPN}" -s "+" 1 17`
 
 CMD="qsub -I -l nodes=${NODES}"
 

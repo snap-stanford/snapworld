@@ -26,7 +26,7 @@ def task_dsh(cmd)
             sh2 "ssh ild#{i} \"#{cmd}\""
         end
     elsif HOST.include? "iln"
-        for i in 1..9
+        for i in 1..17
             puts "=" * 60
             ii = "%.2i" % i
             sh2 "ssh iln#{ii} \"#{cmd}\""
@@ -110,8 +110,8 @@ end
 
 
 task :cleanup do
-    sh "ps x | grep python | grep -v grep | grep -v emacs | grep -v vim | awk '{print $1}'| xargs -r kill -SIGKILL"
-    killcmd_sup = "ps x | grep python | grep -v grep | grep -v emacs | grep -v vim | awk '{print \\$1}'| xargs -r kill -SIGKILL"
+    sh "ps x | egrep 'python|node' | grep -v grep | grep -v emacs | grep -v vim | awk '{print $1}'| xargs -r kill -SIGKILL"
+    killcmd_sup = "ps x | egrep 'python|node' | grep -v grep | grep -v emacs | grep -v vim | awk '{print \\$1}'| xargs -r kill -SIGKILL"
     task_dsh(killcmd_sup)
 end
 
@@ -170,3 +170,6 @@ task :benchmark0 do
     sh2 "seq -f '%02g' 1 19 | parallel ssh iln{} \"#{cmd}\""
 end
 
+task :genhosts do
+    puts `seq -f "iln%02g.stanford.edu:9200" -s "," 2 17`
+end
