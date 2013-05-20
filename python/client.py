@@ -11,6 +11,21 @@ logging.basicConfig(level=logging.INFO, format='[%(asctime)s] [%(levelname)s] [%
 
 Snap = None
 
+def socket_retry(func):
+    def inner_func(*args, **kwargs):
+        wait_time = 1
+        for i in xrange(2):
+            try:
+                return func(*args, **kwargs)
+            except Exception as e:
+                logging.warn("socket_retry; attempt: %d; msg: %s" % (i, str(e)))
+                time.sleep(wait_time)
+                wait_time *= 2 # Exponential Backoff
+        logging.error("socket_retry failed")
+        sys.exit(2)
+    return inner_func
+
+@socket_retry
 def config(server):
     # get configuration
     url = "http://%s/config" % (server)
@@ -20,6 +35,7 @@ def config(server):
 
     return sconf
 
+@socket_retry
 def step(server):
     # send step start
     url = "http://%s/step" % (server)
@@ -30,6 +46,7 @@ def step(server):
     body = f.read()
     f.close()
 
+@socket_retry
 def getexec(server,prog,timestamp):
     '''
     get executable from the head task
@@ -64,6 +81,7 @@ def getexec(server,prog,timestamp):
 
     return body
 
+@socket_retry
 def quit(server):
     # send termination quit
     url = "http://%s/quit" % (server)
@@ -74,6 +92,7 @@ def quit(server):
     body = f.read()
     f.close()
 
+@socket_retry
 def dummy(server):
     # send a dummy request
     url = "http://%s/dummy" % (server)
@@ -84,6 +103,7 @@ def dummy(server):
     body = f.read()
     f.close()
 
+@socket_retry
 def prepare(server):
     # send step prepare
     url = "http://%s/prepare" % (server)
@@ -94,6 +114,7 @@ def prepare(server):
     body = f.read()
     f.close()
 
+@socket_retry
 def done(server, id):
     # send done
     url = "http://%s/done/%s" % (server,id)
@@ -101,6 +122,7 @@ def done(server, id):
     body = f.read()
     f.close()
 
+@socket_retry
 def ready(server, id, numtasks=0):
     # send ready
     url = "http://%s/ready/%s/%s" % (server,id,str(numtasks))
@@ -108,6 +130,7 @@ def ready(server, id, numtasks=0):
     body = f.read()
     f.close()
 
+@socket_retry
 def message(server, src, dst, body):
     # send a task message from src to dst
     url = "http://%s/msg/%s/%s" % (server,dst,src)
@@ -134,7 +157,7 @@ def messagevec(server, src, dst, Vec):
     h = httplib.HTTPConnection(server)
     
     wait_time = 1
-    for i in range(0,8):
+    for i in xrange(8):
         sw_ok = False
         try:
             h.connect()
@@ -187,6 +210,7 @@ def messagevec(server, src, dst, Vec):
 
     if need_token: release_token()
 
+@socket_retry
 def error(server, src_id, msg):
     encoded_msg = urllib.urlencode({ 'msg': str(msg) })
     url = "http://%s/error/%s/%s" % (str(server), str(src_id), encoded_msg)
