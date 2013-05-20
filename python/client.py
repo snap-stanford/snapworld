@@ -6,6 +6,7 @@ import time
 import urllib2
 import urllib
 import logging
+import sys
 
 logging.basicConfig(level=logging.INFO, format='[%(asctime)s] [%(levelname)s] [%(process)d] [%(filename)s] [%(funcName)s] %(message)s')
 
@@ -124,6 +125,9 @@ def message(server, src, dst, body):
 def messagevec(server, src, dst, Vec):
     global Snap
 
+    # Acquire and release a token needed to make a request to supervisors from local broker.
+    acquire_token()
+
     h = httplib.HTTPConnection(server)
     
     wait_time = 1
@@ -163,6 +167,7 @@ def messagevec(server, src, dst, Vec):
     if r < 0:
         logging.critical("Snap.SendVec_TIntV returned with error %d" % r)
         h.close()
+        release_token()
         raise Exception("Snap.SendVec_TIntV error %d" % r)
 
     res = h.getresponse()
@@ -172,9 +177,53 @@ def messagevec(server, src, dst, Vec):
 
     h.close()
 
+    release_token()
+
 def error(server, src_id, msg):
     encoded_msg = urllib.urlencode({ 'msg': str(msg) })
     url = "http://%s/error/%s/%s" % (str(server), str(src_id), encoded_msg)
     f = urllib2.urlopen(url)
     body = f.read()
     f.close()
+
+def acquire_token():
+    broker_sock = None
+    pid = os.getpid()
+    try:
+        acq_cmd = "acquire|net|%d\n" % pid
+        broker_sock.send(acq_cmd)
+        rv = broker_sock.recv(1024).strip()
+        if rv == "ACQUIRED":
+            logging.info("Worker %d acquired token" % pid)
+        else:
+            logging.critical("Error in acquiring token from broker")
+            broker_sock.close()
+            sys.exit(2)
+        broker_sock.close()
+    except socket.error, (value,message):
+        logging.critical("Error in connecting to broker: %s" % message)
+        broker_sock.close()
+        sys.exit(2)
+
+
+def release_token():
+    broker_sock = None
+    pid = os.getpid()
+    try:
+        broker_sock = socket.socket()
+        broker_sock.connect("127.0.0.1", 1337)
+        rel_cmd = "release|net|%d\n" % pid
+        broker_sock.send(rel_cmd)
+        rv = broker_sock.recv(1024).strip()
+        if rv == "RELEASED":
+            logging.info("Worker %d released token" % pid)
+        else:
+            logging.critical("Error in releasing token to broker")
+            broker_sock.close()
+            sys.exit(2)
+        broker_sock.close()
+    except socket.error, (value,message):
+        logging.critical("Error in connecting to broker: %s" % message)
+        broker_sock.close()
+        sys.exit(2)
+
