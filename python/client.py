@@ -126,7 +126,8 @@ def messagevec(server, src, dst, Vec):
 
     content_length = Vec.GetMemSize()
     
-    need_token = (content_length >= 64*1024*1024)
+    # need_token = (content_length >= 1*1024*1024)
+    need_token = True
 
     if need_token: acquire_token()
 

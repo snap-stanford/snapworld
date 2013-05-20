@@ -111,7 +111,7 @@ var server = net.createServer(function(socket) {
 
   var inputParser = new Lazy(socket).lines.forEach(function(msg) {
     var data = msg.toString();
-    console.log("RECV > " + data);
+    // console.log("RECV > " + data);
     var tokens = data.split("|");
     var cmd = tokens[0];
 

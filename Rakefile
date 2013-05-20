@@ -173,3 +173,7 @@ end
 task :genhosts do
     puts `seq -f "iln%02g.stanford.edu:9200" -s "," 2 17`
 end
+
+task :catbrokerlogs do
+    task_dsh("cat #{LFS}/**/broker.log")
+end

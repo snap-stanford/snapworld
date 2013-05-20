@@ -200,43 +200,41 @@ class SnapWorld:
 
     def Send(self, dstid, d, channel = "1", swsnap = False):
 
-        with perf.Timer(self.log, "Send"):
+        #dstnum = dstid / self.range
+        #dstname = self.target + "-" + str(dstnum)
+        dstname = self.target[channel] + "-" + str(dstid)
+        dsthostid = self.tasks.get(dstname)
+        dshost = self.hosts.get(dsthostid)
 
-            #dstnum = dstid / self.range
-            #dstname = self.target + "-" + str(dstnum)
-            dstname = self.target[channel] + "-" + str(dstid)
-            dsthostid = self.tasks.get(dstname)
-            dshost = self.hosts.get(dsthostid)
+        if self.local:
+            fname = self.GetOutName(dstname)
+
+        if swsnap:
+            if not gotsnap:
+                self.log.error("Snap module is not available")
+                sys.exit(2)
+                
+            # Snap vector
+            if self.local:
+                FOut = Snap.TFOut(Snap.TStr(fname))
+                d.Save(FOut)
+                FOut.Flush()
+                #print "send Snap task %s, host %s, *** Error: local 'Send' not yet implemented" % (dstname, dshost)
+                return
+
+            client.messagevec(dshost,self.taskname,dstname,d)
+            return
+     
+        else:
+            # json dict
+            s = json.dumps(d)
+            # print "send task %s, host %s, msg %s" % (dstname, dshost, s)
 
             if self.local:
-                fname = self.GetOutName(dstname)
-
-            if swsnap:
-                if not gotsnap:
-                    self.log.error("Snap module is not available")
-                    sys.exit(2)
-                    
-                # Snap vector
-                if self.local:
-                    FOut = Snap.TFOut(Snap.TStr(fname))
-                    d.Save(FOut)
-                    FOut.Flush()
-                    #print "send Snap task %s, host %s, *** Error: local 'Send' not yet implemented" % (dstname, dshost)
-                    return
-
-                client.messagevec(dshost,self.taskname,dstname,d)
+                f = open(fname,"w")
+                f.write(s)
+                f.close()
                 return
-         
-            else:
-                # json dict
-                s = json.dumps(d)
-                # print "send task %s, host %s, msg %s" % (dstname, dshost, s)
 
-                if self.local:
-                    f = open(fname,"w")
-                    f.write(s)
-                    f.close()
-                    return
-
-                client.message(dshost,self.taskname,dstname,s)
+            client.message(dshost,self.taskname,dstname,s)
 
