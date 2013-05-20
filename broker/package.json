@@ -1,0 +1,8 @@
+{
+  "name": "snapworld-broker"
+, "version": "0.0.1"
+, "dependencies" : {
+    "lazy": ">= 1.0.11"
+  },
+  "engine": "node >= 0.10.5"
+}
