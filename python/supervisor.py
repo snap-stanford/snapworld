@@ -217,16 +217,23 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
             length = int(self.headers.get("Content-Length"))
             #print "Content-Length", length
 
-            nleft = length
-            while nleft > 0:
-                nread = min(102400, nleft)
-                body = self.rfile.read(nread)
-                f.write(body)
-                nleft -= len(body)
-
-            f.close()
-    
-            logging.info("message %s length %d" % (fnew,  length))
+            file_err = False
+            try:
+                nleft = length
+                while nleft > 0:
+                    nread = min(102400, nleft)
+                    body = self.rfile.read(nread)
+                    f.write(body)
+                    nleft -= len(body)
+            except Exception as e:
+                file_err = True
+                logging.warn("file stream error: %s" % str(e))
+                f.close()
+                os.remove(fnew)
+                
+            if not file_err:
+                f.close()
+                logging.info("message %s length %d" % (fnew,  length))
 
             self.send_response(200)
             self.send_header('Content-Length', 0)
