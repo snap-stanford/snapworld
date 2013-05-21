@@ -1,6 +1,5 @@
 import httplib
 import os, sys
-import random
 import socket
 import time
 import urllib2
@@ -14,10 +13,10 @@ Snap = None
 def socket_retry(func):
     def inner_func(*args, **kwargs):
         wait_time = 1
-        for i in xrange(2):
+        for i in xrange(7):
             try:
                 return func(*args, **kwargs)
-            except Exception as e:
+            except socket.error as e:
                 logging.warn("socket_retry; attempt: %d; msg: %s" % (i, str(e)))
                 time.sleep(wait_time)
                 wait_time *= 2 # Exponential Backoff
@@ -144,6 +143,7 @@ def message(server, src, dst, body):
     body = f.read()
     f.close()
 
+@socket_retry
 def messagevec(server, src, dst, Vec):
     global Snap
 
@@ -181,6 +181,7 @@ def messagevec(server, src, dst, Vec):
 
     if not sw_ok:
         logging.critical("Could not establish connection to dest: %s" % str(dst))
+        if need_token: release_token()
         sys.exit(2)
 
     logging.debug("messagevec content-length: %d" % content_length)
@@ -196,10 +197,10 @@ def messagevec(server, src, dst, Vec):
         import snap as Snap
     r = Snap.SendVec_TIntV(Vec, fileno)
     if r < 0:
-        logging.critical("Snap.SendVec_TIntV returned with error %d" % r)
+        logging.warn("Snap.SendVec_TIntV returned with error %d" % r)
         h.close()
         if need_token: release_token()
-        sys.exit(2)
+        raise socket.error("Send.SendVec_TIntV error")
 
     res = h.getresponse()
     #print res.status, res.reason
@@ -219,7 +220,7 @@ def error(server, src_id, msg):
     f.close()
 
 def acquire_token():
-    broker_sock = socket.socket()
+    broker_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     pid = os.getpid()
     try:
         broker_sock.connect(("127.0.0.1", 1337))
@@ -240,7 +241,7 @@ def acquire_token():
 
 
 def release_token():
-    broker_sock = socket.socket()
+    broker_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     pid = os.getpid()
     try:
         broker_sock.connect(("127.0.0.1", 1337))

@@ -25,12 +25,20 @@ def task_dsh(cmd)
             puts "=" * 60
             sh2 "ssh ild#{i} \"#{cmd}\""
         end
-    elsif HOST.include? "iln"
+    elsif HOST.include? "iln" or HOST.include? "10.79.15.11"
         for i in 1..17
             puts "=" * 60
             ii = "%.2i" % i
             sh2 "ssh iln#{ii} \"#{cmd}\""
         end
+    end
+end
+
+def task_dsh2(cmd)
+    if HOST.include? "ild"
+        sh2 "seq -f '%02g' 1 2 | parallel ssh ild{} \"#{cmd}\""
+    elsif HOST.include? "iln" or HOST.include? "10.79.15.11"
+        sh2 "seq -f '%02g' 2 2 | parallel ssh iln{} \"#{cmd}\""
     end
 end
 
@@ -143,6 +151,10 @@ task :agglogs do
     sh2 "cp -f #{LFS}/master.log #{LFS}/all_logs"
     sh2 "cat #{LFS}/all_logs/* | sort > #{LFS}/aggregated.log"
 
+end
+
+task :dulogs do
+    task_dsh("find #{LFS}/supervisors/ -iname '*.log' -print0 | du -h --files0-from - -c -s | tail -1")
 end
 
 ################################

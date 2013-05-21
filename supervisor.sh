@@ -11,7 +11,7 @@ export SNAPWBIN=${HOMELOCAL}/bin
 export SNAPWEXEC=${HOMELOCAL}/execute
 export SNAPWOUTPUT=${HOMELOCAL}/output
 
-export PYTHON=python
+export PYTHON=python2.7
 
 mkdir -p $SNAPWBIN
 mkdir -p $SNAPWEXEC
