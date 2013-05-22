@@ -18,10 +18,15 @@ if (process.argv.length >= 3) {
 // CLASSES
 ////////////////////////////////////////////////////////////
 
-var Token = function(socket, srcID) {
+function str_time() {
+  return "[" + (Date.now() / 1000).toString() + "]";
+}
+
+var Token = function(socket, srcID, size) {
   this.socket = socket;
   this.srcID = srcID;
   this.acquired_time = null;
+  this.size = size;
 }
 
 var TokenType = function(type, max_tokens) {
@@ -32,10 +37,10 @@ var TokenType = function(type, max_tokens) {
   this.issued = {};
 
   // request
-  this.acquire = function(socket, srcID) {
-    var token = new Token(socket, srcID);
+  this.acquire = function(socket, srcID, size) {
+    var token = new Token(socket, srcID, size);
     this.q.push(token);
-    console.log("Token requested for: " + srcID);
+    console.log(str_time() + " Token requested for: " + srcID);
     this.process();
   }
 
@@ -46,7 +51,12 @@ var TokenType = function(type, max_tokens) {
       delete this.issued[srcID];
       this.used_tokens--;
       socket.end("RELEASED\n");
-      console.log("Token released for: " + srcID);
+      var duration = (Date.now() - token.acquired_time) / 1000;
+      var size_blocked = token.size/(1024*1024);
+      console.log(str_time() + " Token released for: " + srcID
+          + ", Size: " + size_blocked + " MB"
+          + ", Duration: " + duration.toString() + " s"
+          + ", Throughput: " + (size_blocked/duration) + " MB/s");
     } else {
       socket.end("ERROR: srcID not found\n");
       console.log("srcID " + srcID + " not found");
@@ -64,9 +74,9 @@ var TokenType = function(type, max_tokens) {
         token.acquired_time = Date.now();
         this.used_tokens++;
         this.issued[token.srcID] = token;
-        console.log("Token acquired for: " + token.srcID);
+        console.log(str_time() + " Token acquired for: " + token.srcID);
       } catch (e) {
-        console.log("Cannot write to socket for src: " + token.srcID);
+        console.log(str_time() + " Cannot write to socket for src: " + token.srcID);
       }
     }
   }
@@ -82,9 +92,9 @@ var Broker = function(types) {
     this.manager[types[i]] = new TokenType(types[i], MAX_TOKENS);
   }
 
-  this.acquire = function(socket, type, srcID) {
+  this.acquire = function(socket, type, srcID, size) {
     if (this.manager.hasOwnProperty(type)) {
-      this.manager[type].acquire(socket, srcID);
+      this.manager[type].acquire(socket, srcID, size);
     } else {
       console.log("Unknown type: " + type);
       socket.end("ERROR: Unknown type\n");
@@ -118,7 +128,8 @@ var server = net.createServer(function(socket) {
     if (cmd == 'acquire') {
       var type = tokens[1];
       var srcID = tokens[2];
-      broker.acquire(socket, type, srcID);
+      var size = parseInt(tokens[3]);
+      broker.acquire(socket, type, srcID, size);
     } else if (cmd == 'release') {
       var type = tokens[1];
       var srcID = tokens[2];
@@ -128,9 +139,6 @@ var server = net.createServer(function(socket) {
       console.log("Cannot parse line: " + data);
     }
   });
-
-  // socket.on('end', function() {
-  // });
 
   socket.on('data', function(data) {
     inputParser.emit(data.toString());

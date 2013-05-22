@@ -5,21 +5,28 @@ import time
 import urllib2
 import urllib
 import logging
+import random
 
 logging.basicConfig(level=logging.INFO, format='[%(asctime)s] [%(levelname)s] [%(process)d] [%(filename)s] [%(funcName)s] %(message)s')
 
 Snap = None
 
+MAX_RETRIES = 5
+
 def socket_retry(func):
     def inner_func(*args, **kwargs):
-        wait_time = 1
-        for i in xrange(7):
+        for i in xrange(MAX_RETRIES):
             try:
                 return func(*args, **kwargs)
-            except socket.error as e:
-                logging.warn("socket_retry; attempt: %d; msg: %s" % (i, str(e)))
-                time.sleep(wait_time)
-                wait_time *= 2 # Exponential Backoff
+            except (socket.error, urllib2.URLError) as e:
+                if i < MAX_RETRIES-1:
+                    # Exponential + Random Backoff
+                    wait_time = pow(2.0, i) * (1.0 + random.random()) 
+                    logging.warn("socket_retry; attempt: %d; backoff: %f, msg: %s" % (i, wait_time, str(e)))
+                    time.sleep(wait_time)
+                else:
+                    logging.warn("socket_retry; msg: %s" % str(e))
+
         logging.error("socket_retry failed")
         sys.exit(2)
     return inner_func
@@ -33,6 +40,7 @@ def config(server):
     f.close()
 
     return sconf
+
 
 @socket_retry
 def step(server):
@@ -152,13 +160,12 @@ def messagevec(server, src, dst, Vec):
     # need_token = (content_length >= 1*1024*1024)
     need_token = True
 
-    if need_token: acquire_token()
+    if need_token: acquire_token(content_length)
 
     h = httplib.HTTPConnection(server)
     
-    wait_time = 1
-    for i in xrange(8):
-        sw_ok = False
+    sw_ok = False
+    for i in xrange(MAX_RETRIES):
         try:
             h.connect()
             sw_ok = True
@@ -174,10 +181,12 @@ def messagevec(server, src, dst, Vec):
                 logging.critical("socket.error: %s: attempt: %d, dest: %s" % (str(e), i, str(dst)))
                 # break out of the loop and fail later
                 sw_ok = True
+
         if sw_ok: break
 
-        time.sleep(wait_time)
-        wait_time *= 2 # Exponential Backoff 
+        if i < MAX_RETRIES-1:
+            wait_time = pow(2.0, i) * (1.0 + random.random()) 
+            time.sleep(wait_time)
 
     if not sw_ok:
         logging.critical("Could not establish connection to dest: %s" % str(dst))
@@ -219,12 +228,13 @@ def error(server, src_id, msg):
     body = f.read()
     f.close()
 
-def acquire_token():
+def acquire_token(size=-1):
     broker_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     pid = os.getpid()
     try:
         broker_sock.connect(("127.0.0.1", 1337))
-        acq_cmd = "acquire|net|%d\n" % pid
+        acq_cmd = "acquire|net|%d|%d\n" % (pid, size)
+
         broker_sock.send(acq_cmd)
         rv = broker_sock.recv(1024).strip()
         if rv == "ACQUIRED":
@@ -236,7 +246,10 @@ def acquire_token():
         broker_sock.close()
     except socket.error, (value,message):
         logging.critical("Error in connecting to broker: %s" % message)
-        broker_sock.close()
+        try:
+            broker_sock.close()
+        except:
+            pass
         sys.exit(2)
 
 
@@ -257,6 +270,9 @@ def release_token():
         broker_sock.close()
     except socket.error, (value,message):
         logging.critical("Error in connecting to broker: %s" % message)
-        broker_sock.close()
+        try:
+            broker_sock.close()
+        except:
+            pass
         sys.exit(2)
 

@@ -217,7 +217,6 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
             length = int(self.headers.get("Content-Length"))
             #print "Content-Length", length
 
-            file_err = False
             try:
                 nleft = length
                 while nleft > 0:
@@ -226,14 +225,22 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
                     f.write(body)
                     nleft -= len(body)
             except Exception as e:
-                file_err = True
                 logging.warn("file stream error: %s" % str(e))
-                f.close()
-                os.remove(fnew)
+                try:
+                    f.close()
+                    os.remove(fnew)
+                except:
+                    pass
+                try:
+                    self.send_response(200)
+                    self.send_header('Content-Length', 0)
+                    self.end_headers()
+                except:
+                    pass
+                return
                 
-            if not file_err:
-                f.close()
-                logging.info("message %s length %d" % (fnew,  length))
+            f.close()
+            logging.info("message %s length %d" % (fnew,  length))
 
             self.send_response(200)
             self.send_header('Content-Length', 0)
@@ -410,7 +417,7 @@ def Execute(args):
                 logging.debug("finished %d with status %s" % (pid, str(status)))
                 # error reporting
                 if status <> 0:
-                    msg = "Pid %d terminated unexpectedly" % pid
+                    msg = "Pid %d terminated unexpectedly with status %d" % (pid, status)
                     logging.error(msg)
                     client.error(args.master, args.id, msg)
 
