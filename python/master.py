@@ -51,7 +51,7 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
         if self.path == "/start":
             logging.info("starting host servers")
 
-            self.timer.start("master")
+            self.server.timer.start("master")
 
             master = self.config["master"]
             hosts = self.config["hosts"]
@@ -123,17 +123,32 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
             if len(subpath) > 2:
                 host = subpath[2]
                 
+                self.server.global_lock.acquire()
+                if self.server.superstep_count > 0:
+                    self.server.timer.stop("superstep-%d-host-%d" % \
+                            (self.server.superstep_count, int(host)))
+                self.server.global_lock.release()
+
                 self.server.done_lock.acquire()
                 self.server.done.add(host)
-                logging.info("host %s completed work" % (str(self.server.done)))
+                str_log = "host %s completed work" % (str(self.server.done))
                 done_size = len(self.server.done)
                 self.server.done_lock.release()
+                logging.info(str_log)
 
                 if done_size == len(self.config["hosts"]):
 
                     logging.info("all hosts completed")
                     # Fix possible concurrency issue with supervisor.py
                     time.sleep(5)
+
+                    if self.server.snapshot_enabled:
+                        self.server.global_lock.acquire()
+                        self.server.snapshot_counter += 1
+                        cmd = "./snapshot.sh %d" % (self.server.snapshot_counter - 1)
+                        self.server.global_lock.release()
+                        logging.info(cmd)
+                        os.system(cmd)
 
                     # initialize a set of ready servers,
                     # clear the continue indicator
@@ -174,20 +189,6 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
             if len(subpath) > 2:
                 host = subpath[2]
 
-                if self.timer.has_tag("ready-%s" % host):
-                    self.timer.stop("ready-%s" % host)
-                    if self.server.snapshot_enabled:
-                        cmd = "./snapshot.sh %d" % self.server.snapshot_counter
-
-                        self.server.snapshot_lock.acquire()
-                        self.server.snapshot_counter += 1
-                        self.server.snapshot_lock.release()
-
-                        logging.info(cmd)
-                        os.system(cmd)
-
-                self.timer.start("ready-%s" % host)
-
                 # get the number of active tasks on the host
                 numtasks = 0
                 try:
@@ -201,9 +202,10 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
 
                 self.server.ready_lock.acquire()
                 self.server.ready.add(host)
-                logging.debug("host %s ready" % (str(self.server.ready)))
+                str_log = "host %s ready" % (str(self.server.ready))
                 ready_size = len(self.server.ready)
                 self.server.ready_lock.release()
+                logging.debug(str_log)
 
                 if ready_size == len(self.config["hosts"]):
 
@@ -222,12 +224,20 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
                     self.server.done = set()
                     self.server.done_lock.release()
 
-                    # send a step start command to all the hosts
                     hosts = self.config["hosts"]
                     master = "%s:%s" % (
                         self.config["master"]["host"],
                         self.config["master"]["port"])
 
+                    self.server.global_lock.acquire()
+                    self.server.superstep_count += 1
+                    for h in hosts:
+                        h_id = int(h['id'])
+                        self.server.timer.start("superstep-%d-host-%d" % \
+                                (self.server.superstep_count, h_id))
+                    self.server.global_lock.release()
+
+                    # send a step start command to all the hosts
                     # TODO: create a thread for this step
                     for h in hosts:
                         logging.info("send next step to " + str(h))
@@ -244,7 +254,8 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
                 src_host = subpath[2]
                 encoded_msg = subpath[3]
                 msg_dict = urlparse.parse_qs(encoded_msg)
-                logging.critical("Error msg from supervisor %s: %s" % (src_host, msg_dict['msg']))
+                logging.critical("Error msg from supervisor %s: %s" % \
+                        (src_host, msg_dict['msg']))
                 logging.critical("Terminating master now")
                 self._quit(force=True)
 
@@ -272,8 +283,8 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
         self.server.running = False
         self.server.self_dummy()
 
-        if self.timer.has_tag("master"):
-            self.timer.stop("master")
+        if self.server.timer.has_tag("master"):
+            self.server.timer.stop("master")
 
     def StartHostServer(self, remote, master):
         logging.info("starting host server on host %s, port %s" % \
@@ -367,14 +378,17 @@ if __name__ == '__main__':
     server.executing = False
     # indicator that an application should execute the next step
     server.iterate = False
+    # One lock to rule em all
+    server.global_lock = threading.Lock()
     # Number of snapshots mades
     server.snapshot_enabled = dconf["snapshot"]
     server.snapshot_counter = 0
-    server.snapshot_lock = threading.Lock()
+    server.superstep_count = 0
+    # Timer
+    server.timer = perf.Timer(logging, thread_safe=True)
 
     handler = BaseHTTPServer.BaseHTTPRequestHandler
     handler.config = dconf
-    handler.timer = perf.Timer(logging)
 
     dconf["tasks"] = config.assign(dconf)
 

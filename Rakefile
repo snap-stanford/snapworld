@@ -159,6 +159,13 @@ end
 
 ################################
 
+# To generate random datafile:
+# dd if=/dev/urandom of=$HOME/largefile.dat bs=1048576 count=200
+
+task :benchmark0 do
+    cmd = "pkill python"
+    sh2 "seq -f '%02g' 1 19 | parallel ssh iln{} \"#{cmd}\""
+end
 
 task :benchmark1 do
     sh2 "rake benchmark0"
@@ -177,10 +184,6 @@ task :benchmark2 do
     sh2 "seq -f '%02g' 2 17 | parallel ssh iln{} \"#{cmd}\""
 end
 
-task :benchmark0 do
-    cmd = "pkill python"
-    sh2 "seq -f '%02g' 1 19 | parallel ssh iln{} \"#{cmd}\""
-end
 
 task :genhosts do
     puts `seq -f "iln%02g.stanford.edu:9200" -s "," 2 17`
