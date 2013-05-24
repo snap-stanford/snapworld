@@ -223,8 +223,8 @@ def SaveState(sw, ds):
 def Worker(sw):
     sw.cum_timer = perf.Timer(sw.log)
     GetDist(sw)
-    sw.cum_print("disk")
-    sw.cum_print("network")
+    sw.cum_timer.cum_print("disk")
+    sw.cum_timer.cum_print("network")
 
 def main():
     sw = swlib.SnapWorld()
