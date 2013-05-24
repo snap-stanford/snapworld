@@ -16,11 +16,14 @@ def GetDist(sw):
     taskname = sw.GetName()
     taskindex = int(taskname.split("-")[1])
 
+    sw.cum_timer.cum_start("disk")
     msglist = sw.GetMsgList()
     sw.log.debug("msglist: %s" % msglist)
 
     with perf.Timer(sw.log, "LoadState-GetDistCpp"):
         ds = LoadState(sw)
+
+    sw.cum_timer.cum_stop("disk")
 
     # process initialization
     if ds == None:
@@ -41,9 +44,11 @@ def InitState(sw, taskindex, msglist):
 
     # the original node is on input
     node = None
+    sw.cum_timer.cum_start("disk")
     for item in msglist:
         msg = sw.GetMsg(item)
         node = msg["body"]
+    sw.cum_timer.cum_stop("disk")
 
     ds = {}
     ds["start"] = node
@@ -61,7 +66,9 @@ def InitState(sw, taskindex, msglist):
     Vec1 = Snap.TIntV()
     Vec1.Add(node)
     Vec1.Add(taskindex)
+    sw.cum_timer.cum_start("network")
     sw.Send(tn,Vec1,swsnap=True)
+    sw.cum_timer.cum_stop("network")
 
     return ds
 
@@ -83,12 +90,14 @@ def AddNewNodes(taskindex, sw, ds, msglist):
 
     for item in msglist:
 
+        sw.cum_timer.cum_start("disk")
         name = sw.GetMsgName(item)
 
         # print "input", name
         # read the input nodes
         FIn = Snap.TFIn(Snap.TStr(name))
         Vec = Snap.TIntV(FIn)
+        sw.cum_timer.cum_stop("disk")
 
         # print "len", Vec.Len()
         # get new nodes, not visited before
@@ -130,7 +139,9 @@ def AddNewNodes(taskindex, sw, ds, msglist):
         dmsgout["cmd"] = "results"
         dmsgout["body"] = dmsg
 
+        sw.cum_timer.cum_start("network")
         sw.Send(0,dmsgout,"2")
+        sw.cum_timer.cum_stop("network")
 
         sw.log.info("final %s %s" % (str(ds["start"]), str(distance)))
         sw.log.info("distances %s" % str(l))
@@ -164,7 +175,9 @@ def AddNewNodes(taskindex, sw, ds, msglist):
 
         # add task# at the end
         Vec1.Add(taskindex)
+        sw.cum_timer.cum_start("network")
         sw.Send(i,Vec1,swsnap=True)
+        sw.cum_timer.cum_stop("network")
     timer.stop("dist-send-all")
 
 def TaskId(node,tsize):
@@ -179,10 +192,12 @@ def LoadState(sw):
     if not os.path.exists(fname):
         return None
 
+    sw.cum_timer.cum_start("disk")
     FIn = Snap.TFIn(Snap.TStr(fname))
     Start = Snap.TInt(FIn)
     Dist = Snap.TInt(FIn)
     Visited = Snap.TIntH(FIn)
+    sw.cum_timer.cum_stop("disk")
 
     ds = {}
     ds["start"] = Start.Val
@@ -198,12 +213,15 @@ def SaveState(sw, ds):
     Visited = ds["visit"]
 
     FOut = Snap.TFOut(Snap.TStr(fname))
+    sw.cum_timer.cum_start("disk")
     Start.Save(FOut)
     Dist.Save(FOut)
     Visited.Save(FOut)
     FOut.Flush()
+    sw.cum_timer.cum_stop("disk")
 
 def Worker(sw):
+    sw.cum_timer = perf.Timer(sw.log)
     GetDist(sw)
 
 def main():
