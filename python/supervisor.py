@@ -509,7 +509,6 @@ if __name__ == '__main__':
     
     # no locking required...
     server.superstep_count = 0
-    server.timer = perf.Timer(logging, thread_safe=True)
 
     handler = BaseHTTPServer.BaseHTTPRequestHandler
     handler.port = port
