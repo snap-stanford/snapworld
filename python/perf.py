@@ -1,12 +1,14 @@
 import time
 import os
 import threading
+from collections import defaultdict
 
 class Timer(object):
     def __init__(self, log, tag=None, thread_safe=False):
         self.log = log
         self.tag = tag
         self.start_times = {}
+        self.cum_times = defaultdict(float)
         self.extras = {}
         self.thread_safe = thread_safe
         if self.thread_safe:
@@ -23,6 +25,28 @@ class Timer(object):
     def stop(self, tag):
         # Hack so that func name in log will report `timer` instead of `stop`
         self.timer(tag)
+
+    def cum_start(self, tag):
+        if self.thread_safe:
+            self.lock.acquire()
+        self.start_times[tag] = time.time()
+        if self.thread_safe:
+            self.lock.release()
+
+    def cum_stop(self, tag):
+        if self.thread_safe:
+            self.lock.acquire()
+        time_taken = time.time() - self.start_times[tag]
+        self.cum_times[tag] += time_taken
+        if self.thread_safe:
+            self.lock.release()
+
+    def cum_print(self, tag):
+        # Hack so that func name in log will report `cum_timer` instead of `cum_print`
+        self.cum_timer(tag)
+
+    def cum_timer(self, tag):
+        self.log.info("[%s] %.2f s" % (str(tag), self.cum_times[tag]))
 
     def timer(self, tag):
         if self.thread_safe:
