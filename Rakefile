@@ -157,6 +157,10 @@ task :dulogs do
     task_dsh("find #{LFS}/supervisors/ -iname '*.log' -print0 | du -h --files0-from - -c -s | tail -1")
 end
 
+task :dutotal do
+    task_dsh("find /lfs/local/0/${USER}/supervisors/ -type f -not -iname '*.log' -print0 | du -h --files0-from - -c -s | tail -1 | awk '{print $1}'")
+end
+
 ################################
 
 # To generate random datafile:

@@ -119,7 +119,7 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
             return
 
         elif self.path == "/step":
-    
+
             logging.info("execute next step")
 
             self.send_response(200)
@@ -289,12 +289,17 @@ def get_task_name(task):
 def Execute(args):
     logging.info("Execute " + str(args.active) + "")
     tnow = time.time()
+
     overall_timer = perf.Timer(logging)
+
     task_name = "overall: "
     if len(args.active) > 0:
         # Get's the task name
         task_name = "overall: %s" % get_task_name(args.active[0])
-    overall_timer.start(task_name)
+
+    args.server.superstep_count += 1
+    overall_timer.start("superstep-%d-%s" % \
+            (args.server.superstep_count, task_name))
 
     if len(args.active) > 0:
         execdir = os.path.join(args.workdir, "snapw.%d/exec" % (args.pid))
@@ -308,7 +313,6 @@ def Execute(args):
             execlist = args.config["bunch"][bunch]["exec"].split(",")
         except:
             pass
-     
 
         timer = perf.Timer(logging)
         timer.start('provision-execlist')
@@ -399,7 +403,10 @@ def Execute(args):
             task = task_list.pop()
             timer.start("prog-%d" % pcounter)
             p, prog = execute_single_task(task)
-            timer.update_extra("prog-%d" % pcounter, "%d, %s" % (p.pid, prog))
+
+            timer.update_extra("prog-%d" % pcounter, "step: %d, pid: %d, prog: %s" \
+                    % (args.server.superstep_count, p.pid, prog))
+
             counter_map[p.pid] = pcounter
             pcounter += 1
             procs.append(p)
@@ -428,7 +435,9 @@ def Execute(args):
         else:
             time.sleep(1.0)
 
-    overall_timer.stop(task_name)
+    overall_timer.stop("superstep-%d-%s" % \
+            (args.server.superstep_count, task_name))
+
     # send done to master
     client.done(args.master, args.id)
 
@@ -497,6 +506,10 @@ if __name__ == '__main__':
     server.host = host
     server.port = port
     server.running = True
+    
+    # no locking required...
+    server.superstep_count = 0
+    server.timer = perf.Timer(logging, thread_safe=True)
 
     handler = BaseHTTPServer.BaseHTTPRequestHandler
     handler.port = port
