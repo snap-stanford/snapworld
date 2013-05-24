@@ -6,12 +6,15 @@ var Lazy = require('lazy');
 ////////////////////////////////////////////////////////////
 
 var PORT = 1337;
-var MAX_TOKENS = 3;
+var MAX_TOKENS = 8;
 
 ////////////////////////////////////////////////////////////
 
 if (process.argv.length >= 3) {
   PORT = parseInt(process.argv[2]);
+}
+if (process.argv.length >= 4) {
+  MAX_TOKENS = parseInt(process.argv[3]);
 }
 
 ////////////////////////////////////////////////////////////

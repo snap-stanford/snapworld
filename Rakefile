@@ -1,4 +1,5 @@
 require 'rake'
+require 'shellwords'
 
 HOSTNAME = `hostname`.strip()
 USER = ENV['USER']
@@ -9,6 +10,7 @@ PORT = HOST_PORT[1]
 
 SLEEPTIME = 10
 LFS = "/lfs/local/0/${USER}"
+HOST_N = 17
 
 ################################
 
@@ -26,7 +28,7 @@ def task_dsh(cmd)
             sh2 "ssh ild#{i} \"#{cmd}\""
         end
     elsif HOST.include? "iln" or HOST.include? "10.79.15.11"
-        for i in 1..17
+        for i in 1..HOST_N
             puts "=" * 60
             ii = "%.2i" % i
             sh2 "ssh iln#{ii} \"#{cmd}\""
@@ -38,7 +40,7 @@ def task_dsh2(cmd)
     if HOST.include? "ild"
         sh2 "seq -f '%02g' 1 2 | parallel ssh ild{} \"#{cmd}\""
     elsif HOST.include? "iln" or HOST.include? "10.79.15.11"
-        sh2 "seq -f '%02g' 2 2 | parallel ssh iln{} \"#{cmd}\""
+        sh2 "seq -f '%02g' 1 #{HOST_N} | parallel ssh iln{} \"#{cmd}\""
     end
 end
 
@@ -119,8 +121,8 @@ end
 
 task :cleanup do
     sh "ps x | egrep 'python|node' | grep -v grep | grep -v emacs | grep -v vim | awk '{print $1}'| xargs -r kill -SIGKILL"
-    killcmd_sup = "ps x | egrep 'python|node' | grep -v grep | grep -v emacs | grep -v vim | awk '{print \\$1}'| xargs -r kill -SIGKILL"
-    task_dsh(killcmd_sup)
+    killcmd_sup = Shellwords.escape("ps x | egrep 'python|node' | egrep -v 'vim|emacs|egrep' | awk '{print \\$1}' | xargs -r kill -SIGKILL")
+    task_dsh2(killcmd_sup)
 end
 
 # Example: $ rake dsh["pkill python"]
