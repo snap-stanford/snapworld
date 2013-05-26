@@ -175,6 +175,8 @@ def messagevec(server, src, dst, Vec):
                 logging.warn("[Error 110] Connection timed out; attempt: %d, dest: %s" % (i, str(dst)))
             elif e.errno == 111:
                 logging.warn("[Errno 111] Connection refused; attempt: %d, dest: %s" % (i, str(dst)))
+            elif e.errno == 113:
+                logging.warn("[Errno 113] No route to host; attempt: %d, dest: %s" % (i, str(dst)))
             elif e.errno == -2:
                 logging.warn("[Errno -2] Name or service not know: attempt: %d, dest: %s" % (i, str(dst)))
             else:
