@@ -10,6 +10,7 @@ System Requirements
 * > Ruby 1.8.7 (with Rake)
 * gnuplot (To prevent `snap` from printing spurious error messages)
 * swig (For `snap-python`)
+* nodejs (For running the broker)
 
 Running
 -------

@@ -180,10 +180,10 @@ def messagevec(server, src, dst, Vec):
             elif e.errno == -2:
                 logging.warn("[Errno -2] Name or service not know: attempt: %d, dest: %s" % (i, str(dst)))
             else:
-                logging.critical("socket.error: %s: attempt: %d, dest: %s" % (str(e), i, str(dst)))
+                logging.error("socket.error: %s: attempt: %d, dest: %s" % (str(e), i, str(dst)))
                 # break out of the loop and fail later
-                sw_ok = True
-
+                break
+        
         if sw_ok: break
 
         if i < MAX_RETRIES-1:
@@ -191,9 +191,9 @@ def messagevec(server, src, dst, Vec):
             time.sleep(wait_time)
 
     if not sw_ok:
-        logging.critical("Could not establish connection to dest: %s" % str(dst))
+        logging.error("Could not establish connection to dest: %s" % str(dst))
         if need_token: release_token()
-        sys.exit(2)
+        raise socket.error("Could not establish connection to dest: %s" % str(dst))
 
     logging.debug("messagevec content-length: %d" % content_length)
 
