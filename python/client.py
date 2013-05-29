@@ -5,7 +5,10 @@ import socket
 import time
 import urllib2
 
-import snap as Snap
+try:
+    import snap as Snap
+except:
+    Snap = None
 
 def config(server):
     # get configuration
@@ -118,6 +121,10 @@ def message(server, src, dst, body):
     f.close()
 
 def messagevec(server, src, dst, Vec):
+    if not Snap:
+        raise NameError("SnapNotFound")
+        return
+
     h = httplib.HTTPConnection(server)
     for i in range(0,10):
         swok = False
