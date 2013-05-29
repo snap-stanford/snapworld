@@ -54,8 +54,10 @@ def InitState(sw, taskindex, msglist):
     ds["start"] = node
     ds["dist"] = 0
 
-    Visited = Snap.TIntH() 
-    Visited.AddDat(node,0)
+    nnodes = int(sw.GetVar("nodes"))
+    Visited = Snap.TIntV(nnodes) 
+    Snap.ZeroVec(Visited)
+    Visited.GetVal(node).Val = 1  # set start node to 1, reset to 0 at the end
 
     ds["visit"] = Visited
 
@@ -82,7 +84,7 @@ def AddNewNodes(taskindex, sw, ds, msglist):
     timer = perf.Timer(sw.log)
     
     # nodes to add are on the input
-    NewNodes = Snap.TIntH() 
+    NewNodes = Snap.TIntV()
 
     timer.start("dist-msglist-iter")
 
@@ -91,44 +93,43 @@ def AddNewNodes(taskindex, sw, ds, msglist):
     for item in msglist:
 
         sw.cum_timer.cum_start("disk")
+
         name = sw.GetMsgName(item)
 
         # print "input", name
         # read the input nodes
         FIn = Snap.TFIn(Snap.TStr(name))
         Vec = Snap.TIntV(FIn)
+
         sw.cum_timer.cum_stop("disk")
 
         # print "len", Vec.Len()
         # get new nodes, not visited before
         timer.start("dist-nodes-iter")
-        Snap.GetNewNodes(Vec, Visited, NewNodes, distance)
+        Snap.GetNewNodes1(Vec, Visited, NewNodes, distance)
         timer.stop("dist-nodes-iter")
 
     timer.stop("dist-msglist-iter")
 
+    # nnodes = int(sw.GetVar("nodes"))
+
     # done, no new nodes
     if NewNodes.Len() <= 0:
+
+        Visited.GetVal(ds["start"]).Val = 0    # reset start node to 0
+
         timer.start("dist-get-distribution")
-        # get distance distribution
-        dcount = {}
-        # TODO move this loop to SNAP C++
-        VIter = Visited.BegI()
-        while not VIter.IsEnd():
-            snode = VIter.GetKey().Val
-            distance = VIter.GetDat().Val
-            if not dcount.has_key(distance):
-                dcount[distance] = 0
-            dcount[distance] += 1
 
-            VIter.Next()
+        # get distance distribution, assume 1000 is the max
+        DistCount = Snap.TIntV(10000)
+        Snap.ZeroVec(DistCount)
+        Snap.GetDistances(Visited,DistCount)
 
-        nnodes = int(sw.GetVar("nodes"))
         l = []
-        for i in xrange(0, nnodes):
-            if not dcount.has_key(i):
+        for i in xrange(0, DistCount.Len()):
+            if DistCount.GetVal(i).Val <= 0:
                 break
-            l.append(dcount[i])
+            l.append(DistCount.GetVal(i).Val)
 
         dmsg = {}
         dmsg["start"] = ds["start"]
@@ -159,7 +160,7 @@ def AddNewNodes(taskindex, sw, ds, msglist):
     Tasks = Snap.TIntIntVV(ntasks)
 
     # assign nodes to tasks
-    Snap.Nodes2Tasks(NewNodes, Tasks, tsize)
+    Snap.Nodes2Tasks1(NewNodes, Tasks, tsize)
 
     timer.stop("dist-collect-nodes")
 
@@ -196,7 +197,7 @@ def LoadState(sw):
     FIn = Snap.TFIn(Snap.TStr(fname))
     Start = Snap.TInt(FIn)
     Dist = Snap.TInt(FIn)
-    Visited = Snap.TIntH(FIn)
+    Visited = Snap.TIntV(FIn)
     sw.cum_timer.cum_stop("disk")
 
     ds = {}
