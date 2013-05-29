@@ -206,6 +206,7 @@ def messagevec(server, src, dst, Vec):
 
     if Snap is None:
         import snap as Snap
+
     r = Snap.SendVec_TIntV(Vec, fileno)
     if r < 0:
         logging.warn("Snap.SendVec_TIntV returned with error %d" % r)
