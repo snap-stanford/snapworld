@@ -10,7 +10,7 @@ PORT = HOST_PORT[1]
 
 SLEEPTIME = 10
 LFS = "/lfs/local/0/${USER}"
-HOST_N = 17
+HOST_N = 10
 
 ################################
 
@@ -116,6 +116,7 @@ task :test do
     # sh "rm -rf bin/"
     
     sh2 "rake dshgrep[\"WARNING|ERROR|CRITICAL|traceback\"]"
+    sh2 "rake show_output"
 end
 
 
@@ -123,6 +124,10 @@ task :cleanup do
     sh "ps x | egrep 'python|node' | grep -v grep | grep -v emacs | grep -v vim | awk '{print $1}'| xargs -r kill -SIGKILL"
     killcmd_sup = Shellwords.escape("ps x | egrep 'python|node' | egrep -v 'vim|emacs|egrep' | awk '{print \\$1}' | xargs -r kill -SIGKILL")
     task_dsh2(killcmd_sup)
+end
+
+task :show_output do
+    task_dsh2(Shellwords.escape("find #{LFS}/supervisors/ -iname 'log-swfinish*' | xargs -r cat"))
 end
 
 # Example: $ rake dsh["pkill python"]
@@ -142,7 +147,6 @@ end
 
 
 task :agglogs do
-
     task_dsh("rm -rf /tmp/agglogs_#{USER}/; mkdir -p /tmp/agglogs_#{USER}/")
     cmd = "find #{LFS}/supervisors/ -name '*.log' | parallel python ~/hanworks/snapworld/misc/parselog.py"
     task_dsh(cmd)

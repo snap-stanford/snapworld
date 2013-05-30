@@ -121,7 +121,7 @@ def AddNewNodes(taskindex, sw, ds, msglist):
         timer.start("dist-get-distribution")
 
         # get distance distribution, assume 1000 is the max
-        DistCount = Snap.TIntV(10000)
+        DistCount = Snap.TIntV(1000)
         Snap.ZeroVec(DistCount)
         Snap.GetDistances(Visited,DistCount)
 
