@@ -52,6 +52,8 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
             logging.info("starting host servers")
 
             self.server.timer.start("master")
+            self.server.superstep_count = 0
+            self.server.snapshot_counter = 0
 
             master = self.config["master"]
             hosts = self.config["hosts"]
@@ -124,7 +126,8 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
                 host = subpath[2]
                 
                 self.server.global_lock.acquire()
-                if self.server.superstep_count > 0:
+                cur_superstep = self.server.superstep_count
+                if cur_superstep > 0:
                     self.server.timer.stop("superstep-%d-host-%d" % \
                             (self.server.superstep_count, int(host)))
                 self.server.global_lock.release()
@@ -140,7 +143,8 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
 
                     logging.info("all hosts completed")
                     # Fix possible concurrency issue with supervisor.py
-                    time.sleep(5)
+                    if cur_superstep == 0:
+                        time.sleep(5)
 
                     if self.server.snapshot_enabled:
                         self.server.global_lock.acquire()

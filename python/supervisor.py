@@ -55,6 +55,10 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
 
         if self.path == "/prepare":
 
+            prepare_timer = perf.Timer(logging)
+            self.server.superstep_count += 1
+            prepare_timer.start("prepare-%d" % self.server.superstep_count)
+
             # move qin to qact
             qinname = "snapw.%d/qin" % (self.pid)
             qactname = "snapw.%d/qact" % (self.pid)
@@ -98,6 +102,9 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header('Content-Length', 0)
             self.end_headers()
+
+            prepare_timer.stop("prepare-%d" % self.server.superstep_count)
+
             return
 
         elif self.path == "/quit":
@@ -297,7 +304,6 @@ def Execute(args):
         # Get's the task name
         task_name = "overall: %s" % get_task_name(args.active[0])
 
-    args.server.superstep_count += 1
     overall_timer.start("superstep-%d-%s" % \
             (args.server.superstep_count, task_name))
 
