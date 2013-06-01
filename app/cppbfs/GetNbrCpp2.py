@@ -131,7 +131,7 @@ if __name__ == '__main__':
     try:
         main()
     except:
-        sys.stdout.write("[ERROR] Exception in GetNbrCpp.main()\n")
+        sys.stdout.write("[ERROR] Exception in GetNbrCpp2.main()\n")
         traceback.print_exc(file=sys.stdout)
         sys.stdout.flush()
         sys.exit(2)

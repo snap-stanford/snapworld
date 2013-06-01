@@ -65,7 +65,7 @@ if __name__ == '__main__':
     try:
         main()
     except:
-        sys.stdout.write("[ERROR] Exception in GetTargets1.main()\n")
+        sys.stdout.write("[ERROR] Exception in GetTargets2.main()\n")
         traceback.print_exc(file=sys.stdout)
         sys.stdout.flush()
         sys.exit(2)
