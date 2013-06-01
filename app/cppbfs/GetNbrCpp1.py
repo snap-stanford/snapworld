@@ -1,9 +1,12 @@
 import os
 import random
 import sys
+import traceback
 
 import snap as Snap
 import swlib
+
+import perf
 
 def GetNbr(sw):
     """
@@ -13,10 +16,10 @@ def GetNbr(sw):
     taskname = sw.GetName()
 
     msglist = sw.GetMsgList()
-    sw.flog.write("msglist " + str(msglist) + "\n")
-    sw.flog.flush()
+    sw.log.debug("msglist %s" % msglist)
 
-    AdjLists = LoadState()
+    with perf.Timer(sw.log, "LoadState-GetNbrCpp"):
+        AdjLists = LoadState(sw)
 
     if AdjLists:
         # state is available, process requests for neighbors
@@ -42,11 +45,11 @@ def GetNbr(sw):
         Edges.AddV(Vec)
 
     # first iteration: input are edges, save the state
-    AdjLists = GetEdges(Edges)
-    sw.flog.write("state " + str(AdjLists.Len()) + "\n")
-    sw.flog.flush()
-
-    SaveState(AdjLists)
+    AdjLists = GetEdges(sw, Edges)
+    sw.log.debug("state: %d" % AdjLists.Len())
+    
+    with perf.Timer(sw.log, "SaveState-GetNbrCpp"):
+        SaveState(sw, AdjLists)
 
     dmsgout = {}
     dmsgout["src"] = sw.GetName()
@@ -54,11 +57,9 @@ def GetNbr(sw):
     dmsgout["body"] = {}
     sw.Send(0,dmsgout,"2")
 
-def GetEdges(Edges):
+def GetEdges(sw, Edges):
 
-    #print edges
-    sw.flog.write("edges " + str(Edges.Len()) + "\n")
-    sw.flog.flush()
+    sw.log.debug("edges: %d" % Edges.Len())
 
     AdjLists = Snap.TIntIntVH()
     Snap.GetAdjLists(Edges, AdjLists)
@@ -68,16 +69,15 @@ def GetEdges(Edges):
 def GetNeighbors(sw, AdjLists, Nodes):
     # report node neighbors
 
-    # the last value is the distance
+    # the last value is the task
     dist = Nodes.Last().Val
     Nodes.DelLast()
 
     Hood = Snap.TIntV()
     Snap.GetNeighborhood(Nodes, AdjLists, Hood);
 
-    print "Hood len %d" % (Hood.Len())
+    sw.log.debug("Hood len: %d" % Hood.Len())
 
-    # nodes in each task
     tsize = sw.GetRange()
 
     # collect nodes for the same task
@@ -88,7 +88,7 @@ def GetNeighbors(sw, AdjLists, Nodes):
     Snap.Nodes2Tasks1(Hood, Tasks, tsize)
 
     # send the messages
-    for i in range(0,Tasks.Len()):
+    for i in xrange(Tasks.Len()):
         Vec1 = Tasks.GetVal(i)
         if Vec1.Len() <= 0:
             continue
@@ -97,7 +97,7 @@ def GetNeighbors(sw, AdjLists, Nodes):
         Vec1.Add(dist)
         sw.Send(i,Vec1,swsnap=True)
 
-def LoadState():
+def LoadState(sw):
     fname = sw.GetStateName()
     if not os.path.exists(fname):
         return None
@@ -106,7 +106,7 @@ def LoadState():
     AdjLists = Snap.TIntIntVH(FIn)
     return AdjLists
 
-def SaveState(AdjLists):
+def SaveState(sw, AdjLists):
     fname = sw.GetStateName()
     FOut = Snap.TFOut(Snap.TStr(fname))
     AdjLists.Save(FOut)
@@ -115,20 +115,25 @@ def SaveState(AdjLists):
 def Worker(sw):
     GetNbr(sw)
 
-if __name__ == '__main__':
-    
+def main():   
     sw = swlib.SnapWorld()
     sw.Args(sys.argv)
 
-    #flog = sys.stdout
-    fname = "log-swwork-%s.txt" % (sw.GetName())
-    flog = open(fname,"a")
+    fname = "swwork-%s.log" % (sw.GetName())
 
-    sw.SetLog(flog)
+    sw.SetLog(fname)
     sw.GetConfig()
 
     Worker(sw)
 
-    flog.write("finished\n")
-    flog.flush()
+    sw.log.info("finished")
+
+if __name__ == '__main__':
+    try:
+        main()
+    except:
+        sys.stdout.write("[ERROR] Exception in GetNbrCpp.main()\n")
+        traceback.print_exc(file=sys.stdout)
+        sys.stdout.flush()
+        sys.exit(2)
 
