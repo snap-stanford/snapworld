@@ -1,6 +1,7 @@
 import os
 import random
 import sys
+import traceback
 
 import swlib
 
@@ -33,8 +34,7 @@ def SelectNodes(sw):
 def Worker(sw):
     SelectNodes(sw)
 
-if __name__ == '__main__':
-    
+def main():
     sw = swlib.SnapWorld()
     sw.Args(sys.argv)
 
@@ -46,4 +46,13 @@ if __name__ == '__main__':
     Worker(sw)
 
     sw.log.info("finished")
+
+if __name__ == '__main__':
+    try:
+        main()
+    except:
+        sys.stdout.write("[ERROR] Exception in GetTargets.main()\n")
+        traceback.print_exc(file=sys.stdout)
+        sys.stdout.flush()
+        sys.exit(2)
 
