@@ -1,6 +1,7 @@
 import os
 import random
 import sys
+import traceback
 
 import swlib
 
@@ -18,8 +19,7 @@ def SelectNodes(sw):
     # nodes in each partition
     tsize = sw.GetRange()
 
-    sw.flog.write("task %s, nodes %d, tsize %d\n" % (nnodes, nsample, tsize))
-    sw.flog.flush()
+    sw.log.info("task: %s, nodes: %d, tsize: %d" % (nnodes, nsample, tsize))
 
     # select the single source node
     n = int(random.random() * nnodes)
@@ -49,20 +49,25 @@ def SelectNodes(sw):
 def Worker(sw):
     SelectNodes(sw)
 
-if __name__ == '__main__':
-    
+def main():
     sw = swlib.SnapWorld()
     sw.Args(sys.argv)
 
-    #flog = sys.stdout
-    fname = "log-swwork-%s.txt" % (sw.GetName())
-    flog = open(fname,"a")
+    fname = "swwork-%s.log" % (sw.GetName())
 
-    sw.SetLog(flog)
+    sw.SetLog(fname)
     sw.GetConfig()
 
     Worker(sw)
 
-    flog.write("finished\n")
-    flog.flush()
+    sw.log.info("finished")
+
+if __name__ == '__main__':
+    try:
+        main()
+    except:
+        sys.stdout.write("[ERROR] Exception in GetTargets1.main()\n")
+        traceback.print_exc(file=sys.stdout)
+        sys.stdout.flush()
+        sys.exit(2)
 
