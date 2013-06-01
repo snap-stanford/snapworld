@@ -1,11 +1,9 @@
 import os
-import random
 import sys
 import traceback
 
 import snap as Snap
 import swlib
-
 import perf
 
 def GetDist(sw):
@@ -17,6 +15,7 @@ def GetDist(sw):
     taskindex = int(taskname.split("-")[1])
 
     sw.cum_timer.cum_start("disk")
+
     msglist = sw.GetMsgList()
     sw.log.debug("msglist: %s" % msglist)
 
@@ -79,7 +78,6 @@ def AddNewNodes(taskindex, sw, ds, msglist):
     ds["dist"] += 1
     distance = ds["dist"]
     Visited = ds["visit"]
-    # print "Visited", type(Visited)
 
     timer = perf.Timer(sw.log)
     
@@ -96,7 +94,6 @@ def AddNewNodes(taskindex, sw, ds, msglist):
 
         name = sw.GetMsgName(item)
 
-        # print "input", name
         # read the input nodes
         FIn = Snap.TFIn(Snap.TStr(name))
         Vec = Snap.TIntV(FIn)
@@ -110,8 +107,6 @@ def AddNewNodes(taskindex, sw, ds, msglist):
         timer.stop("dist-nodes-iter")
 
     timer.stop("dist-msglist-iter")
-
-    # nnodes = int(sw.GetVar("nodes"))
 
     # done, no new nodes
     if NewNodes.Len() <= 0:
@@ -144,8 +139,8 @@ def AddNewNodes(taskindex, sw, ds, msglist):
         sw.Send(0,dmsgout,"2")
         sw.cum_timer.cum_stop("network")
 
-        sw.log.info("final %s %s" % (str(ds["start"]), str(distance)))
-        sw.log.info("distances %s" % str(l))
+        sw.log.info("final: %s %s" % (str(ds["start"]), str(distance)))
+        sw.log.info("distances: %s" % str(l))
 
         timer.stop("dist-get-distribution")
         return
@@ -244,7 +239,7 @@ if __name__ == '__main__':
     try:
         main()
     except:
-        sys.stdout.write("[ERROR] Exception in GenDistCpp.main()\n")
+        sys.stdout.write("[ERROR] Exception in GenDistCpp1.main()\n")
         traceback.print_exc(file=sys.stdout)
         sys.stdout.flush()
         sys.exit(2)

@@ -1,5 +1,4 @@
 import os
-import random
 import sys
 import traceback
 
@@ -13,7 +12,7 @@ def GetNbr(sw):
     provide graph neighbors
     """
 
-    taskname = sw.GetName()
+    # taskname = sw.GetName()
 
     msglist = sw.GetMsgList()
     sw.log.debug("msglist %s" % msglist)

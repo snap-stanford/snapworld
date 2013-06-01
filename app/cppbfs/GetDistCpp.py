@@ -1,5 +1,4 @@
 import os
-import random
 import sys
 import traceback
 
@@ -115,7 +114,7 @@ def AddNewNodes(taskindex, sw, ds, msglist):
         # TODO move this loop to SNAP C++
         VIter = Visited.BegI()
         while not VIter.IsEnd():
-            snode = VIter.GetKey().Val
+            # snode = VIter.GetKey().Val
             distance = VIter.GetDat().Val
             if not dcount.has_key(distance):
                 dcount[distance] = 0

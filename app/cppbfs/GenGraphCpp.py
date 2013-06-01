@@ -1,4 +1,3 @@
-import os
 import random
 import sys
 import traceback
@@ -45,7 +44,7 @@ def GenGraph(sw):
     # extract the stubs from the args
     # iterate through the input queue and add new items to the stub list
 
-    taskname = sw.GetName()
+    # taskname = sw.GetName()
 
     msglist = sw.GetMsgList()
     sw.log.debug("msglist: %s" % msglist)
