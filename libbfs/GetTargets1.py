@@ -38,7 +38,7 @@ def SelectNodes(sw):
             dout["source"] = n
 
         dmsgout = {}
-        dmsgout["src"] = taskname
+        dmsgout["src"] = sw.GetName()
         dmsgout["cmd"] = "nodes"
         dmsgout["body"] = dout
 

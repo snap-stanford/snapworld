@@ -61,7 +61,7 @@ def InitState(taskindex, msglist):
     ds["range"] = nrange
     ds["count"] = 0
     ds["dist"] = 0
-    ds["start"] = node-ns
+    ds["start"] = node
 
     Visited = Snap.TIntV(nrange) 
     Snap.ZeroVec(Visited)
@@ -78,12 +78,16 @@ def InitState(taskindex, msglist):
     if node >= 0:
         Vec1 = Snap.TIntV()
         Vec1.Add(node)
-        Vec1.Add(1)
+        Vec1.Add(0)
         sw.Send(tn,Vec1,swsnap=True)
 
     return ds
 
 def AddNewNodes(taskindex, sw, ds, msglist):
+
+    # all the nodes were visited already
+    if ds["count"] >= ds["range"]:
+        return
 
     distance = -1
     Visited = ds["visit"]
@@ -133,18 +137,29 @@ def AddNewNodes(taskindex, sw, ds, msglist):
 
     ds["dist"] = distance
     
-    nnodes = int(sw.GetVar("nodes"))
+    nnodes = ds["range"]
     ds["count"] += NewNodes.Len()
+
+    sw.flog.write("distance %d, new %d, count %d, nodes %d\n" % (
+                    distance, NewNodes.Len(), ds["count"], nnodes))
+    sw.flog.flush()
 
     # done, no new nodes
     #if NewNodes.Len() <= 0:
+    sw.flog.write("testing %d %d %d\n" % (ds["count"], nnodes, ds["count"] >= nnodes))
+    sw.flog.flush()
     if ds["count"] >= nnodes:
         #t2 = time.time()
         #tmsec = int(t2*1000) % 1000
         #print "%s.%03d output start" % (time.ctime(t2)[11:19], tmsec)
         #t1 = t2
 
-        Visited.GetVal(ds["start"]).Val = 0    # reset start node to 0
+        sw.flog.write("sending finish output\n")
+        sw.flog.flush()
+
+        if ds["start"] >= 0:
+            # reset start node to 0
+            Visited.GetVal(ds["start"]-ds["first"]).Val = 0
 
         # get distance distribution, assume 1000 is the max
         DistCount = Snap.TIntV(1000)
@@ -161,10 +176,21 @@ def AddNewNodes(taskindex, sw, ds, msglist):
         #        dcount[distance] = 0
         #    dcount[distance] += 1
 
+        # get the maximum positive distance
+        maxdist = DistCount.Len()-1
+        while (maxdist > 0)  and  (DistCount.GetVal(maxdist).Val == 0):
+            maxdist -= 1
+
+        maxdist += 1
+
+        sw.flog.write("maxdist %d\n" % (maxdist))
+        sw.flog.flush()
+
+        # collect the distances
         l = []
-        for i in xrange(0, DistCount.Len()):
-            if DistCount.GetVal(i).Val <= 0:
-                break
+        for i in xrange(0, maxdist):
+            #if DistCount.GetVal(i).Val <= 0:
+            #    break
             l.append(DistCount.GetVal(i).Val)
 
         dmsg = {}
@@ -186,7 +212,6 @@ def AddNewNodes(taskindex, sw, ds, msglist):
         #tdiff = (t2 - t1)
         #print "%s.%03d %.3f output done" % (
         #        time.ctime(t2)[11:19], tmsec, tdiff)
-        return
 
     # nodes in each task
     tsize = sw.GetRange()
@@ -195,8 +220,9 @@ def AddNewNodes(taskindex, sw, ds, msglist):
     ntasks = int(sw.GetVar("gen_tasks"))
     Tasks = Snap.TIntIntVV(ntasks)
 
-    # assign nodes to tasks
     Snap.IncVal(NewNodes, ds["first"])
+
+    # assign nodes to tasks
     Snap.Nodes2Tasks1(NewNodes, Tasks, tsize)
 
     #for i in range(0,Tasks.Len()):
