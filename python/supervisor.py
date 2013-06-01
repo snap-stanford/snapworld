@@ -439,7 +439,7 @@ def Execute(args):
         if not procs and not task_list:
             break
         else:
-            time.sleep(1.0)
+            time.sleep(0.1)
 
     overall_timer.stop("superstep-%d-%s" % \
             (args.server.superstep_count, task_name))
