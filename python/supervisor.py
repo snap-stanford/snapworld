@@ -16,8 +16,8 @@ import config
 import daemon
 import perf
 
-bindir = os.environ["SNAPWBIN"]
-workdir = os.environ["SNAPWEXEC"]
+bindir = os.environ["SNAPW_BIN"]
+workdir = os.environ["SNAPW_EXEC"]
 python = os.environ["PYTHON"]
 
 sys.path.append(bindir)

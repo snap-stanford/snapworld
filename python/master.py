@@ -294,14 +294,10 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
         logging.info("starting host server on host %s, port %s" % \
                 (remote["host"], remote["port"]))
 
-        #cmd = "ssh %s python git/rok/snapworld/host.py -i %s -p %s -m %s:%s" % (
-        #cmd = "ssh %s python git/rok/snapworld/host.py -d -i %s -p %s -m %s:%s" % (
-        #cmd = "ssh %s python2.6 /lfs/1/tmp/rok/snapworld/host.py -d -i %s -p %s -m %s:%s" % (
-
         init_script = self.config.get('init', 'supervisor.sh')
-        cmd = "ssh %s %s %s %s %s %s" % (
-                    remote["host"], init_script, remote["id"], remote["port"],
-                    master["host"], master["port"])
+        cmd = "ssh %s %s %s %s %s %s %s" % ( remote["host"], init_script, \
+                remote["id"], remote["port"], master["host"], master["port"], \
+                self.config["broker"])
         logging.info(cmd)
         os.system(cmd)
 

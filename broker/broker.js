@@ -5,8 +5,8 @@ var Lazy = require('lazy');
 // CONSTANTS
 ////////////////////////////////////////////////////////////
 
-var PORT = 1337;
-var MAX_TOKENS = 3;
+var PORT = 9500;
+var MAX_TOKENS = 4096;
 
 ////////////////////////////////////////////////////////////
 
@@ -16,6 +16,7 @@ if (process.argv.length >= 3) {
 if (process.argv.length >= 4) {
   MAX_TOKENS = parseInt(process.argv[3]);
 }
+console.log("PORT: " + PORT + ", MAX_TOKENS: " + MAX_TOKENS)
 
 ////////////////////////////////////////////////////////////
 // CLASSES

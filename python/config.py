@@ -21,7 +21,7 @@ def readconfig(fname):
     dconf['debug'] = True
     dconf['snapshot'] = False
     dconf["par_tasks"] = 0
-    dconf["max_tokens"] = 0
+    dconf["broker"] = ""
 
     f = open(fname)
     for line in f:
@@ -156,8 +156,8 @@ def readconfig(fname):
             dconf["debug"] = get_boolean(words[1])
         elif key == "par_tasks":
             dconf["par_tasks"] = int(words[1])
-        elif key == "max_tokens":
-            dconf["max_tokens"] = int(words[1])
+        elif key == "broker":
+            dconf["broker"] = " ".join(words[1:])
 
     f.close()
 
