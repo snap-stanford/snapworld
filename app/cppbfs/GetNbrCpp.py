@@ -73,7 +73,7 @@ def GetNeighbors(sw, AdjLists, Nodes):
     Nodes.DelLast()
 
     Hood = Snap.TIntV()
-    Snap.GetNeighborhood(Nodes, AdjLists, Hood);
+    Snap.GetNeighborhood(Nodes, AdjLists, Hood)
 
     sw.log.debug("Hood len: %d" % Hood.Len())
 
