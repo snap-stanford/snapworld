@@ -102,9 +102,9 @@ def AddNewNodes(taskindex, sw, ds, msglist):
 
         # print "len", Vec.Len()
         # get new nodes, not visited before
-        timer.start("dist-nodes-iter")
+        # timer.start("dist-nodes-iter")
         Snap.GetNewNodes1(Vec, Visited, NewNodes, distance)
-        timer.stop("dist-nodes-iter")
+        # timer.stop("dist-nodes-iter")
 
     timer.stop("dist-msglist-iter")
 

@@ -241,7 +241,7 @@ def acquire_token(size=-1):
         broker_sock.send(acq_cmd)
         rv = broker_sock.recv(1024).strip()
         if rv == "ACQUIRED":
-            logging.info("Worker %d acquired token" % pid)
+            logging.debug("Worker %d acquired token" % pid)
         else:
             logging.critical("Error in acquiring token from broker")
             broker_sock.close()
@@ -265,7 +265,7 @@ def release_token():
         broker_sock.send(rel_cmd)
         rv = broker_sock.recv(1024).strip()
         if rv == "RELEASED":
-            logging.info("Worker %d released token" % pid)
+            logging.debug("Worker %d released token" % pid)
         else:
             logging.critical("Error in releasing token to broker")
             broker_sock.close()
