@@ -233,6 +233,7 @@ def error(server, src_id, msg):
 
 def acquire_token(size=-1):
     broker_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    broker_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     pid = os.getpid()
     try:
         broker_sock.connect(("127.0.0.1", 1337))
@@ -258,6 +259,7 @@ def acquire_token(size=-1):
 
 def release_token():
     broker_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    broker_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     pid = os.getpid()
     try:
         broker_sock.connect(("127.0.0.1", 1337))
