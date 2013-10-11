@@ -38,7 +38,7 @@ end
 
 def task_dsh2(cmd)
     if HOST.include? "ild"
-        sh2 "seq -f '%2g' 1 2 | parallel ssh ild{} \"#{cmd}\""
+        sh2 "seq -f '%1g' 1 2 | parallel ssh ild{} \"#{cmd}\""
     elsif HOST.include? "iln" or HOST.include? "10.79.15.11"
         sh2 "seq -f '%02g' 1 #{HOST_N} | parallel ssh iln{} \"#{cmd}\""
     end
