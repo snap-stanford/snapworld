@@ -15,7 +15,7 @@ import client
 import config
 import daemon
 import perf
-import system_stats
+from system_stats import get_system_stats
 
 bindir = os.environ["SNAPW_BIN"]
 workdir = os.environ["SNAPW_EXEC"]
@@ -25,6 +25,7 @@ sys.path.append(bindir)
 
 # Variable to switch on/off sys_stats
 SYS_STATS = False
+SYS_STATS_INTERVAL = 5
 
 class Server(BaseHTTPServer.BaseHTTPRequestHandler):
     
@@ -113,11 +114,11 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header('Content-Length', 0)
             self.end_headers()
+            SYS_STATS = False
 
             # set the flag to terminate the server
             self.server.running = False
             self.server.self_dummy()
-            SYS_STATS = False
             return
 
         elif self.path == "/dummy":
@@ -170,7 +171,7 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
         elif self.path == "/quit":
     
             logging.info("terminate execution")
-
+            SYS_STATS = False
             self.send_response(200)
             self.send_header('Content-Length', 0)
             self.end_headers()
@@ -561,9 +562,10 @@ if __name__ == '__main__':
         logging.debug("Supervisor sent /done to master")
 
     logging.info("Starting host server pid %d, id %s, port %d with master %s\n" % (pid, id, port, master))
-    
+
     if SYS_STATS:
-        sys_t = threading.Thread(target=timed_sys_stats_reporter, args=(self, ))
+        sys_t = threading.Thread(target=timed_sys_stats_reporter, args=(None, ))
         sys_t.start()
+
     server.execute()
 

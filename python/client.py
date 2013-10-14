@@ -236,6 +236,8 @@ def acquire_token(size=-1):
     broker_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     pid = os.getpid()
     try:
+        # TODO(nkhadke): Make this dynamic via snapw config file
+        # broker_sock.connect(("127.0.0.1", 1341))
         broker_sock.connect(("127.0.0.1", 1337))
         acq_cmd = "acquire|net|%d|%d\n" % (pid, size)
 
@@ -262,6 +264,8 @@ def release_token():
     broker_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     pid = os.getpid()
     try:
+        # TODO(nkhadke): Make this dynamic via snapw config file
+        # broker_sock.connect(("127.0.0.1", 1341))
         broker_sock.connect(("127.0.0.1", 1337))
         rel_cmd = "release|net|%d\n" % pid
         broker_sock.send(rel_cmd)
