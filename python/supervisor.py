@@ -15,6 +15,7 @@ import client
 import config
 import daemon
 import perf
+import system_stats
 
 bindir = os.environ["SNAPW_BIN"]
 workdir = os.environ["SNAPW_EXEC"]
@@ -22,11 +23,12 @@ python = os.environ["PYTHON"]
 
 sys.path.append(bindir)
 
+# Variable to switch on/off sys_stats
+SYS_STATS = False
 
 class Server(BaseHTTPServer.BaseHTTPRequestHandler):
     
     def do_GET(self):
-        #print "GET path", self.path
         parsed_path = urlparse.urlparse(self.path)
         message_parts = [
                 'CLIENT VALUES:',
@@ -115,6 +117,7 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
             # set the flag to terminate the server
             self.server.running = False
             self.server.self_dummy()
+            SYS_STATS = False
             return
 
         elif self.path == "/dummy":
@@ -293,6 +296,16 @@ class ThreadedHTTPServer(SocketServer.ThreadingMixIn,
 def get_task_name(task):
     return str(task.split('-', 1)[0])
 
+def timed_sys_stats_reporter(args):
+    logging.info("Starting system stats logging")
+    while SYS_STATS:
+        time.sleep(SYS_STATS_INTERVAL)
+        d = get_system_stats()
+        for k, v in d.items():
+            logging.info("[sys_stats] (%s %d)" % (k, v))
+
+    logging.info("Done system stats logging")
+
 def Execute(args):
     logging.info("Execute " + str(args.active) + "")
     tnow = time.time()
@@ -373,7 +386,7 @@ def Execute(args):
         host = args.server.host
         port = args.server.port
      
-        # construct a command line
+        # construct a command line for worker
         cmd = python + " %s -t %s -h %s:%d -q %s" % (
             progpath, task, host, port, qdir)
         logging.info("starting cmd %s" % (cmd))
@@ -524,6 +537,7 @@ if __name__ == '__main__':
     handler.master = master
 
     if master != None:
+        SYS_STATS = True
         # get configuration from master
         sconf = client.config(master)
     
@@ -548,5 +562,8 @@ if __name__ == '__main__':
 
     logging.info("Starting host server pid %d, id %s, port %d with master %s\n" % (pid, id, port, master))
     
+    if SYS_STATS:
+        sys_t = threading.Thread(target=timed_sys_stats_reporter, args=(self, ))
+        sys_t.start()
     server.execute()
 
