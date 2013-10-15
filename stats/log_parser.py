@@ -4,9 +4,22 @@ import glob
 
 invalid_input = True
 VALID_CHOICES = ["master", "supervisor"]
+SINGLE_FILE = True
 
 "Global store of features as key/values"
 data = {}
+
+def process_supervisor_sys_stats(line):
+    """
+    Want to match lines of this format:
+    [2013-10-14 15:08:10,467] [INFO] [3938] [supervisor.py] [timed_sys_stats_reporter] [sys_stats] (cpu_idle 67072360113)
+    """
+    line_data = line.split()
+    if len(line_data) < 7:
+        return
+    time_str = line_data[0][1:] + "-" + line_data[1][:-1]
+    feature = "sys_stats-%s-%s" % (time_str, line_data[7][1:])
+    data[feature] = line_data[8][:-1]
 
 def process_supervisor_timer(line):
     """
@@ -59,14 +72,17 @@ def process_master(filename):
 def process(filename, mode):
     if mode == "supervisor":
         for log_file in glob.glob('/lfs/local/0/' + os.environ["USER"] + '/supervisors/*/execute/supervisor-sh-*'):
-            print log_file
             with open(log_file) as f:
                 for line in f:
                     if "[timer]" in line:
                         process_supervisor_timer(line)
                     elif "[cum_timer]" in line:
                         process_supervisor_cum_timer(line)
-                    
+                    elif "[sys_stats" in line:
+                        process_supervisor_sys_stats(line)
+                # Just parse one file/supervisor log.
+                if SINGLE_FILE:
+                    break
     else:
         process_master(filename)
 
