@@ -12,6 +12,7 @@ import time
 import client
 import config
 import perf
+from log_parser import get_kv_file
 
 class Server(BaseHTTPServer.BaseHTTPRequestHandler):
     
@@ -62,6 +63,30 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
 
         elif self.path == "/quit":
             self._quit()
+            return
+
+        elif self.path == "/getkv":
+            logging.debug("getting kv file")
+
+            self.send_response(200)
+            if self.server.superstep_count > 1:
+                if not self.server.executing and not self.server.iterate:
+                    # We're done computing everything. So let LS know
+                    # that this is the final copy of the k-v file.
+                    body = json.dumps(get_kv_file("master"))
+                    self.send_header('Content-Length', len(body) + 5)
+                    self.end_headers()
+                    self.wfile.write("DONE " + body)
+                    return
+                    
+                body = json.dumps(get_kv_file("master"))
+                self.send_header('Content-Length', len(body))
+                self.end_headers()
+                self.wfile.write(body)
+            else:
+                self.send_header('Content-Length', len("None"))
+                self.end_headers()
+                self.wfile.write("None")
             return
 
         elif self.path == "/dummy":
@@ -218,6 +243,7 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
                         logging.info("all tasks completed")
                         self.server.executing = False
                         self.server.iterate = False
+                        time.sleep(10)
                         self._quit(force=True)
                         return
 

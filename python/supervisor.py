@@ -16,6 +16,7 @@ import config
 import daemon
 import perf
 from system_stats import get_system_stats
+from log_parser import get_kv_file
 
 bindir = os.environ["SNAPW_BIN"]
 workdir = os.environ["SNAPW_EXEC"]
@@ -119,6 +120,21 @@ class Server(BaseHTTPServer.BaseHTTPRequestHandler):
             # set the flag to terminate the server
             self.server.running = False
             self.server.self_dummy()
+            return
+
+        elif self.path == "/getkv":
+            logging.debug("getting kv file")
+
+            self.send_response(200)
+            if self.server.superstep_count > 1:
+                body = json.dumps(get_kv_file("supervisor"))
+                self.send_header('Content-Length', len(body))
+                self.end_headers()
+                self.wfile.write(body)
+            else:
+                self.send_header('Content-Length', len("None"))
+                self.end_headers()
+                self.wfile.write("None")
             return
 
         elif self.path == "/dummy":
