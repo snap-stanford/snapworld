@@ -103,5 +103,6 @@ if __name__ == '__main__':
         process(mode)
         for k, v in data.items():
             print k + "\t" + v
-    print "Usage: python log_parser.py [master|supervisor]"
+    else:
+        print "Usage: python log_parser.py [master|supervisor]"
 
