@@ -1,0 +1,8 @@
+{
+    "model_path":      "../model/model.pickle",
+    "result_path":     "../data/result.csv",
+    "train_path_csv":  "../data/train.csv",
+    "test_path_csv":   "../data/test.csv",
+    "train_path_svm":  "../data/train.svm",
+    "test_path_svm":   "../data/test.svm"
+}
