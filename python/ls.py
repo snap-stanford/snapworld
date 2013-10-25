@@ -6,6 +6,7 @@ import urllib2
 import urllib
 import logging
 import json
+import threading
 
 import config
 
@@ -39,7 +40,6 @@ def poll_for_kv(data, server_list, master_server):
                 output = getkv(server)
                 if len(output) > 4:
                     if output.startswith("DONE") and server == master_server:
-                        print "GOT DONE"
                         output = output[5:]
                         not_done = False
                     data[server] = json.loads(output)
@@ -67,6 +67,8 @@ def get_servers():
 
     return master, servers
 
+
+
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO, format='[%(asctime)s] [%(levelname)s] [%(process)d] [%(filename)s] [%(funcName)s] %(message)s')
     
@@ -75,5 +77,9 @@ if __name__ == '__main__':
     conf = config.readconfig(config_path)
     # server_list = ['ild1.stanford.edu:9200', 'ild1.stanford.edu:9201', 'ild2.stanford.edu:9201']
     master_server, server_list = get_servers()
-    print poll_for_kv(data, server_list, master_server)
-    
+    data_c = threading.Thread(target=poll_for_kv, args=(data, server_list, master_server ))
+    data_c.start()
+    while data_c.isAlive():
+        time.sleep(1)
+    print "Learning data captured."
+        
