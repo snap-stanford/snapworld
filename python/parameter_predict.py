@@ -1,5 +1,9 @@
 import data_io
 
+def predict():
+    # Get parameters + call estimate
+    pass
+
 def estimate(features):
     print("[INFO] Loading the classifier")
     classifier = data_io.load_model()

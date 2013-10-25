@@ -9,6 +9,9 @@ import json
 import threading
 
 import config
+from generate_feature import generate_features
+from parameter_training import Train
+from parameter_predict import predict
 
 Snap = None
 
@@ -82,4 +85,10 @@ if __name__ == '__main__':
     while data_c.isAlive():
         time.sleep(1)
     print "Learning data captured."
+    # Data is dictionary with key as machine, value as the k-v file
+    # features = generate_features(conf, data)
+    # Train(features)
+    # new_conf_d = predict(features)
+    # Generate new configuration file and pass to other machines.
+    print v
         

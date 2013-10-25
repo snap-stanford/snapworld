@@ -76,6 +76,9 @@ def Gaussian_Process_Regression(features, target):
     print("Saving the classifier")
     data_io.save_model(classifier)
 
+def Train(features):
+    pass
+
 if __name__=="__main__":
     Load_data_csv()
     #Load_data_svm()
