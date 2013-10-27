@@ -14,7 +14,7 @@ target = None
 def Load_data_csv():
     print("[INFO] Loading data format data...")
     global train
-
+    
     train = data_io.read_train_csv()
     train.fillna(0, inplace=True)
     train_sample = train.fillna(value=0)
