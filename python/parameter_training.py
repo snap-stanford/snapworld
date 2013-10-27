@@ -36,6 +36,7 @@ def Load_data_svm():
     global target
     features, target = load_svmlight_file(data_io.read_train_svm())
     features = features.todense()
+    return features, target
 
 def Random_Forest_Classifier():
     print("===== RandomForest =====")

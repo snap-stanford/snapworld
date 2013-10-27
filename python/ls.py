@@ -85,9 +85,11 @@ if __name__ == '__main__':
     while data_c.isAlive():
         time.sleep(1)
     print "Learning data captured."
-    # Data is dictionary with key as machine, value as the k-v file
-    # features = generate_features(conf, data)
-    # Train(features)
+    # Conf is a dictionary with key as paramter, value as value, i.e. k-v file,
+    # Data is dictionary with key as machine, value as the k-k-v file, 
+    # setting is a dictionary with key as parameter, value as the category,
+    # features, target = generate_features(conf, data, setting)
+    # Train(features, target)
     # new_conf_d = predict(features)
     # Generate new configuration file and pass to other machines.
     print v
