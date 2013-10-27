@@ -35,3 +35,7 @@ def save_model(model):
 def load_model():
     in_path = get_paths()["model_path"]
     return pickle.load(open(in_path))
+
+def feature_map():
+    feature_map = get_paths()["feature_map"]
+    return feature_map

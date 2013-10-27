@@ -1,8 +1,11 @@
 import os
 import sys
-import collection
+import collections
+
+import data_io
 import numpy as np
-from sklearn.gaussian_process import GaussianProcess
+
+from sklearn.datasets import load_svmlight_file
 
 
 config_para = None
@@ -14,10 +17,18 @@ def load_log():
     config_para = data_io.read_cosfig_parameter()
     system_info = data_io.read_system_infomation()
 
+def average(x):
+    ret = 0.0
+
+    for key in x:
+        ret += x[key]
+
+    return float(ret) / len(x)
+
 def normalize(x):
     ret = 0
     maxn = -1000000
-    
+
     for key in x:
         ret += x[key]
         if (x[key] > maxn):
@@ -57,45 +68,89 @@ def binaryzation(x, y, lower, upper, percent):
 
     return x
 
-def make_string(x, label):
-    feature_map_input = open(data_io.read_feature_map(), "r")
-    feature_map = dict()
-    maxn = 0
-    try:
-        for line in feature_map_input:
-            feature_map[line.split(",")[0]] = int(line.split(",")[1])
-            if (int(line.split(",")[1]) > maxn):
-                maxn = int(line.split(",")[1])
-    finally:
-        feature_map_input.close()
+def make_string(label, x):
 
+    feature_map = dict()
+
+    # Load feature map
+    try:
+        feature_map_input = open(data_io.feature_map(), "r")
+        for line in feature_map_input:
+            feature_map[line.split(":")[0]] = int(line.split(":")[1])
+        feature_map_input.close()
+    except Exception, e:
+        pass
+    maxn = len(feature_map)
+
+    # Build feature map and rename features
     tmp = dict()
     for key in x:
         if key in feature_map:
             tmp[feature_map[key]] = x[key]
-        else
-            maxn += 1
+        else:
             feature_map[key] = maxn
             tmp[feature_map[key]] = x[key]
+            maxn += 1
 
-    tmp = collections.OrderedDict(sorted(tmp.items()))
+
+    # Write new feature map
+    try:
+    	feature_map_output = open(data_io.feature_map(), "w")
+        for key in feature_map:
+            #print feature_map[key]
+            feature_map_output.write(key)
+            feature_map_output.write(":")
+            feature_map_output.write(str(feature_map[key]))
+            feature_map_output.write("\n")
+        feature_map_output.close()
+    except Exception, e:
+    	pass
 
     ret = str(label)
-    for key in tmp:
-        ret = ret + " " + str(key) + ":" + str(tmp[key])
+    for key in sorted(tmp.keys()):
+        ret += " "
+        ret += str(key)
+        ret += ":"
+        ret += str(tmp[key])
 
-    feature_map_output = open(data_io.read_feature_map(), "w")
-    try:
-        for key in feature_map:
-            feature_map_output.write(key + "," + feature_map[key])
-    finally:
-        feature_map_output.close()
-    
     return ret
 
-def generate_features(conf, data, setting):
-    instance = conf
+def save_to_train(st):
+    data = open(data_io.read_train_svm(), "a")
+    try:
+        data.write(st + "\n")
+        data.close()
+    except Exception, e:
+    	pass
 
+def load_data_csv():
+    print("[INFO] Loading data format data...")
+    global train
+    
+    train = data_io.read_train_csv()
+    train.fillna(0, inplace=True)
+    train_sample = train.fillna(value=0)
+    feature_names = list(train_sample.columns)
+    
+    feature_names.remove("label")
+    
+    global features
+    global target
+
+    features = train_sample[feature_names].values
+    target = train_sample["label"].values
+    
+def load_data_svm():
+    print("[INFO] Loading svm-light format data...")
+    global features
+    global target
+    features, target = load_svmlight_file(data_io.read_train_svm())
+    features = features.todense()
+    return features, target
+
+def generate_features(label, conf, data, setting):
+    instance = conf
+    
     for key in data:
         if (key in setting):
             if (setting[key] == "average"):
@@ -106,18 +161,12 @@ def generate_features(conf, data, setting):
                 instance[key] = normalize(data[key])
             if (setting[key] == "categorization"):
                 instance[key] = categorization(data[key])
-        elif:
+        else:
             instance[key] = average(data[key])
 
-    st = make_string(instance)
-    data = open(data_io.read_train_svm(), "a")
-    try:
-        data.write(st)
-    finally:
-        data.close()
+    save_to_train(make_string(label, instance))
+
+    return load_data_svm()
     
-    return Load_data_svm()
-
-
 if __name__ == '__main__':
     generate_features()

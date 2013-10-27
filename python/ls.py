@@ -89,7 +89,7 @@ if __name__ == '__main__':
     # Data is dictionary with key as machine, value as the k-k-v file, 
     # setting is a dictionary with key as parameter, value as the category,
     # features, target = generate_features(conf, data, setting)
-    # Train(features, target)
+    # train(features, target)
     # new_conf_d = predict(features)
     # Generate new configuration file and pass to other machines.
     print v
