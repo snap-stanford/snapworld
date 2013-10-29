@@ -105,7 +105,6 @@ def learning_pipeline(data, conf, config_path='snapw.config'):
     train(features, target)
     logging.info("Generating new configuration file")
     new_conf_d = predict(conf["var"])
-    print new_conf_d
     return new_conf_d
     
 
@@ -118,5 +117,5 @@ if __name__ == '__main__':
     conf = config.readconfig(config_path)
     # server_list = ['ild1.stanford.edu:9200', 'ild1.stanford.edu:9201', 'ild2.stanford.edu:9201']
     new_conf = learning_pipeline(data, conf)
-    print new_conf
-    print "DONE"
+    logging.info("New Config file: %s" % new_conf)
+    logging.info("Prediction done. Sending file")

@@ -15,8 +15,9 @@ target = None
 def Random_Forest_Classifier(features, target):
     print("===== RandomForest =====")
     print("[INFO] Training the Classifier")
+    max_f = min(9, len(features[0]))
     # TODO(nkhadke, senwu): Figure out multiprocessing error
-    classifier = RandomForestClassifier(n_estimators=1000, verbose=2, n_jobs=1, max_depth=10, min_samples_split=10, max_features=9, random_state=1, criterion='gini', compute_importances='True')
+    classifier = RandomForestClassifier(n_estimators=1000, verbose=2, n_jobs=1, max_depth=10, min_samples_split=10, max_features=max_f, random_state=1, criterion='gini', compute_importances='True')
     classifier.fit(features, target)
     
     print("Saving the classifier")
