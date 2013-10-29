@@ -87,7 +87,7 @@ def make_string(label, x):
     try:
         feature_map_input = open(data_io.feature_map(), "r")
         for line in feature_map_input:
-            feature_map[line.split(":")[0]] = int(line.split(":")[1])
+            feature_map[line.split("|")[0]] = int(line.split("|")[1])
         feature_map_input.close()
     except Exception, e:
         pass
@@ -110,7 +110,7 @@ def make_string(label, x):
         for key in feature_map:
             #print feature_map[key]
             feature_map_output.write(key)
-            feature_map_output.write(":")
+            feature_map_output.write("|")
             feature_map_output.write(str(feature_map[key]))
             feature_map_output.write("\n")
         feature_map_output.close()
@@ -121,7 +121,7 @@ def make_string(label, x):
     for key in sorted(tmp.keys()):
         ret += " "
         ret += str(key)
-        ret += ":"
+        ret += "|"
         ret += str(tmp[key])
 
     return ret

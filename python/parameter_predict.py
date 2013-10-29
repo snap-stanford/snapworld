@@ -75,7 +75,7 @@ def make_string(label, tmp):
     for key in sorted(tmp.keys()):
         ret += " "
         ret += str(key)
-        ret += ":"
+        ret += "|"
         ret += str(tmp[key])
 
     return ret
@@ -106,7 +106,7 @@ def gen_parameters(nodes, conf):
     try:
         feature_map_input = open(data_io.feature_map(), "r")
         for line in feature_map_input:
-            feature_map[line.split(":")[0]] = int(line.split(":")[1])
+            feature_map[line.split("|")[0]] = int(line.split("|")[1])
         feature_map_input.close()
     except Exception, e:
         pass
@@ -143,7 +143,6 @@ def intify(conf):
 
 def predict(conf):
     conf = intify(conf)
-    print "FINAL", conf
     return gen_parameters(conf["nodes"], conf)
 
 if __name__=="__main__":

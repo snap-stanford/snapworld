@@ -3,7 +3,7 @@ require 'shellwords'
 
 HOSTNAME = `hostname`.strip()
 USER = ENV['USER']
-HOST_PORT = (`python python/config.py snapw.config master`).strip().split(':')
+HOST_PORT = (`python2.7 python/config.py snapw.config master`).strip().split(':')
 
 HOST = HOST_PORT[0]
 PORT = HOST_PORT[1]
@@ -76,7 +76,7 @@ def task_deploy()
     stage_dir = "bin/"
     sh "mkdir -p #{stage_dir}"
 
-    sh "cp -f -p python/* #{stage_dir}"
+    sh "cp -f -p -r python/* #{stage_dir}"
     sh "cp app/libbfs/* app/cppbfs/* #{stage_dir}"
     sh "cp app/pybfs/* #{stage_dir}"
     sh "cp -p ../snap-python/swig-sw/_snap.so ../snap-python/swig-sw/snap.py #{stage_dir}"
@@ -85,7 +85,7 @@ def task_deploy()
 
     Dir.chdir("bin/") do
         sh "mkdir -p #{LFS}"
-        sh "time python master.py 2>&1 | tee #{LFS}/master.log"
+        sh "time python2.7 master.py 2>&1 | tee #{LFS}/master.log"
     end
 end
 

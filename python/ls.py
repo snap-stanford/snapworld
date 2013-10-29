@@ -7,6 +7,8 @@ import urllib
 import logging
 import json
 import threading
+import subprocess
+import shlex
 
 import config
 from generate_feature import generate_features
@@ -21,19 +23,6 @@ def getkv(server):
     kv_file = f.read()
     f.close()
     return kv_file
-
-def message(server, src, dst, body):
-    # send a task message from src to dst
-    url = "http://%s/msg/%s/%s" % (server,dst,src)
-    length = len(body)
-
-    # print "message url", url
-
-    request = urllib2.Request(url, data=body)
-    request.add_header('Content-Length', '%d' % length)
-    f = urllib2.urlopen(request)
-    body = f.read()
-    f.close()
 
 def poll_for_kv(data, server_list, master_server):
     not_done = True
@@ -50,12 +39,38 @@ def poll_for_kv(data, server_list, master_server):
             except (socket.error, urllib2.URLError) as e:
                 logging.warning('Encountered a socket error when connecting to %s. Retrying...' % server)
                 time.sleep(4)
-    for server in server_list:
-        if server != master_server:
-            output = getkv(server)
-            if len(output) > 4:
-                data[server] = json.loads(output)
-    return data
+    try:
+        for server in server_list:
+            if server != master_server:
+                output = getkv(server)
+                if len(output) > 4:
+                    data[server] = json.loads(output)
+    except e:
+        logging.error(e)
+    print data
+    logging.info("Thread finished polling")
+
+def send_conf_file(conf_file, server):
+    # sends the configuration file to some server via scp
+    # Create file first
+    fname = "conf_%d" % (int(time.time()))
+    user = os.environ["USER"]
+    with open('/tmp/%s' % fname, 'w') as f:
+        f.write(json.dumps(conf_file))
+    
+    cmd = "scp %s@localhost:%s %s@%s:/tmp/%s" % (user, fname, user, server, fname)
+    return subprocess.call(shlex.split(cmd))
+
+def check_conf_file(server):
+    now = int(time.time())
+    url = "http://%s/hasnewconf/%d" % (server, now)
+    f = urllib2.urlopen(url)
+    ts = int(f.read())
+    f.close()
+    if ts > now:
+        return True
+    return False
+
 
 def get_servers():
     """
@@ -70,6 +85,29 @@ def get_servers():
 
     return master, servers
 
+def learning_pipeline(data, conf, config_path='snapw.config'):
+    master_server, server_list = get_servers()
+    data_c = threading.Thread(target=poll_for_kv, args=(data, server_list, master_server ))
+    data_c.start()
+    while data_c.isAlive():
+        time.sleep(1)
+    logging.info("Learning data captured.")
+    # Conf is a dictionary with key as paramter, value as value, i.e. k-v file.
+    # Data is dictionary with key as machine, value as the k-k-v file.
+    # Setting is a dictionary with key as parameter, value as the category.
+    logging.critical("DATA: %s", data)
+    label_rt = 1.0
+    setting = {"GenTasks": "average", "GenStubs":"average", "GenGraph":"average", "GetNbr":"average"}
+
+    logging.info("Generating features.")
+    features, target = generate_features(label_rt, conf["var"], data, setting)
+    logging.info("Training model.")
+    train(features, target)
+    logging.info("Generating new configuration file")
+    new_conf_d = predict(conf["var"])
+    print new_conf_d
+    return new_conf_d
+    
 
 
 if __name__ == '__main__':
@@ -79,24 +117,6 @@ if __name__ == '__main__':
     config_path = 'snapw.config'
     conf = config.readconfig(config_path)
     # server_list = ['ild1.stanford.edu:9200', 'ild1.stanford.edu:9201', 'ild2.stanford.edu:9201']
-    master_server, server_list = get_servers()
-    data_c = threading.Thread(target=poll_for_kv, args=(data, server_list, master_server ))
-    data_c.start()
-    while data_c.isAlive():
-        time.sleep(1)
-    print "Learning data captured."
-    # Conf is a dictionary with key as paramter, value as value, i.e. k-v file,
-    # Data is dictionary with key as machine, value as the k-k-v file, 
-    # setting is a dictionary with key as parameter, value as the category,
-    label_rt = 1.0
-    setting = {"GenTasks": "average", "GenStubs":"average", "GenGraph":"average", "GetNbr":"average"}
-
-    features, target = generate_features(label_rt, conf["var"], data, setting)
-    train(features, target)
-    print "PREDICT"
-    new_conf_d = predict(conf["var"])
+    new_conf = learning_pipeline(data, conf)
+    print new_conf
     print "DONE"
-    print new_conf_d
-    # Generate new configuration file and pass to other machines.
-    print v
-        
