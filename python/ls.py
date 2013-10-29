@@ -53,12 +53,13 @@ def poll_for_kv(data, server_list, master_server):
 def send_conf_file(conf_file, server):
     # sends the configuration file to some server via scp
     # Create file first
-    fname = "conf_%d" % (int(time.time()))
+    fname = "/tmp/conf_%d" % (int(time.time()))
     user = os.environ["USER"]
-    with open('/tmp/%s' % fname, 'w') as f:
+    with open(fname, 'w') as f:
         f.write(json.dumps(conf_file))
     
-    cmd = "scp %s@localhost:%s %s@%s:/tmp/%s" % (user, fname, user, server, fname)
+    cmd = "scp %s@%s:%s %s@%s:%s" % (user, os.environ["HOSTNAME"], fname, user, server, fname)
+    logging.info("Sending file over")
     return subprocess.call(shlex.split(cmd))
 
 def check_conf_file(server):
@@ -115,7 +116,11 @@ if __name__ == '__main__':
     data = {}
     config_path = 'snapw.config'
     conf = config.readconfig(config_path)
+    master_server = get_servers()[0].split(":")[0]
     # server_list = ['ild1.stanford.edu:9200', 'ild1.stanford.edu:9201', 'ild2.stanford.edu:9201']
     new_conf = learning_pipeline(data, conf)
     logging.info("New Config file: %s" % new_conf)
-    logging.info("Prediction done. Sending file")
+    send_conf_file(new_conf, master_server)
+    time.sleep(3)
+    # TODO(nkhadke): Test.
+    #print check_conf_file(master_server)
