@@ -45,6 +45,8 @@ def process_supervisor_timer(line):
         super_step_overall = line_data[0]
         super_step_name = line_data[1]
         time = line_data[2]
+        if time.strip() == 's':
+            return
         feature = super_step_overall[1:-1] + "-local-" + super_step_name[:-1]
         # Populates "superstep-%d-overall-local-<TaskName>: %d (time in s)"
         data[feature] = time

@@ -19,11 +19,10 @@ def load_log():
 
 def numberify(data):
     for k, v in data.items():
-        # TODO(nkhadke): Fix parsing of conf file. Ignoring strs for now.
         try:
             data[k] = float(v)
         except:
-            print k, v
+            print "MALFORMED", k, v
             data[k] = 0.0
     return data
 
