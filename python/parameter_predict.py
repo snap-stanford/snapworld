@@ -33,11 +33,11 @@ def gen_candidate(x):
 def gen_prime(x):
     ret = []
     b = []
-    for i in range(x + 1):
+    for i in range(int(x) + 1):
         b.append(True)
     b[0] = False
     b[1] = False
-    for i in range(x + 1):
+    for i in range(int(x) + 1):
         if (b[i] == True):
             ret.append(i)
             j = 2
@@ -136,7 +136,14 @@ def gen_parameters(nodes, conf):
             j  = i
     return can[j]
 
+def intify(conf):
+    for k, v in conf.items():
+        conf[k] = int(v)
+    return conf
+
 def predict(conf):
+    conf = intify(conf)
+    print "FINAL", conf
     return gen_parameters(conf["nodes"], conf)
 
 if __name__=="__main__":

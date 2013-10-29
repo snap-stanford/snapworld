@@ -17,7 +17,18 @@ def load_log():
     config_para = data_io.read_cosfig_parameter()
     system_info = data_io.read_system_infomation()
 
+def numberify(data):
+    for k, v in data.items():
+        # TODO(nkhadke): Fix parsing of conf file. Ignoring strs for now.
+        try:
+            data[k] = float(v)
+        except:
+            print k, v
+            data[k] = 0.0
+    return data
+
 def average(x):
+    x = numberify(x)
     ret = 0.0
 
     for key in x:
@@ -26,6 +37,7 @@ def average(x):
     return float(ret) / len(x)
 
 def normalize(x):
+    x = numberify(x)
     ret = 0
     maxn = -1000000
 
@@ -163,8 +175,8 @@ def generate_features(label, conf, data, setting):
                 instance[key] = categorization(data[key])
         else:
             instance[key] = average(data[key])
-
-    save_to_train(make_string(label, instance))
+    
+    save_to_train(make_string(label, numberify(instance)))
 
     return load_data_svm()
     

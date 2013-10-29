@@ -7,7 +7,7 @@ import pandas as pd
 from operator import itemgetter
 
 def get_paths():
-    paths = json.loads(open("settings.json").read())
+    paths = json.loads(open("/afs/cs.stanford.edu/u/nkhadke/hanworks/snapworld/python/settings.json").read())
     for key in paths:
         paths[key] = os.path.expandvars(paths[key])
     return paths

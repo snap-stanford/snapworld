@@ -15,7 +15,8 @@ target = None
 def Random_Forest_Classifier(features, target):
     print("===== RandomForest =====")
     print("[INFO] Training the Classifier")
-    classifier = RandomForestClassifier(n_estimators=1000, verbose=2, n_jobs=5, max_depth=10, min_samples_split=10, max_features=9, random_state=1, criterion='gini', compute_importances='True')
+    # TODO(nkhadke, senwu): Figure out multiprocessing error
+    classifier = RandomForestClassifier(n_estimators=1000, verbose=2, n_jobs=1, max_depth=10, min_samples_split=10, max_features=9, random_state=1, criterion='gini', compute_importances='True')
     classifier.fit(features, target)
     
     print("Saving the classifier")
@@ -51,9 +52,9 @@ def Gaussian_Process_Regression(features, target):
     data_io.save_model(classifier)
 
 def train(features, target):
-    #Random_Forest_Classifier(features, target)
+    Random_Forest_Classifier(features, target)
     #Logistic_Regression_Classifier(features, target)
-    Gradient_Boosting_Classifier(features, target)
+    #Gradient_Boosting_Classifier(features, target)
     #Gaussian_Process_Regression(features, target)
 
 if __name__=="__main__":

@@ -1,6 +1,6 @@
 {
-    "model_path":      "snapworld/python/data/model.pickle",
-    "train_path_svm":  "snapworld/python/data/train.svm",
-    "test_path_svm":   "snapworld/python/data/test.svm",
-    "feature_map":     "snapworld/python/data/feature_map.dat"
+    "model_path":      "/afs/cs.stanford.edu/u/nkhadke/hanworks/snapworld/python/data/model.pickle",
+    "train_path_svm":  "/afs/cs.stanford.edu/u/nkhadke/hanworks/snapworld/python/data/train.svm",
+    "test_path_svm":   "/afs/cs.stanford.edu/u/nkhadke/hanworks/snapworld/python/data/test.svm",
+    "feature_map":     "/afs/cs.stanford.edu/u/nkhadke/hanworks/snapworld/python/data/feature_map.dat"
 }

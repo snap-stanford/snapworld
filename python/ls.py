@@ -10,7 +10,7 @@ import threading
 
 import config
 from generate_feature import generate_features
-from parameter_training import Train
+from parameter_training import train
 from parameter_predict import predict
 
 Snap = None
@@ -88,9 +88,15 @@ if __name__ == '__main__':
     # Conf is a dictionary with key as paramter, value as value, i.e. k-v file,
     # Data is dictionary with key as machine, value as the k-k-v file, 
     # setting is a dictionary with key as parameter, value as the category,
-    # features, target = generate_features(conf, data, setting)
-    # train(features, target)
-    # new_conf_d = predict(features)
+    label_rt = 1.0
+    setting = {"GenTasks": "average", "GenStubs":"average", "GenGraph":"average", "GetNbr":"average"}
+
+    features, target = generate_features(label_rt, conf["var"], data, setting)
+    train(features, target)
+    print "PREDICT"
+    new_conf_d = predict(conf["var"])
+    print "DONE"
+    print new_conf_d
     # Generate new configuration file and pass to other machines.
     print v
         
