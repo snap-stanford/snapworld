@@ -121,7 +121,7 @@ def make_string(label, x):
     for key in sorted(tmp.keys()):
         ret += " "
         ret += str(key)
-        ret += "|"
+        ret += ":"
         ret += str(tmp[key])
 
     return ret
