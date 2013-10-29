@@ -7,9 +7,12 @@ import pandas as pd
 from operator import itemgetter
 
 def get_paths():
-    paths = json.loads(open("/afs/cs.stanford.edu/u/nkhadke/hanworks/snapworld/python/settings.json").read())
-    for key in paths:
-        paths[key] = os.path.expandvars(paths[key])
+    path = "/afs/cs.stanford.edu/u/%s/hanworks/snapworld/python/settings.json" % os.environ["USER"]
+    paths = None
+    with open(path) as f:
+        paths = json.loads(f.read())
+        for key in paths:
+            paths[key] = os.path.expandvars(paths[key])
     return paths
 
 def read_train_csv():
