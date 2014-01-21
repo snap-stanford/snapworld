@@ -44,7 +44,8 @@ def GenGraph(sw):
 
     taskname = sw.GetName()
 
-    msglist = sw.GetMsgList()
+    # TODO (smacke): is there ever more than one msg in msglist?
+    msglist = sw.GetMsgList() 
     sw.log.debug("msglist " + str(msglist))
 
     stubs = []
@@ -62,7 +63,7 @@ def GenGraph(sw):
     #print taskname + "-r",stubs
 
     # get the pairs
-    pairs = zip(stubs[::2], stubs[1::2])
+    pairs = zip(stubs[::2], stubs[1::2]) # pair even entries with odd entries
     #print taskname,pairs
 
     # nodes in each task
