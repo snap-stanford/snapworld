@@ -60,6 +60,8 @@ task :setup do
         # NOTE: (1) snap-python requires snap to compie (2) we also need swig
         sh "git clone https://github.com/snap-stanford/snap-python.git" unless File.exists?("snap-python")
         sh "cd snap-python/; git pull; git checkout master; cd dev/swig-sw/; make clean; make;"
+        # Install the lazy module so broker works
+        sh "cd snapworld/broker; npm install lazy;"
     end
 end
 
@@ -79,7 +81,7 @@ def task_deploy()
     sh "cp -f -p -r python/* #{stage_dir}"
     sh "cp app/libbfs/* app/cppbfs/* #{stage_dir}"
     sh "cp app/pybfs/* #{stage_dir}"
-    sh "cp -p ../snap-python/swig-sw/_snap.so ../snap-python/swig-sw/snap.py #{stage_dir}"
+    sh "cp -p ../snap-python/dev/swig-sw/_snap.so ../snap-python/dev/swig-sw/snap.py #{stage_dir}"
     # override config File
     sh "cp #{config_filepath} #{stage_dir}"
 
