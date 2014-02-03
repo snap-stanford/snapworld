@@ -45,6 +45,7 @@ def GenGraph(sw):
     taskname = sw.GetName()
 
     # TODO (smacke): is there ever more than one msg in msglist?
+    # answer: yes
     msglist = sw.GetMsgList() 
     sw.log.debug("msglist " + str(msglist))
 

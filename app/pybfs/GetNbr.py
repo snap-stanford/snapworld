@@ -34,7 +34,7 @@ def GetNbr(sw):
         else:
             GetNeighbors(sw, ds, msg)
 
-    if len(edges) > 0:
+    if len(edges) > 0: # TODO (smacke): change to if cmd == "init":  ??
         # first iteration: input are edges, save the state
         ds = GetEdges(edges)
         sw.log.debug("state %s" % str(ds))
@@ -44,7 +44,7 @@ def GetNbr(sw):
         dmsgout["src"] = sw.GetName()
         dmsgout["cmd"] = "targets"
         dmsgout["body"] = {}
-        sw.Send(0,dmsgout,"2")
+        sw.Send(0,dmsgout,"2") # only 1 GetTargets task
 
 def GetEdges(edges):
 

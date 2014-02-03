@@ -26,6 +26,7 @@ class SnapWorld:
         self.qin = None
         self.configfile = None
         self.local = False
+        self.taskIndex = None
 
         index = 1
         while index < len(argv):
@@ -59,6 +60,7 @@ class SnapWorld:
 
         self.config = None
         self.name = self.taskname.split("-",1)[0]
+        self.taskIndex = int(self.taskname.split("-")[-1]) # TODO (smacke): include some form of string validation
 
         self.var = None
         self.route = None
@@ -111,6 +113,8 @@ class SnapWorld:
             dinfo = dbunch.get(self.name)
             if dinfo:
                 self.range = int(dinfo.get("range"))
+                if self.var.get('seg_bits') is not None::
+                    self.range = NextSegmentBoundary(self, self.range)
 
         if self.route:
             for key, routes in self.route.iteritems():
@@ -136,6 +140,9 @@ class SnapWorld:
 
     def GetName(self):
         return self.taskname
+
+    def GetIndex(self):
+        return self.taskIndex
 
     def GetHost(self):
         return self.host
@@ -164,6 +171,15 @@ class SnapWorld:
         # get the variable requested
         result = self.var.get(name)
         return result
+
+    def NextSegmentBoundary(self, val):
+        seg_bits = int(self.GetVar('seg_bits'))
+        unit_left = (1<<seg_bits)
+        low_order = unit_left - 1
+        if (val & low_order) == val: # val is a boundary
+            return val
+        else:
+            return (val & low_order) + unit_left
 
     def GetStateName(self):
         fname = "swstate-%s.txt" % (self.taskname)

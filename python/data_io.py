@@ -7,6 +7,7 @@ import pandas as pd
 from operator import itemgetter
 
 def get_paths():
+    # TODO (smacke): This is very baddddddddddd
     path = "/afs/cs.stanford.edu/u/%s/hanworks/snapworld/python/settings.json" % os.environ["USER"]
     paths = None
     with open(path) as f:
