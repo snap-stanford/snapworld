@@ -55,10 +55,10 @@ end
 task :setup do
     # NOTE: Assumptions: This script will put stuff in parent directory.
     Dir.chdir("../") do
-        sh "git clone https://github.com/snap-stanford/snap.git" unless File.exists?("snap")
+        sh "git clone git@github.com:snap-stanford/snap.git" unless File.exists?("snap")
         sh "cd snap/; git pull; git checkout master;"
         # NOTE: (1) snap-python requires snap to compie (2) we also need swig
-        sh "git clone https://github.com/snap-stanford/snap-python.git" unless File.exists?("snap-python")
+        sh "git clone git@github.com:snap-stanford/snap-python.git" unless File.exists?("snap-python")
         sh "cd snap-python/; git pull; git checkout master; cd dev/swig-sw/; make clean; make;"
         # Install the lazy module so broker works
         sh "cd snapworld/broker; npm install lazy;"
