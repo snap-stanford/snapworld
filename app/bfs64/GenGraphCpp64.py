@@ -19,9 +19,10 @@ def SelectNodes(sw):
 
     # generate samples in the first task ...-0
     taskname = sw.GetName()
-    index = taskname.split("-")
-    if len(index) < 2  or  index[1] != "0":
-        return
+    # TODO (smacke): broken
+    index = sw.GetIndex() # index of this task
+    #if len(index) < 2  or  index[1] != "0":
+    #    return
 
     # get all the nodes and the number of samples
     nnodes = int(sw.GetVar("nodes"))
@@ -49,7 +50,7 @@ def GenGraph(sw):
     msglist = sw.GetMsgList()
     sw.log.debug("msglist: %s" % msglist)
 
-    Stubs = Snap.TIntV() # Stubs is an empty vector
+    Stubs = Snap.TIntIntVV() # Stubs is an empty vector
     for item in msglist:
 
         # 1) Get item in msglist
@@ -59,27 +60,32 @@ def GenGraph(sw):
 
         # 3) Get vector associated with name
         FIn = Snap.TFIn(Snap.TStr(name))
-        Vec = Snap.TIntV(FIn)
+        Vec64 = Snap.TIntIntVV(FIn)
 
         # 4) Add vector to Stubs
-        Stubs.AddV(Vec)
+        #Stubs.AddV(Vec)
+        Snap.AddVec64(Stubs, Vec64)
 
     # 5) Got all stubs, which is of length msglist
 
     # Randomize the items (aka shuffle)
-    Snap.Randomize(Stubs)
+    #Snap.Randomize(Stubs)
 
     # nodes in each task and the number of tasks
     tsize = sw.GetRange()
+    seg_bits = sw.GetVar('seg_bits')
     ntasks = int(sw.GetVar("gen_tasks"))
 
     # get edges for a specific task
-    Tasks = Snap.TIntIntVV(ntasks)  # vector of length ntasks containing vectors
-    Snap.AssignEdges(Stubs, Tasks, tsize)
+    Tasks = Snap.TIntVVV(ntasks)  # vector of length ntasks containing vectors
+    Snap.AssignRandomEdges64(Stubs, Tasks, tsize, seg_bits)
+    #Snap.AssignEdges(Stubs, Tasks, tsize)
 
     # send messages
     for i in xrange(0,Tasks.Len()):
-        sw.log.debug("sending task: %d, len: %d" % (i, Tasks.GetVal(i).Len()))
+        # TODO (smacke): this logging doesn't make sense anymore since the
+        # Len() here gives number of segments, not number of stubs
+        #sw.log.debug("sending task: %d, len: %d" % (i, Tasks.GetVal(i).Len()))
         sw.Send(i,Tasks.GetVal(i),swsnap=True)
 
 def Worker(sw):

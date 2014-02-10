@@ -11,8 +11,9 @@ def GetDist(sw):
     find the node distance
     """
 
-    taskname = sw.GetName()
-    taskindex = int(taskname.split("-")[1])
+    #taskname = sw.GetName()
+    #taskindex = int(taskname.split("-")[1])
+    taskindex = sw.GetIndex()
 
     sw.cum_timer.cum_start("disk")
 
@@ -42,7 +43,7 @@ def GetDist(sw):
 def InitState(sw, taskindex, msglist):
 
     # the original node is on input
-    node = None
+    node = None # TODO (smacke): ^^^ ???
     sw.cum_timer.cum_start("disk")
     for item in msglist:
         msg = sw.GetMsg(item)
@@ -56,29 +57,36 @@ def InitState(sw, taskindex, msglist):
     ds = {}
     ds["first"] = ns
     ds["range"] = nrange
-    ds["count"] = 0
+    ds["count"] = 0 # no. of visited nodes, since Visited is bitset-like vector
     ds["dist"] = 0
     ds["start"] = node
+    
+    seg_bits = sw.GetVar('seg_bits')
 
-    Visited = Snap.TIntV(nrange) 
+    Visited = Snap.TIntV(nrange) # This also stores distances
     Snap.ZeroVec(Visited)
     if node >= 0:
         # set start node to 1, reset to 0 at the end
-        # TODO (smacke): ??? ^^^ ???
-        Visited.GetVal(node-ns).Val = 1
+        # TODO (smacke): the reason we're doing this is because
+        # the visited vec stores distances, but a "0" means not
+        # visited yet. It would be better to make -1 mean not
+        # visited yet so that we don't have this weird edge case
+
+        Visited.GetVal(Snap.trailing(node-ns,seg_bits)).Val = 1
+        # Also, why use GetVal when SetVal preserves semantic meaning?
         ds["count"] = 1
 
     ds["visit"] = Visited
 
     tsize = sw.GetRange()
-    tn = TaskId(node,tsize) # TODO (smacke): these really need to be named better
+    taskNumber = TaskId(node,tsize) # TODO (smacke): these really need to be named better
 
     # send the message
     if node >= 0:
         Vec1 = Snap.TIntV()
         Vec1.Add(node)
-        Vec1.Add(0) # TODO (smacke): what is this?
-        sw.Send(tn,Vec1,swsnap=True)
+        Vec1.Add(0) # this is the distance from start node to start node
+        sw.Send(taskNumber,Vec1,swsnap=True) # send to GetNbrCpp2
 
     return ds
 
@@ -88,13 +96,16 @@ def AddNewNodes(taskindex, sw, ds, msglist):
     if ds["count"] >= ds["range"]:
         return
 
-    distance = -1
+    distance = -1 # TODO (smacke): does this do anything? Maybe if we have no messages?
     Visited = ds["visit"]
+    
+    seg_bits = int(sw.GetVar('seg_bits'))
+    this_segment_start = Snap.zeroLowOrderBits(ds['start'], seg_bits)
 
     timer = perf.Timer(sw.log)
     
     # nodes to add are on the input
-    NewNodes = Snap.TIntV()
+    NewNodes = Snap.TIntV() # TODO (smacke): I think this is fine non-segmented
 
     timer.start("dist-msglist-iter")
 
@@ -108,28 +119,34 @@ def AddNewNodes(taskindex, sw, ds, msglist):
 
         # read the input nodes
         FIn = Snap.TFIn(Snap.TStr(name))
-        Vec = Snap.TIntV(FIn)
+        FringeSubset = Snap.TIntV(FIn)
 
         sw.cum_timer.cum_stop("disk")
 
-        distance = Vec.Last().Val + 1 # TODO (smacke): ??????
-        Vec.DelLast()
+        # SMACKE: it's okay to reassign and then use this later outside of the loop
+        # since BSP should guarantee that this is the same at every loop iteration
+        distance = FringeSubset.Last().Val + 1 # last value has prev distance, so we inc by 1
+        FringeSubset.DelLast()
 
         # subtract the starting index
-        Snap.IncVal(Vec, -ds["first"])
+        Snap.IncVal(FringeSubset, -(ds["first"] - this_segment_start))
 
-        # print "len", Vec.Len()
+        # print "len", FringeSubset.Len()
         # get new nodes, not visited before
         # timer.start("dist-nodes-iter")
-        Snap.GetNewNodes1(Vec, Visited, NewNodes, distance);
+        
+        # NewNodes will each have the segmented bits zero'd out, as well as
+        # the high-order bits for this task
+        Snap.GetNewNodes1(FringeSubset, Visited, NewNodes, distance);
         # timer.stop("dist-nodes-iter")
 
     timer.stop("dist-msglist-iter")
 
     ds["dist"] = distance
+    # This should never be -1 if we just ended
     
     nnodes = ds["range"]
-    ds["count"] += NewNodes.Len()
+    ds["count"] += NewNodes.Len() # no. of new things we visited
 
 
     sw.log.info("distance: %d, new: %d, count: %d, nodes: %d" % \
@@ -145,7 +162,7 @@ def AddNewNodes(taskindex, sw, ds, msglist):
 
         if ds["start"] >= 0:
             # reset start node to 0
-            Visited.GetVal(ds["start"]-ds["first"]).Val = 0
+            Visited.GetVal(ds["start"]-ds["first"]).Val = 0 # SMACKE: should be ok
 
         # get distance distribution, assume 1000 is the max
         DistCount = Snap.TIntV(1000)
@@ -191,25 +208,32 @@ def AddNewNodes(taskindex, sw, ds, msglist):
     # collect nodes for the same task
     ntasks = int(sw.GetVar("gen_tasks"))
     Tasks = Snap.TIntIntVV(ntasks)
+    # we will only ever send to tasks in the same segment, but
+    # the wasted space shouldn't hurt that much
 
-    Snap.IncVal(NewNodes, ds["first"])
+    Snap.IncVal(NewNodes, ds["first"] - this_segment_start)
 
     # assign nodes to tasks
     Snap.Nodes2Tasks1(NewNodes, Tasks, tsize)
+    # All of the GetNbr tasks are in the same segment as this task
+    # so this should still work; we just have to find the base task for
+    # this segment and add it to all of the task indexes in Tasks
 
     timer.stop("dist-collect-nodes")
 
     # send the messages
     timer.start("dist-send-all")
-    for i in range(0,Tasks.Len()):
+    for i in xrange(Tasks.Len()):
         Vec1 = Tasks.GetVal(i)
         if Vec1.Len() <= 0:
             continue
 
-        # add task# at the end
+        # add task# at the end # TODO (smacke): I still don't understand this terminology
         Vec1.Add(distance)
         sw.cum_timer.cum_start("network")
-        sw.Send(i,Vec1,swsnap=True)
+        # we need to send to the correct segment, from which our
+        # tasks are offset
+        sw.Send(i + this_segment_start/tsize, Vec1, swsnap=True)
         sw.cum_timer.cum_stop("network")
     timer.stop("dist-send-all")
 

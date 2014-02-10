@@ -18,12 +18,9 @@ def GenTasks(sw):
 
     sw.log.debug("task %s, nodes %d, tsize %d" % (taskname, nnodes, tsize))
     
-    ns = 0 # num start
-    while ns < nnodes:
+    for ns in xrange(0,nnodes,tsize):
         tname = ns / tsize  # Task-N, tname = N
-        ne = ns + tsize     # num ending (exclude)
-        if ne > nnodes:
-            ne = nnodes
+        ne = min(ns + tsize, nnodes)     # num ending (exclude)
 
         dout = {}
         dout["s"] = ns      # start, inclusive
@@ -35,8 +32,6 @@ def GenTasks(sw):
         dmsgout["body"] = dout
 
         sw.Send(tname, dmsgout)
-
-        ns = ne             # re-assign
 
 def Worker(sw):
     GenTasks(sw)

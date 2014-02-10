@@ -113,8 +113,14 @@ class SnapWorld:
             dinfo = dbunch.get(self.name)
             if dinfo:
                 self.range = int(dinfo.get("range"))
-                if self.var.get('seg_bits') is not None::
-                    self.range = NextSegmentBoundary(self, self.range)
+                seg_bits = int(self.var.get('seg_bits'))
+                if seg_bits is not None:
+                    if seg_bits <= 0 or (seg_bits&(seg_bits-1)) != 0:
+                        print 'Error! for node-segmented BFS, the segment size must be a power of 2!'
+                        sys.exit(1)
+                    if self.range % seg_bits != 0:
+                        print 'Error! for node-segmented BFS, the range must be a power of 2 larger than the segment size!'
+                        sys.exit(1)
 
         if self.route:
             for key, routes in self.route.iteritems():

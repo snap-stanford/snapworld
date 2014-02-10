@@ -20,6 +20,7 @@ def GenStubs(sw):
     """
     determine degrees for all the nodes, generate the stubs and distribute them
     """
+    seg_bits = int(sw.GetVar('seg_bits'))
 
     taskname = sw.GetName()
 
@@ -45,19 +46,23 @@ def GenStubs(sw):
 
         # 2) Assign stubs
         # randomly assign stubs to tasks
-        Tasks = Snap.TIntIntVV(ntasks)  # vector of tasks, with each cell a vector
-        Snap.AssignRndTask(DegV, Tasks) # each task is assigned a vec of vertex ids
+        Tasks = Snap.TIntVVV(ntasks)  # vector of tasks, with each cell a segmented vector for nodes
+
+
+        Snap.AssignRndTask64(DegV, Tasks, ns, seg_bits) # each task is assigned a vec of vertex ids
+        # we have to add ns in the step above since otherwise
+        # we would have to copy vectors
 
         # 3) Incremented base (above)
         # add ns to all values in Tasks
-        for i in xrange(0,Tasks.Len()):
+        #for i in xrange(0,Tasks.Len()):
             # inc the values in each list by ns (num_start)
             # so that they are true vectex ids
-            Snap.IncVal(Tasks.GetVal(i), ns)
+            #Snap.IncVal(Tasks.GetVal(i), ns) # TODO (smacke): this is now handled directly in AssignRndTask64
 
         # send messages
         for i in xrange(0,Tasks.Len()):
-            sw.log.debug("sending task %d, len %d" % (i, Tasks.GetVal(i).Len()))
+            #sw.log.debug("sending task %d, len %d" % (i, Tasks.GetVal(i).Len())) # TODO (smacke): count not valid for hash table
             sw.Send(i,Tasks.GetVal(i),swsnap=True)
 
 def Worker(sw):

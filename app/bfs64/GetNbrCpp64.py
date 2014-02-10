@@ -13,6 +13,7 @@ def GetNbr(sw):
     """
 
     # taskname = sw.GetName()
+    # tindex = sw.GetIndex()
 
     msglist = sw.GetMsgList()
     sw.log.debug("msglist %s" % msglist)
@@ -33,15 +34,15 @@ def GetNbr(sw):
         return
 
     # state not found, initialize it with neighbors
-    Edges = Snap.TIntV()
+    Edges = Snap.TIntIntVV()
 
     for item in msglist:
         name = sw.GetMsgName(item)
 
         FIn = Snap.TFIn(Snap.TStr(name))
-        Vec = Snap.TIntV(FIn)
+        Vec = Snap.TIntIntVV(FIn)
 
-        Edges.AddV(Vec)
+        Snap.AddVec64(Edges, Vec)
 
     # first iteration: input are edges, save the state
     AdjLists = GetEdges(sw, Edges)
@@ -60,8 +61,10 @@ def GetEdges(sw, Edges):
 
     sw.log.debug("edges: %d" % Edges.Len())
 
-    AdjLists = Snap.TIntIntVH()
-    Snap.GetAdjLists(Edges, AdjLists)
+    #AdjLists = Snap.TIntIntVH()
+    #Snap.GetAdjLists(Edges, AdjLists)
+    AdjLists = Snap.TIntVVH();
+    Snap.GetAdjLists64(Edges, AdjLists)
 
     return AdjLists
 
@@ -69,22 +72,31 @@ def GetNeighbors(sw, AdjLists, Nodes):
     # report node neighbors
 
     # the last value is the task
+    # TODO (smacke): ^ I don't understand this comment
     dist = Nodes.Last().Val
     Nodes.DelLast()
 
-    Hood = Snap.TIntV()
-    Snap.GetNeighborhood(Nodes, AdjLists, Hood);
+    SegmentedHood = Snap.TIntIntVV()
+    Snap.GetNeighborhood64(Nodes, AdjLists, SegmentedHood);
 
-    sw.log.debug("Hood len: %d" % Hood.Len())
+    sw.log.debug("SegmentedHood len: %d" % SegmentedHood.Len())
 
+    # TODO (smacke): I think this gets $drange, since
+    # we are sending this to the GetDist task. Is there
+    # any way to make this clearer in the config file?
+    # Perhaps add in optional string argument to GetRange()
+    # which takes a destination port number, so we don't
+    # specify GetNbr range as $drange in the config.
     tsize = sw.GetRange()
+    seg_bits = sw.GetVar('seg_bits')
 
     # collect nodes for the same task
     ntasks = int(sw.GetVar("stat_tasks"))
-    Tasks = Snap.TIntIntVV(ntasks)
+    Tasks = Snap.TIntIntVV(ntasks) # this should be fine as long as (1<<seg_bits) is a multiple of drange
 
     # assign nodes to tasks
-    Snap.Nodes2Tasks1(Hood, Tasks, tsize)
+    #Snap.Nodes2Tasks1(SegmentedHood, Tasks, tsize)
+    Snap.Nodes2Tasks64(SegmentedHood, Tasks, tsize, seg_bits)
 
     # send the messages
     for i in xrange(Tasks.Len()):
@@ -102,7 +114,7 @@ def LoadState(sw):
         return None
 
     FIn = Snap.TFIn(Snap.TStr(fname))
-    AdjLists = Snap.TIntIntVH(FIn)
+    AdjLists = Snap.TIntVVH(FIn)
     return AdjLists
 
 def SaveState(sw, AdjLists):
