@@ -10,7 +10,7 @@ PORT = HOST_PORT[1]
 
 SLEEPTIME = 10
 LFS = "/lfs/local/0/${USER}"
-HOST_N = 17
+HOST_N = 5
 
 ################################
 
