@@ -28,6 +28,8 @@ def SelectNodes(sw):
     nsample = int(sw.GetVar("stat_tasks"))
 
     s = set()
+    # TODO (smacke): this is only here for debug purposes
+    random.seed(0)
     for i in xrange(0, nsample):
         while 1:
             n = int(random.random() * nnodes)
