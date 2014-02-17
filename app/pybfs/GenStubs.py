@@ -43,7 +43,7 @@ def GenStubs(sw):
         # determine node degrees
         i = ns
         ddeg = {}
-        while i <= ne:
+        while i < ne:
             deg = StdDist(distmean,distvar)
             #deg = 3
             ddeg[i] = deg
