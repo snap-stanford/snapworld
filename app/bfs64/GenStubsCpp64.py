@@ -46,10 +46,14 @@ def GenStubs(sw):
 
         # 2) Assign stubs
         # randomly assign stubs to tasks
+        sw.log.debug("task %s about to do a Snap.TIntVVV" % taskname)
         Tasks = Snap.TIntVVV(ntasks)  # vector of tasks, with each cell a segmented vector for nodes
+        sw.log.debug("task %s done with Snap.TIntVVV" % taskname)
 
 
+        sw.log.debug("task %s about to assign some random tasks" % taskname)
         Snap.AssignRndTask64(DegV, Tasks, ns, seg_bits) # each task is assigned a vec of vertex ids
+        sw.log.debug("task %s done assigning some random tasks" % taskname)
         # we have to add ns in the step above since otherwise
         # we would have to copy vectors
 
@@ -62,7 +66,7 @@ def GenStubs(sw):
 
         # send messages
         for i in xrange(0,Tasks.Len()):
-            #sw.log.debug("sending task %d, len %d" % (i, Tasks.GetVal(i).Len())) # TODO (smacke): count not valid for hash table
+            sw.log.debug("sending task %d, len %d" % (i, Tasks.GetVal(i).Len())) # TODO (smacke): count not valid for hash table
             sw.Send(i,Tasks.GetVal(i),swsnap=True)
 
 def Worker(sw):
