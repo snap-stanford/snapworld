@@ -207,7 +207,12 @@ def messagevec(server, src, dst, Vec):
     if Snap is None:
         import snap as Snap
 
-    r = Snap.SendVec_TIntV(Vec, fileno)
+    if type(Vec) == Snap.TIntV:
+        r = Snap.SendVec_TIntV(Vec, fileno)
+    elif type(Vec) == Snap.TIntIntVV:
+        r = Snap.SendVec_TIntIntVV(Vec, fileno)
+    else:
+        raise ValueError('send not defined for type %s' % str(typeof(Vec)))
     if r < 0:
         logging.warn("Snap.SendVec_TIntV returned with error %d" % r)
         h.close()
