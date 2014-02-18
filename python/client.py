@@ -212,7 +212,7 @@ def messagevec(server, src, dst, Vec):
     elif type(Vec) == Snap.TIntIntVV:
         r = Snap.SendVec_TIntIntVV(Vec, fileno)
     else:
-        raise ValueError('send not defined for type %s' % str(typeof(Vec)))
+        raise ValueError('send not defined for type %s' % str(type(Vec)))
     if r < 0:
         logging.warn("Snap.SendVec_TIntV returned with error %d" % r)
         h.close()
