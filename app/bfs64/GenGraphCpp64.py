@@ -12,31 +12,6 @@ def TaskId(node,tsize):
 
     return node/tsize
 
-def SelectNodes(sw):
-    """
-    select random nodes for distance calculations
-    """
-
-    # generate samples in the first task ...-0
-    taskname = sw.GetName()
-    # TODO (smacke): broken
-    index = sw.GetIndex() # index of this task
-    #if len(index) < 2  or  index[1] != "0":
-    #    return
-
-    # get all the nodes and the number of samples
-    nnodes = int(sw.GetVar("nodes"))
-    nsample = int(sw.GetVar("stat_tasks"))
-
-    s = set()
-    for i in xrange(0, nsample):
-        while 1:
-            n = int(random.random() * nnodes)
-            if not n in s:
-                break
-        sw.Send(i,n,"2")
-        s.add(n)
-
 def GenGraph(sw):
     """
     generate the graph edges

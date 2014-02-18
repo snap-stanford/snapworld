@@ -28,6 +28,8 @@ def SelectNodes(sw):
     sw.log.info("task: %s, nodes: %d, tsize: %d" % (nnodes, nsample, tsize))
 
     # select the single source node
+    # TODO (smacke): debug only
+    random.seed(0)
     n = int(random.random() * nnodes)
 
     for ns in xrange(0, nnodes, tsize):

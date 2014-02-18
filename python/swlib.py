@@ -115,11 +115,11 @@ class SnapWorld:
                 self.range = int(dinfo.get("range"))
                 seg_bits = int(self.var.get('seg_bits'))
                 if seg_bits is not None:
-                    if seg_bits <= 0 or (seg_bits&(seg_bits-1)) != 0:
-                        print 'Error! for node-segmented BFS, the segment size must be a power of 2!'
+                    if seg_bits <= 0:
+                        print 'Error! for node-segmented BFS, the number of segment bits must be positive!'
                         sys.exit(1)
-                    if self.range % seg_bits != 0:
-                        print 'Error! for node-segmented BFS, the range must be a power of 2 larger than the segment size!'
+                    if (1<<seg_bits) % self.range != 0:
+                        print 'Error! for node-segmented BFS, the segment size must be a multiple of the range!'
                         sys.exit(1)
 
         if self.route:
@@ -182,10 +182,7 @@ class SnapWorld:
         seg_bits = int(self.GetVar('seg_bits'))
         unit_left = (1<<seg_bits)
         low_order = unit_left - 1
-        if (val & low_order) == val: # val is a boundary
-            return val
-        else:
-            return (val & low_order) + unit_left
+        return ((val-1) | low_order) + 1
 
     def GetStateName(self):
         fname = "swstate-%s.txt" % (self.taskname)

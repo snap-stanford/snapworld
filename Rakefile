@@ -79,7 +79,7 @@ def task_deploy()
     sh "mkdir -p #{stage_dir}"
 
     sh "cp -f -p -r python/* #{stage_dir}"
-    sh "cp app/libbfs/* app/cppbfs/* #{stage_dir}"
+    sh "cp app/libbfs/* app/cppbfs/* app/bfs64/* #{stage_dir}"
     sh "cp app/pybfs/* #{stage_dir}"
     sh "cp -p ../snap-python/dev/swig-sw/_snap.so ../snap-python/dev/swig-sw/snap.py #{stage_dir}"
     # override config File
