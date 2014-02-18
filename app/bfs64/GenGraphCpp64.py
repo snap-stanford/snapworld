@@ -48,7 +48,7 @@ def GenGraph(sw):
 
     # nodes in each task and the number of tasks
     tsize = sw.GetRange()
-    seg_bits = sw.GetVar('seg_bits')
+    seg_bits = int(sw.GetVar('seg_bits'))
     ntasks = int(sw.GetVar("gen_tasks"))
 
     # get edges for a specific task
