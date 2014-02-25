@@ -1,10 +1,16 @@
+#!/usr/bin/env python
 import sys
 import os
 import glob
+import json
+import datetime
+import numpy as np
+from multiprocessing import Pool
 
 invalid_input = True
-VALID_CHOICES = ["master", "supervisor"]
 SINGLE_FILE = True
+SECS_PER_HOUR = 3600
+ILN_NAMES = ['01', '02', '04', '04', '05']
 
 "Global store of features as key/values"
 data = {}
@@ -71,20 +77,23 @@ def process_master(filename):
                 # Stores the superstep-%d-host-%d : time (s)
                 data[line_data[6][1:-1]] = line_data[7]
 
-def process(mode):
-    if mode == "supervisor":
-        for log_file in glob.glob('/lfs/local/0/' + os.environ["USER"] + '/supervisors/*/execute/supervisor-sh-*'):
-            with open(log_file) as f:
-                for line in f:
-                    if "[timer]" in line:
-                        process_supervisor_timer(line)
-                    elif "[cum_timer]" in line:
-                        process_supervisor_cum_timer(line)
-                    elif "[sys_stats" in line:
-                        process_supervisor_sys_stats(line)
+def process_supervisors():
+    for log_file in glob.glob('/lfs/local/0/' + os.environ["USER"] + '/supervisors/*/execute/supervisor-sh-*'):
+        with open(log_file) as f:
+            for line in f:
+                if "[timer]" in line:
+                    process_supervisor_timer(line)
+                elif "[cum_timer]" in line:
+                    process_supervisor_cum_timer(line)
+                elif "[sys_stats" in line:
+                    process_supervisor_sys_stats(line)
                 # Just parse one file/supervisor log.
                 if SINGLE_FILE:
                     break
+
+def process(mode):
+    if mode == "supervisor":
+        process_supervisors()
     else:
         filename = '/lfs/local/0/' + os.environ["USER"] + '/master.log'
         process_master(filename)
@@ -95,16 +104,190 @@ def get_kv_file(mode):
     process(mode)
     return data
 
+#The file prefix that would correspond to a certain struct datetime t.
+def get_yperf_name(t):
+    return 'yperf-' + t.strftime('%Y%m%d-%H')
+
+def get_step_timestamps(filename):
+    steps = []
+    line_number = 0
+    with open(filename) as f:
+        for line in f:
+            if line_number == 1 or "all hosts completed" in line:
+                if line_number == 1 and ('Starting head server on port' not in line or steps):
+                    print(' *WARNING* First timestamp for file {0} in unexpected location.'.format(filename))
+                line_data = line.split()
+                # Stores the superstep-%d-host-%d : time (s)
+                steps.append(datetime.datetime.strptime(line_data[0][1:] + ' ' + line_data[1].split(',')[0], '%Y-%m-%d %H:%M:%S'))
+            line_number += 1
+    return steps
+
+#Returns set containing all given file type with the extension removed.
+def get_file_names(path = './', ext = 'txt'):
+    return {os.path.splitext(os.path.basename(f))[0] for f in glob.glob(path + '*' + ext)}
+
+#Write tab-separated line to file out, with first element followed by list.
+def write_ts_line(f_out, vals):
+    f_out.write('\t'.join([str(val) for val in vals]) + '\n')
+
+# Given an array of perc of resource used, returns
+# 0 - all resources are used < 10%
+# 1 - at least one resource is used >10% and <50%
+# 2 - at least one resource is used >50% and <80%
+# 3 - at least one resource is used >80%
+# 4 - all resources are used >50%
+# 5 - all resources are used >80%
+def get_overall_class(resources):
+    if all([r > 0.8 for r in resources]):
+        return 5
+    if all([r > 0.5 for r in resources]):
+        return 4
+    if any([r > 0.8 for r in resources]):
+        return 3
+    if any([r > 0.5 for r in resources]):
+        return 2
+    if any([r > 0.1 for r in resources]):
+        return 1
+    return 0
+
+def gen_tsv(path_file_args):
+    yperf_path, txt_file_name = path_file_args
+    print('About to generate tsv for ' + txt_file_name)
+    try:
+        with open(yperf_path + 'raw/' + txt_file_name + '.txt') as f_in, \
+                open(yperf_path + 'tsv/' + txt_file_name + '.tsv', 'w') as f_out:
+            raw_names = []
+            AGG_MEASURES = [{
+                    'num': ['cu', 'cs'],
+                    'den': 3200.0,
+                    'name': 'cpu'
+                }, {
+                    'num': ['nr', 'nw'],
+                    'den': 550.0e6,
+                    'name': 'network'
+                }, {
+                    'num': ['dr', 'dw'],
+                    'den': 150.0e6,
+                    'name': 'disk'
+            }]
+            prev_epoch = None
+            for line in f_in:
+                epoch, perf_vals = line.split('\t') #todo make sure first epoch is correct
+                epoch = int(epoch)
+                json_perf = json.loads(perf_vals)
+                if not raw_names:
+                    raw_names = [measure for measure in json_perf]
+                    aggs = [agg['name'] for agg in AGG_MEASURES]
+                    headers = ['epoch', 'class', 'max', 'mean'] + aggs + raw_names
+                    write_ts_line(f_out, headers)
+                    if epoch % SECS_PER_HOUR != 0:
+                        print('* Warning * {0} did not start aligned at {1}, first epoch was {2}.'.format(txt_file_name, SECS_PER_HOUR, epoch))
+                else:
+                    for i in range(epoch - prev_epoch - 1):
+                        write_ts_line(f_out, [str(prev_epoch + i + 1)] + ['nan' for i in range(len(headers) - 1)])
+                raw_vals = [json_perf[name] for name in raw_names]
+                agg_vals = [sum((json_perf[meas] for meas in agg['num'])) / agg['den'] for agg in AGG_MEASURES]
+                write_ts_line(f_out, [epoch, get_overall_class(agg_vals), max(agg_vals), sum(agg_vals) / float(len(agg_vals))] + agg_vals + raw_vals)
+                prev_epoch = epoch
+            print('Generated tsv for ' + txt_file_name)
+    except:
+        print('Could not generate tsv.')
+
+def gen_json_series(path_file_args):
+    yperf_path, file_name = path_file_args
+    print('About to generate raw json for ' + file_name)
+    arr = np.genfromtxt(yperf_path + 'tsv/' + file_name + '.tsv', names = True)
+    MILLI_PER_SECOND = 1000
+    if (arr['epoch'].size != SECS_PER_HOUR):
+        print('* Warning * tsv file has {0} lines instead of {1}.'.format(arr['epoch'].size, SECS_PER_HOUR))
+    data = []
+    for name in arr.dtype.names:
+        if name == 'epoch':
+            continue
+        data.append({'name': name,
+            'data': [None if np.isnan(val) else val for val in arr[name]],
+            'pointStart': arr['epoch'][0] * MILLI_PER_SECOND,
+            'pointInterval': MILLI_PER_SECOND})
+    res = {'epoch_start': arr['epoch'][0], 'length': arr['epoch'].size, 'series': data}
+    with open(yperf_path + 'json_series/' + file_name + '.json', 'w') as f_out:
+        json.dump(res, f_out, separators=(',',':'))
+    print('Generated raw json for {0}.'.format(file_name))
+
+def process_tsv(yperf_path):
+    txt_files = get_file_names(yperf_path + 'raw/', 'txt')
+    tsv_files = get_file_names(yperf_path + 'tsv/', 'tsv')
+    new_files = list(txt_files) #TODO [f for f in txt_files if f not in tsv_files]
+    process_files(new_files, gen_tsv, yperf_path)
+
+def process_files(file_names, fn_to_apply, path):
+    MAX_THREADS = 5
+    if len(file_names) == 1:
+        fn_to_apply([path, file_names[0]])
+    elif len(file_names) > 1:
+        p = Pool(min(len(file_names), MAX_THREADS)) #TODO need the min?
+        p.map(fn_to_apply, ([path, f] for f in file_names))
+    else:
+        print('*** WARNING *** No .tsv files exist without corresponding .json files.')
+
+def process_json_series(yperf_path):
+    txt_files = get_file_names(yperf_path + 'tsv/', 'tsv')
+    tsv_files = get_file_names(yperf_path + 'json_series/', 'json')
+    new_files = list(txt_files) #TODO [f for f in txt_files if f not in tsv_files]
+    process_files(new_files, gen_json_series, yperf_path)
+
+def process_system_perf(yperf_path):
+    for iln in ILN_NAMES:
+        path = yperf_path + 'iln' + iln + '/raw/'
+        process_tsv(path)
+        process_json_series(path)
+
+def get_file_list(times):
+    file_list = []
+    curr = times[0]
+    end = times[-1]
+    while curr < end:
+        file_list.append(get_yperf_name(curr))
+        curr += datetime.timedelta(hours = 1)
+    last = get_yperf_name(end)
+    if file_list[-1] != last:
+        file_list.append(last)
+    return file_list
+
+def process_run(master_log_name, yperf_path):
+    times = get_step_timestamps(master_log_name)
+    files = get_file_list(times)
+    #TODO temp
+    for iln in ILN_NAMES:
+        file_list = ''
+        for f in files:
+            file_list += 'mulrich@iln' + iln + ':/var/yperf/' + f + '.txt ' #TODO figure out how should be done.
+        command = 'scp {0}{1}iln{2}/raw/'.format(file_list, yperf_path, iln)
+        print('About to execute\n{0}'.format(command))
+        os.system(command)
+    return
+    process_files(files, gen_tsv, yperf_path)
+    print('FINISHED!')
+    process_files(files, gen_json_series, yperf_path)
+
 if __name__ == '__main__':
-    if len(sys.argv) > 1:
-        mode = sys.argv[1]
-        invalid_input = not (mode in VALID_CHOICES)
-        if invalid_input:
-            print "Usage: python log_parser.py [master|supervisor]"
-            sys.exit(1)
-        process(mode)
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('mode', choices = ['master', 'supervisor', 'system_perf', 'process_run'])#TODO system_perf
+    parser.add_argument('-f', '--filename_master', default = '/lfs/local/0/' + os.environ["USER"] + '/master.log',
+            help = 'If mode is master, use this to specify the filename.')
+    parser.add_argument('-y', '--yperf_path', default = '../node_modules/run_data/')#TODO stop using node_modules.
+    args = parser.parse_args()
+
+    if args.mode == 'process_run':
+        process_run(args.filename_master, args.yperf_path)
+    elif args.mode == 'master':
+        process_master(args.filename_master)
+    elif args.mode == 'supervisor':
+        process_supervisors()
+    elif args.mode == 'system_perf':
+        process_system_perf(args.yperf_path)
+
+    if args.mode == 'master' or args.mode == 'supervisor':
         for k, v in data.items():
             print k + "\t" + v
-    else:
-        print "Usage: python log_parser.py [master|supervisor]"
 
