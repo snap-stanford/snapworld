@@ -12,7 +12,7 @@ def GetNbr(sw):
     provide graph neighbors
     """
 
-    # taskname = sw.GetName()
+    taskname = sw.GetName()
     # tindex = sw.GetIndex()
 
     msglist = sw.GetMsgList()
@@ -23,6 +23,7 @@ def GetNbr(sw):
 
     if AdjLists:
         # state is available, process requests for neighbors
+        sw.log.debug('[%s] state available, length %d' % (sw.GetName(), AdjLists.Len()))
         for item in msglist:
             name = sw.GetMsgName(item)
 
@@ -34,6 +35,7 @@ def GetNbr(sw):
         return
 
     # state not found, initialize it with neighbors
+    sw.log.debug('[%s] adjlist not found, initializing' % sw.GetName())
     Edges = Snap.TIntIntVV()
 
     for item in msglist:
@@ -46,7 +48,8 @@ def GetNbr(sw):
 
     # first iteration: input are edges, save the state
     AdjLists = GetEdges(sw, Edges)
-    sw.log.debug("state: %d" % AdjLists.Len())
+
+    sw.log.debug('[%s] saving adjlist of size %d now' % (sw.GetName(), AdjLists.Len()))
     
     with perf.Timer(sw.log, "SaveState-GetNbrCpp"):
         SaveState(sw, AdjLists)
@@ -59,7 +62,7 @@ def GetNbr(sw):
 
 def GetEdges(sw, Edges):
 
-    sw.log.debug("edges: %d" % Edges.Len())
+    sw.log.warn("edges: %d" % Edges.Len())
 
     #AdjLists = Snap.TIntIntVH()
     #Snap.GetAdjLists(Edges, AdjLists)
@@ -77,9 +80,10 @@ def GetNeighbors(sw, AdjLists, Nodes):
     Nodes.DelLast()
 
     SegmentedHood = Snap.TIntIntVV()
+    sw.log.warn('getting neighbors for %d nodes', Nodes.Len())
     Snap.GetNeighborhood64(Nodes, AdjLists, SegmentedHood);
 
-    sw.log.debug("SegmentedHood len: %d" % SegmentedHood.Len())
+    sw.log.warn("SegmentedHood len: %d" % SegmentedHood.Len())
 
     # TODO (smacke): I think this gets $drange, since
     # we are sending this to the GetDist task. Is there
@@ -88,7 +92,7 @@ def GetNeighbors(sw, AdjLists, Nodes):
     # which takes a destination port number, so we don't
     # specify GetNbr range as $drange in the config.
     tsize = sw.GetRange()
-    seg_bits = sw.GetVar('seg_bits')
+    seg_bits = int(sw.GetVar('seg_bits'))
 
     # collect nodes for the same task
     ntasks = int(sw.GetVar("stat_tasks"))

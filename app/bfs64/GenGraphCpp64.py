@@ -53,7 +53,11 @@ def GenGraph(sw):
 
     # get edges for a specific task
     Tasks = Snap.TIntVVV(ntasks)  # vector of length ntasks containing vectors
+
+    sw.log.debug('[%s] about to assign random edges' % sw.GetName())
     Snap.AssignRandomEdges64(Stubs, Tasks, tsize, seg_bits)
+    sw.log.debug('[%s] done assigning random edges' % sw.GetName())
+
     #Snap.AssignEdges(Stubs, Tasks, tsize)
 
     # send messages
@@ -61,6 +65,7 @@ def GenGraph(sw):
         # TODO (smacke): this logging doesn't make sense anymore since the
         # Len() here gives number of segments, not number of stubs
         #sw.log.debug("sending task: %d, len: %d" % (i, Tasks.GetVal(i).Len()))
+        sw.log.debug('[%s] sending TIntIntVV of memory size %d to %d' % (sw.GetName(), Snap.GetMemSize64(Tasks.GetVal(i)), i))
         sw.Send(i,Tasks.GetVal(i),swsnap=True)
 
 def Worker(sw):

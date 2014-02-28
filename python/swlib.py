@@ -113,8 +113,9 @@ class SnapWorld:
             dinfo = dbunch.get(self.name)
             if dinfo:
                 self.range = int(dinfo.get("range"))
-                seg_bits = int(self.var.get('seg_bits'))
+                seg_bits = self.var.get('seg_bits')
                 if seg_bits is not None:
+                    seg_bits = int(seg_bits)
                     if seg_bits <= 0:
                         print 'Error! for node-segmented BFS, the number of segment bits must be positive!'
                         sys.exit(1)
@@ -149,6 +150,9 @@ class SnapWorld:
 
     def GetIndex(self):
         return self.taskIndex
+
+    def GetSegBits(self):
+        return int(self.GetVar('seg_bits'))
 
     def GetHost(self):
         return self.host
@@ -223,6 +227,7 @@ class SnapWorld:
         dstname = self.target[channel] + "-" + str(dstid)
         dsthostid = self.tasks.get(dstname)
         dshost = self.hosts.get(dsthostid)
+        self.log.warn('sending to %s (had id %d)' % (dshost, dstid))
 
         if self.local:
             fname = self.GetOutName(dstname)
