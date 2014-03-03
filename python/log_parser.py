@@ -4,13 +4,14 @@ import os
 import glob
 import json
 import datetime
+import time
 import numpy as np
 from multiprocessing import Pool
 
 invalid_input = True
 SINGLE_FILE = True
 SECS_PER_HOUR = 3600
-ILN_NAMES = ['01', '02', '04', '04', '05']
+ILN_NAMES = ['02', '03', '04', '05']
 
 "Global store of features as key/values"
 data = {}
@@ -153,53 +154,55 @@ def get_overall_class(resources):
 def gen_tsv(path_file_args):
     yperf_path, txt_file_name = path_file_args
     print('About to generate tsv for ' + txt_file_name)
-    try:
-        with open(yperf_path + 'raw/' + txt_file_name + '.txt') as f_in, \
-                open(yperf_path + 'tsv/' + txt_file_name + '.tsv', 'w') as f_out:
-            raw_names = []
-            AGG_MEASURES = [{
-                    'num': ['cu', 'cs'],
-                    'den': 3200.0,
-                    'name': 'cpu'
-                }, {
-                    'num': ['nr', 'nw'],
-                    'den': 550.0e6,
-                    'name': 'network'
-                }, {
-                    'num': ['dr', 'dw'],
-                    'den': 150.0e6,
-                    'name': 'disk'
-            }]
-            prev_epoch = None
-            for line in f_in:
-                epoch, perf_vals = line.split('\t') #todo make sure first epoch is correct
-                epoch = int(epoch)
-                json_perf = json.loads(perf_vals)
-                if not raw_names:
-                    raw_names = [measure for measure in json_perf]
-                    aggs = [agg['name'] for agg in AGG_MEASURES]
-                    headers = ['epoch', 'class', 'max', 'mean'] + aggs + raw_names
-                    write_ts_line(f_out, headers)
-                    if epoch % SECS_PER_HOUR != 0:
-                        print('* Warning * {0} did not start aligned at {1}, first epoch was {2}.'.format(txt_file_name, SECS_PER_HOUR, epoch))
-                else:
-                    for i in range(epoch - prev_epoch - 1):
-                        write_ts_line(f_out, [str(prev_epoch + i + 1)] + ['nan' for i in range(len(headers) - 1)])
-                raw_vals = [json_perf[name] for name in raw_names]
-                agg_vals = [sum((json_perf[meas] for meas in agg['num'])) / agg['den'] for agg in AGG_MEASURES]
-                write_ts_line(f_out, [epoch, get_overall_class(agg_vals), max(agg_vals), sum(agg_vals) / float(len(agg_vals))] + agg_vals + raw_vals)
-                prev_epoch = epoch
-            print('Generated tsv for ' + txt_file_name)
-    except:
-        print('Could not generate tsv.')
+    with open(yperf_path + 'raw/' + txt_file_name + '.txt') as f_in, \
+            open(yperf_path + 'tsv/' + txt_file_name + '.tsv', 'w') as f_out:
+        raw_names = []
+        AGG_MEASURES = [{
+                'num': ['cu', 'cs'],
+                'den': 3200.0,
+                'name': 'cpu'
+            }, {
+                'num': ['nr', 'nw'],
+                'den': 550.0e6,
+                'name': 'network'
+            }, {
+                'num': ['dr', 'dw'],
+                'den': 150.0e6,
+                'name': 'disk'
+        }]
+        prev_epoch = None
+        n_lines = 3600
+        for line in f_in:
+            epoch, perf_vals = line.split('\t') #todo make sure first epoch is correct
+            epoch = int(epoch)
+            json_perf = json.loads(perf_vals)
+            if not raw_names:
+                raw_names = [measure for measure in json_perf]
+                aggs = [agg['name'] for agg in AGG_MEASURES]
+                headers = ['epoch', 'class', 'max', 'mean'] + aggs + raw_names
+                write_ts_line(f_out, headers)
+                if epoch % SECS_PER_HOUR != 0:
+                    print('* Warning * {0} did not start aligned at {1}, first epoch was {2}.'.format(txt_file_name, SECS_PER_HOUR, epoch))
+            else:
+                for i in range(epoch - prev_epoch - 1):
+                    n_lines -= 1
+                    write_ts_line(f_out, [str(prev_epoch + i + 1)] + ['nan' for i in range(len(headers) - 1)])
+            raw_vals = [json_perf[name] for name in raw_names]
+            agg_vals = [sum((json_perf[meas] for meas in agg['num'])) / agg['den'] for agg in AGG_MEASURES]
+            n_lines -= 1
+            write_ts_line(f_out, [epoch, get_overall_class(agg_vals), max(agg_vals), sum(agg_vals) / float(len(agg_vals))] + agg_vals + raw_vals)
+            prev_epoch = epoch
+        for i in range(n_lines):
+            write_ts_line(f_out, [str(prev_epoch + i + 1)] + ['nan' for i in range(len(headers) - 1)])
 
-def gen_json_series(path_file_args):
-    yperf_path, file_name = path_file_args
-    print('About to generate raw json for ' + file_name)
-    arr = np.genfromtxt(yperf_path + 'tsv/' + file_name + '.tsv', names = True)
+        print('Generated tsv for ' + txt_file_name)
+
+def gen_json(arr, file_name, reset):
+    if not reset and os.path.isfile(file_name):
+        return
     MILLI_PER_SECOND = 1000
-    if (arr['epoch'].size != SECS_PER_HOUR):
-        print('* Warning * tsv file has {0} lines instead of {1}.'.format(arr['epoch'].size, SECS_PER_HOUR))
+    if (arr['epoch'].size % SECS_PER_HOUR != 0):
+        print('* Warning * array has {0} rows.'.format(arr['epoch'].size))
     data = []
     for name in arr.dtype.names:
         if name == 'epoch':
@@ -208,15 +211,50 @@ def gen_json_series(path_file_args):
             'data': [None if np.isnan(val) else val for val in arr[name]],
             'pointStart': arr['epoch'][0] * MILLI_PER_SECOND,
             'pointInterval': MILLI_PER_SECOND})
+    #TODO confirm epoch always increases by 1?
     res = {'epoch_start': arr['epoch'][0], 'length': arr['epoch'].size, 'series': data}
-    with open(yperf_path + 'json_series/' + file_name + '.json', 'w') as f_out:
+    with open(file_name, 'w') as f_out:
         json.dump(res, f_out, separators=(',',':'))
+
+def gen_json_series(path_file_args):
+    yperf_path, file_name = path_file_args
+    arr = get_np_tsv(yperf_path, file_name)
+    print('About to generate raw json for ' + file_name)
+    gen_json(arr, yperf_path, file_name)
     print('Generated raw json for {0}.'.format(file_name))
 
-def process_tsv(yperf_path):
+def get_np_tsv(path, name):
+    return np.genfromtxt(path + 'tsv/' + name + '.tsv', names = True)
+
+# For each col, whenever there are missing values, they first non-nan value
+# should get evenly distributed among itself and the missing values.
+def remove_nan(arr):
+    for name in arr.dtype.names:
+        col = arr[name]
+        prevNanInd = None
+        for i in xrange(col.size):
+            if prevNanInd is None and np.isnan(col[i]):
+                prevNanInd = i
+            elif prevNanInd is not None and not np.isnan(col[i]):
+                for j in xrange(prevNanInd, i + 1):
+                    col[j] = col[i] / (i - prevNanInd + 1)
+                prevNanInd = None
+    return arr
+
+def gen_entire_arr(files, path):
+    for i, f in enumerate(files):
+        a = get_np_tsv(path, f)
+        if i == 0: #TODO more elegant?
+            arr = a
+        else:
+            arr = np.hstack((arr, a))
+    remove_nan(arr)
+    return arr;
+
+def process_tsv(yperf_path, reset):
     txt_files = get_file_names(yperf_path + 'raw/', 'txt')
     tsv_files = get_file_names(yperf_path + 'tsv/', 'tsv')
-    new_files = list(txt_files) #TODO [f for f in txt_files if f not in tsv_files]
+    new_files = list(txt_files) if reset else [f for f in txt_files if f not in tsv_files]
     process_files(new_files, gen_tsv, yperf_path)
 
 def process_files(file_names, fn_to_apply, path):
@@ -227,17 +265,17 @@ def process_files(file_names, fn_to_apply, path):
         p = Pool(min(len(file_names), MAX_THREADS)) #TODO need the min?
         p.map(fn_to_apply, ([path, f] for f in file_names))
     else:
-        print('*** WARNING *** No .tsv files exist without corresponding .json files.')
+        print(' *WARNING* No new files exist for path "{0}" to apply "{1}"'.format(path, fn_to_apply.__name__))
 
 def process_json_series(yperf_path):
-    txt_files = get_file_names(yperf_path + 'tsv/', 'tsv')
-    tsv_files = get_file_names(yperf_path + 'json_series/', 'json')
-    new_files = list(txt_files) #TODO [f for f in txt_files if f not in tsv_files]
+    tsv_files = get_file_names(yperf_path + 'tsv/', 'tsv')
+    json_files = get_file_names(yperf_path + 'json_series/', 'json')
+    new_files = [f for f in tsv_files if f not in json_files]
     process_files(new_files, gen_json_series, yperf_path)
 
 def process_system_perf(yperf_path):
     for iln in ILN_NAMES:
-        path = yperf_path + 'iln' + iln + '/raw/'
+        path = yperf_path + 'iln' + iln + '/'
         process_tsv(path)
         process_json_series(path)
 
@@ -253,21 +291,73 @@ def get_file_list(times):
         file_list.append(last)
     return file_list
 
-def process_run(master_log_name, yperf_path):
+def create_agg_tables(sum_arr, n_hosts, step_times, agg_col_names, yperf_path, reset):
+    sum_f_name = yperf_path + 'json/sum_table.json'
+    avg_f_name = yperf_path + 'json/avg_table.json'
+    if not reset and os.path.isfile(sum_f_name) and os.path.isfile(avg_f_name):
+        return
+    step_epochs = [int(time.mktime(t.timetuple())) for t in step_times]
+    start_epoch = step_epochs[0]
+    start_index = np.where(sum_arr['epoch'] == start_epoch)[0]
+    prev_epoch = None
+    all_rows = []
+    agg_names = [name for name in sum_arr.dtype.names if name != 'epoch']
+    for i, epoch in enumerate(step_epochs):
+        if prev_epoch is not None:
+            secs_elapsed = epoch - prev_epoch
+            row = [i, secs_elapsed]
+            for name in agg_col_names:
+                start_i = prev_epoch - start_epoch + start_index
+                end_i = epoch - start_epoch + start_index
+                row.append(sum_arr[name][start_i:end_i].sum())
+            all_rows.append(row)
+        prev_epoch = epoch
+    header_row = ['step', 'time'] + agg_names
+    sum_row = ['sum'] + [x for x in np.array(all_rows).sum(axis = 0)][1:]
+    all_rows.push(sum_row)
+    sum_res = {'aaData': all_rows, 'aoColumns': [{'sTitle': x} for x in header_row]}
+    with open(sum_f_name, 'w') as f_out:
+        json.dump(sum_res, f_out, separators=(',',':'))
+
+def process_run(master_log_name, yperf_path, reset):
     times = get_step_timestamps(master_log_name)
     files = get_file_list(times)
     #TODO temp
+    sum_arr = None
     for iln in ILN_NAMES:
         file_list = ''
+        path = yperf_path + 'iln' + iln + '/'
         for f in files:
-            file_list += 'mulrich@iln' + iln + ':/var/yperf/' + f + '.txt ' #TODO figure out how should be done.
-        command = 'scp {0}{1}iln{2}/raw/'.format(file_list, yperf_path, iln)
-        print('About to execute\n{0}'.format(command))
-        os.system(command)
-    return
-    process_files(files, gen_tsv, yperf_path)
-    print('FINISHED!')
-    process_files(files, gen_json_series, yperf_path)
+            if not os.path.isfile(path + 'raw/' + f + '.txt'):
+                file_list += 'mulrich@iln' + iln + ':/var/yperf/' + f + '.txt ' #TODO figure out how should be done.
+        if file_list:
+            command = 'scp {0}{1}iln{2}/raw/'.format(file_list, yperf_path, iln)
+            print(command)
+            os.system(command)
+        #TODO process_files(files, gen_tsv, path)
+        process_tsv(path, reset)
+        arr = gen_entire_arr(files, path) #TODO naming
+        if sum_arr is None:
+            sum_arr = arr.copy();
+            max_arr = arr.copy();
+            orig_epoch = arr['epoch']
+            to_agg = [col_name for col_name in arr.dtype.names if col_name != 'epoch']
+        else:
+            if not np.all(arr['epoch'] == orig_epoch):
+                print(' *ERROR* - epochs {0} and {1} do not match.')
+            for col in to_agg:
+                sum_arr[col] = sum_arr[col] + arr[col]
+                max_arr[col] = np.maximum(max_arr[col], arr[col]);
+        gen_json(arr, yperf_path + 'json/' + 'iln' + iln + '.json', reset)
+        #process_files(files, gen_json_series, path)
+    #process_system_perf(yperf_path)
+    avg_arr = sum_arr.copy()
+    n_hosts = len(ILN_NAMES)
+    for col in to_agg:
+        avg_arr[col] = sum_arr[col] / float(n_hosts)
+    gen_json(avg_arr, yperf_path + 'json/avg.json', reset)
+    gen_json(max_arr, yperf_path + 'json/max.json', reset)
+    create_agg_tables(sum_arr, n_hosts, times, to_agg, yperf_path, reset)
 
 if __name__ == '__main__':
     import argparse
@@ -279,7 +369,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if args.mode == 'process_run':
-        process_run(args.filename_master, args.yperf_path)
+        process_run(args.filename_master, args.yperf_path, False)
     elif args.mode == 'master':
         process_master(args.filename_master)
     elif args.mode == 'supervisor':
