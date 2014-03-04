@@ -245,7 +245,7 @@ class SnapWorld:
         dstname = self.target[channel] + "-" + str(dstid)
         dsthostid = self.tasks.get(dstname)
         dshost = self.hosts.get(dsthostid)
-        self.log.warn('sending to %s (had id %d)' % (dshost, dstid))
+        self.log.debug('sending to %s (had id %d)' % (dshost, dstid))
 
         if self.local:
             fname = self.GetOutName(dstname)
