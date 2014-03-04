@@ -62,7 +62,7 @@ def GetNbr(sw):
 
 def GetEdges(sw, Edges):
 
-    sw.log.warn("edges: %d" % Edges.Len())
+    sw.log.debug("edges: %d" % Edges.Len())
 
     # hash table where each node hashes to a segmented
     # list of said node's neighbors
@@ -80,10 +80,10 @@ def GetNeighbors(sw, AdjLists, Nodes):
     Nodes.DelLast()
 
     SegmentedHood = Snap.TIntIntVV()
-    sw.log.warn('getting neighbors for %d nodes', Nodes.Len())
+    sw.log.debug('getting neighbors for %d nodes', Nodes.Len())
     Snap.GetNeighborhood64(Nodes, AdjLists, SegmentedHood);
 
-    sw.log.warn("SegmentedHood len: %d" % SegmentedHood.Len())
+    sw.log.debug("SegmentedHood len: %d" % SegmentedHood.Len())
 
     # TODO (smacke): This gets $drange, since
     # we are sending this to the GetDist task. Is there
