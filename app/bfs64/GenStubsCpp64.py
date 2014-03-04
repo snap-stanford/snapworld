@@ -3,6 +3,7 @@ import traceback
 
 import snap as Snap
 import swlib
+from swlib import LazyStr
 
 # distmean = 100
 # distvar  = 15.0
@@ -36,8 +37,8 @@ def GenStubs(sw):
         ns = d["s"]
         nrange = d["r"]
 
-        sw.log.debug("task: %s, args: %s, start: %d, range: %d" % \
-                (taskname, str(d), ns, nrange))
+        sw.log.debug(LazyStr(lambda: "task: %s, args: %s, start: %d, range: %d" % \
+                (taskname, str(d), ns, nrange)))
 
         # 1) Get degrees
         # determine node degrees
@@ -48,23 +49,22 @@ def GenStubs(sw):
         # randomly assign stubs to tasks
         Tasks = Snap.TIntVVV(ntasks)  # vector of tasks, with each cell a segmented vector for nodes
 
-        sw.log.warn("task %s about to assign some random tasks" % taskname)
+        sw.log.debug("[%s] about to assign some random tasks" % taskname)
+
+        # incrementing by ns is handled in this function
         Snap.AssignRndTask64(DegV, Tasks, ns, seg_bits) # each task is assigned a vec of vertex ids
-        sw.log.warn("task %s done assigning some random tasks" % taskname)
+        sw.log.debug("[%s] done assigning some random tasks" % taskname)
         # we have to add ns in the step above since otherwise
         # we would have to copy vectors
 
         # 3) Incremented base (above)
         # add ns to all values in Tasks
-        #for i in xrange(0,Tasks.Len()):
-            # inc the values in each list by ns (num_start)
-            # so that they are true vectex ids
-            #Snap.IncVal(Tasks.GetVal(i), ns) # TODO (smacke): this is now handled directly in AssignRndTask64
+        # (handled in AssignRndTask64)
 
         # send messages
         for i in xrange(0,Tasks.Len()):
-            #Tasks.GetVal(i).Save(Snap.TFOut(Snap.TStr('/bigdrive/smacke/supervisors/stubs-to-%d-from-%d' % (i, sw.GetIndex()))))
-            sw.log.warn("sending task %d, len %d" % (i, Tasks.GetVal(i).Len())) # TODO (smacke): count not valid for segmented vec
+            sw.log.debug(LazyStr(lambda: "[%s] sending task %d, memsize %d" % \
+                (taskname, i, Snap.GetMemSize64(Tasks.GetVal(i)))))
             sw.Send(i,Tasks.GetVal(i),swsnap=True)
 
 def Worker(sw):

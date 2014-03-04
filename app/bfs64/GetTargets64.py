@@ -6,11 +6,12 @@ import swlib
 
 # TODO (smacke): Here we are taking a single source node from which
 # to BFS, but the legacy naming scheme makes it seem like there
-# should be nsample source nodes. Furthermore, we don't seem
-# to be using the nsample variable except for logging.
+# should be nsample source nodes. (In reality 'nsample' just corresponds
+# to the number of stat_tasks; i.e. the number of tasks among whom the
+# GetDist operation is partitioned.
 
 # Eventually we'll want to make partitioned GetDist work
-# for more than just a single source node.
+# for more than just a single source node, I imagine.
 def SelectNodes(sw):
     """
     select random nodes for distance calculations

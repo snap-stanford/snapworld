@@ -4,6 +4,7 @@ import traceback
 
 import snap as Snap
 import swlib
+from swlib import LazyStr
 
 def TaskId(node,tsize):
     """
@@ -43,29 +44,30 @@ def GenGraph(sw):
 
     # 5) Got all stubs, which is of length msglist
 
-    # Randomize the items (aka shuffle)
-    #Snap.Randomize(Stubs)
-
-    # nodes in each task and the number of tasks
+    # nodes in each task
     tsize = sw.GetRange()
+
+    # number of bits in our segment (so seg size is (1<<seg_bits))
     seg_bits = int(sw.GetVar('seg_bits'))
+
+    # number of tasks
     ntasks = int(sw.GetVar("gen_tasks"))
 
     # get edges for a specific task
     Tasks = Snap.TIntVVV(ntasks)  # vector of length ntasks containing vectors
 
     sw.log.debug('[%s] about to assign random edges' % sw.GetName())
+
+    # handles shuffling and random assignment of edges
     Snap.AssignRandomEdges64(Stubs, Tasks, tsize, seg_bits)
+
     sw.log.debug('[%s] done assigning random edges' % sw.GetName())
 
-    #Snap.AssignEdges(Stubs, Tasks, tsize)
 
     # send messages
     for i in xrange(0,Tasks.Len()):
-        # TODO (smacke): this logging doesn't make sense anymore since the
-        # Len() here gives number of segments, not number of stubs
-        #sw.log.debug("sending task: %d, len: %d" % (i, Tasks.GetVal(i).Len()))
-        sw.log.debug('[%s] sending TIntIntVV of memory size %d to %d' % (sw.GetName(), Snap.GetMemSize64(Tasks.GetVal(i)), i))
+        sw.log.debug(LazyStr(lambda: '[%s] sending TIntIntVV of memory size %d to %d' % \
+            (sw.GetName(), Snap.GetMemSize64(Tasks.GetVal(i)), i)))
         sw.Send(i,Tasks.GetVal(i),swsnap=True)
 
 def Worker(sw):

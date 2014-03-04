@@ -12,6 +12,24 @@ try:
 except:
     pass
 
+
+class LazyStr(object):
+    """
+    Class to lazily construct strings, used with (for example) log messages.
+    To use, pass in a lambda which returns the desired string.
+
+    E.g.:
+
+    LazyStr(lambda: "hello %s!" % "world")
+
+    When passed as an argument to logging for a suppressed log level,
+    the lambda will not actually get called, potentally saving time.
+    """
+    def __init__(self,func):
+        self.func=func
+    def __str__(self):
+        return self.func()
+
 class SnapWorld:
     def __init__(self):
         pass

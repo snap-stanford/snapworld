@@ -11,8 +11,6 @@ def GetDist(sw):
     find the node distance
     """
 
-    #taskname = sw.GetName()
-    #taskindex = int(taskname.split("-")[1])
     taskindex = sw.GetIndex()
 
     sw.cum_timer.cum_start("disk")
@@ -52,7 +50,7 @@ def InitState(sw, taskindex, msglist):
 
     ns = d["s"]
     nrange = d["r"] # we don't use sw.GetRange() since this could be truncated I guess
-    node = d.get("source",-1)
+    node = d.get("source",-1) # either this task has the source, or it doesn't
 
     ds = {}
     ds["first"] = ns
@@ -73,7 +71,6 @@ def InitState(sw, taskindex, msglist):
         # visited yet so that we don't have this weird edge case
 
         Visited.GetVal(Snap.trailing(node-ns,seg_bits)).Val = 1
-        # Also, why use GetVal when SetVal preserves semantic meaning?
         ds["count"] = 1
 
     ds["visit"] = Visited
@@ -97,7 +94,9 @@ def AddNewNodes(taskindex, sw, ds, msglist):
     if ds["count"] >= ds["range"]:
         return
 
-    distance = -1 # TODO (smacke): does this do anything? Maybe if we have no messages?
+    distance = -1 # this should get overwritten if we have messages.
+    # logger gives a warning if that doesn't happen
+
     Visited = ds["visit"]
     
     seg_bits = int(sw.GetVar('seg_bits'))
@@ -214,9 +213,11 @@ def AddNewNodes(taskindex, sw, ds, msglist):
     timer.start("dist-collect-nodes")
 
     # collect nodes for the same task
-    ntasks = int(sw.GetVar("gen_tasks"))
+    #ntasks = int(sw.GetVar("gen_tasks"))
+    ntasks = (1<<seg_bits) / tsize # reduce number to only tasks within same segment
     Tasks = Snap.TIntIntVV(ntasks)
-    # we will only ever send to tasks in the same segment, but
+
+    # we will only ever send to tasks in the same segment, but # TODO (smacke) not wasting space anymore
     # the wasted space shouldn't hurt that much
 
     sw.log.debug('[%s] increase nodes to within-segment values now' % sw.GetName())

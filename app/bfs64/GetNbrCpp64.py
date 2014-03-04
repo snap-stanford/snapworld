@@ -64,8 +64,8 @@ def GetEdges(sw, Edges):
 
     sw.log.warn("edges: %d" % Edges.Len())
 
-    #AdjLists = Snap.TIntIntVH()
-    #Snap.GetAdjLists(Edges, AdjLists)
+    # hash table where each node hashes to a segmented
+    # list of said node's neighbors
     AdjLists = Snap.TIntVVH();
     Snap.GetAdjLists64(Edges, AdjLists)
 
@@ -85,12 +85,17 @@ def GetNeighbors(sw, AdjLists, Nodes):
 
     sw.log.warn("SegmentedHood len: %d" % SegmentedHood.Len())
 
-    # TODO (smacke): I think this gets $drange, since
+    # TODO (smacke): This gets $drange, since
     # we are sending this to the GetDist task. Is there
     # any way to make this clearer in the config file?
     # Perhaps add in optional string argument to GetRange()
     # which takes a destination port number, so we don't
     # specify GetNbr range as $drange in the config.
+
+    # Just to reiterate, this is confusing because the 'range'
+    # parameter for GetNbr does not correspond to the actual range
+    # of ndoes that a GetNbr task is responsible for -- it corresponds
+    # to the range of nodes for the task that GetNbr talks to.
     tsize = sw.GetRange()
     seg_bits = int(sw.GetVar('seg_bits'))
 
@@ -99,7 +104,6 @@ def GetNeighbors(sw, AdjLists, Nodes):
     Tasks = Snap.TIntIntVV(ntasks) # this should be fine as long as (1<<seg_bits) is a multiple of drange
 
     # assign nodes to tasks
-    #Snap.Nodes2Tasks1(SegmentedHood, Tasks, tsize)
     Snap.Nodes2Tasks64(SegmentedHood, Tasks, tsize, seg_bits)
 
     # send the messages
