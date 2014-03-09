@@ -163,7 +163,7 @@ def gen_tsv(path_file_args):
                 'name': 'cpu'
             }, {
                 'num': ['nr', 'nw'],
-                'den': 550.0e6,
+                'den': 100.0e6,
                 'name': 'network'
             }, {
                 'num': ['dr', 'dw'],
@@ -294,13 +294,20 @@ def get_file_list(times):
 def create_agg_tables(sum_arr, n_hosts, step_times, agg_col_names, yperf_path, reset):
     sum_f_name = yperf_path + 'json/sum_table.json'
     avg_f_name = yperf_path + 'json/avg_table.json'
+
+    #temp hack from stackoverflow
+    from json import encoder
+    orig_float_repr = encoder.FLOAT_REPR
+    encoder.FLOAT_REPR = lambda o: format(o, '.2f')
+
     if not reset and os.path.isfile(sum_f_name) and os.path.isfile(avg_f_name):
+        print(' *WARNING* Table files already exist, returning.')
         return
     step_epochs = [int(time.mktime(t.timetuple())) for t in step_times]
     start_epoch = step_epochs[0]
     start_index = np.where(sum_arr['epoch'] == start_epoch)[0]
     prev_epoch = None
-    all_rows = []
+    sum_rows = []
     agg_names = [name for name in sum_arr.dtype.names if name != 'epoch']
     for i, epoch in enumerate(step_epochs):
         if prev_epoch is not None:
@@ -310,14 +317,23 @@ def create_agg_tables(sum_arr, n_hosts, step_times, agg_col_names, yperf_path, r
                 start_i = prev_epoch - start_epoch + start_index
                 end_i = epoch - start_epoch + start_index
                 row.append(sum_arr[name][start_i:end_i].sum())
-            all_rows.append(row)
+            sum_rows.append(row)
         prev_epoch = epoch
     header_row = ['step', 'time'] + agg_names
-    sum_row = ['sum'] + [x for x in np.array(all_rows).sum(axis = 0)][1:]
-    all_rows.push(sum_row)
-    sum_res = {'aaData': all_rows, 'aoColumns': [{'sTitle': x} for x in header_row]}
+    sum_row = ['sum'] + [x for x in np.array(sum_rows).sum(axis = 0)][1:]
+    sum_rows.append(sum_row)
+    sum_res = {'aaData': sum_rows, 'aoColumns': [{'sTitle': x, 'sType': 'numeric'} for x in header_row]}
     with open(sum_f_name, 'w') as f_out:
         json.dump(sum_res, f_out, separators=(',',':'))
+
+    avg_rows = [row[0:2] + [x for x in np.array(row[2:]) / (row[1] * n_hosts)] for row in sum_rows]
+    avg_res = sum_res
+    avg_res['aaData'] = avg_rows
+    with open(avg_f_name, 'w') as f_out:
+        json.dump(avg_res, f_out, separators=(',',':'))
+
+    #TODO find another way
+    encoder.FLOAT_REPR = orig_float_repr
 
 def process_run(master_log_name, yperf_path, reset):
     times = get_step_timestamps(master_log_name)
@@ -366,10 +382,11 @@ if __name__ == '__main__':
     parser.add_argument('-f', '--filename_master', default = '/lfs/local/0/' + os.environ["USER"] + '/master.log',
             help = 'If mode is master, use this to specify the filename.')
     parser.add_argument('-y', '--yperf_path', default = '../node_modules/run_data/')#TODO stop using node_modules.
+    parser.add_argument('-r', '--reset', action = 'store_true')
     args = parser.parse_args()
 
     if args.mode == 'process_run':
-        process_run(args.filename_master, args.yperf_path, False)
+        process_run(args.filename_master, args.yperf_path, args.reset)
     elif args.mode == 'master':
         process_master(args.filename_master)
     elif args.mode == 'supervisor':
