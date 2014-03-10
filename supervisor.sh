@@ -20,7 +20,7 @@ mkdir -p $SNAPW_EXEC
 mkdir -p $SNAPW_OUTPUT
 
 ###############
-SRC=~/dev
+SRC=~/hanworks
 if [ -d  "$SRC" ]; then
     fs flushvolume -path ${SRC}
     cp ${SRC}/snapworld/python/* ${SNAPW_BIN}
