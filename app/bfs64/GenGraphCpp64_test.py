@@ -5,6 +5,13 @@ import traceback
 import snap as Snap
 import swlib
 
+# This file is meant to help test segmented BFS for correctness.
+# Because the only logically different thing between segmented vs.
+# non-segmented BFS occurs in this task, at random edge assignment,
+# if we can emulate segmented random edge assignment in non-segmented
+# GenGraph, then we can test for correctness simply by comparing output
+# of segmented and non-segmented BFS, assumming identical random seeds.
+
 def TaskId(node,tsize):
     """
     return the task id for a node
@@ -68,16 +75,28 @@ def GenGraph(sw):
 
     # 5) Got all stubs, which is of length msglist
 
-    # Randomize the items (aka shuffle)
-    Snap.Randomize(Stubs)
-
-    # nodes in each task and the number of tasks
-    tsize = sw.GetRange()
+#    # Randomize the items (aka shuffle)
+#    Snap.Randomize(Stubs)
+#
+#    # nodes in each task and the number of tasks
+#    tsize = sw.GetRange()
+#    ntasks = int(sw.GetVar("gen_tasks"))
+#
+#    # get edges for a specific task
+#    Tasks = Snap.TIntIntVV(ntasks)  # vector of length ntasks containing vectors
+#    Snap.AssignEdges(Stubs, Tasks, tsize)
     ntasks = int(sw.GetVar("gen_tasks"))
+    seg_bits = int(sw.GetVar('seg_bits'))
+    tsize = sw.GetRange()
 
-    # get edges for a specific task
-    Tasks = Snap.TIntIntVV(ntasks)  # vector of length ntasks containing vectors
-    Snap.AssignEdges(Stubs, Tasks, tsize)
+    Tasks = Snap.TIntVVV(ntasks)
+    Stubs = Snap.segment(Stubs, seg_bits) # segmentize stubs
+
+    # do segmented random edge assignment
+    Snap.AssignRandomEdges64(Stubs, Tasks, tsize, seg_bits)
+
+    # desegment results
+    Tasks = Snap.desegmentRandomizedEdges(Tasks, seg_bits, tsize)
 
     # send messages
     for i in xrange(0,Tasks.Len()):

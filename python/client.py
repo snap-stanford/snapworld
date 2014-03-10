@@ -155,8 +155,17 @@ def message(server, src, dst, body):
 def messagevec(server, src, dst, Vec):
     global Snap
 
-    content_length = Vec.GetMemSize()
-    
+    if Snap is None:
+        import snap as Snap
+
+    if type(Vec) == Snap.TIntIntVV:
+        content_length = Snap.GetMemSize64(Vec)
+    elif type(Vec) == Snap.TIntV:
+        content_length = Vec.GetMemSize()
+    else:
+        raise ValueError('send not defined for type %s' % str(type(Vec)))
+
+
     # need_token = (content_length >= 1*1024*1024)
     need_token = True
 
@@ -204,22 +213,26 @@ def messagevec(server, src, dst, Vec):
 
     fileno = h.sock.fileno()
 
-    if Snap is None:
-        import snap as Snap
+    if type(Vec) == Snap.TIntV:
+        r = Snap.SendVec_TIntV(Vec, fileno)
+    elif type(Vec) == Snap.TIntIntVV:
+        logging.debug('sending vector TIntIntVV')
+        r = Snap.SendVec_TIntIntVV(Vec, fileno)
+    else:
+        raise ValueError('send not defined for type %s' % str(type(Vec)))
 
-    r = Snap.SendVec_TIntV(Vec, fileno)
     if r < 0:
-        logging.warn("Snap.SendVec_TIntV returned with error %d" % r)
+        logging.warn("Snap.SendVec_TIntV (or SnedVec_TIntIntVV) returned with error %d" % r)
         h.close()
         if need_token: release_token()
-        raise socket.error("Send.SendVec_TIntV error")
+        raise socket.error("Send.SendVec_TIntV (or SendVec_TIntIntVV) error")
 
     res = h.getresponse()
     #print res.status, res.reason
 
     data = res.read()
 
-    h.close()
+    h.close() # closing file stream should handle this
 
     if need_token: release_token()
 
@@ -246,7 +259,7 @@ def acquire_token(size=-1):
         if rv == "ACQUIRED":
             logging.debug("Worker %d acquired token" % pid)
         else:
-            logging.critical("Error in acquiring token from broker")
+            logging.critical("Error in acquiring token from broker: " + str(rv))
             broker_sock.close()
             sys.exit(2)
         broker_sock.close()

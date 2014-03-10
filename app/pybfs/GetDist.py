@@ -38,7 +38,7 @@ def InitState(taskindex, msglist):
 
     # the original node is on input
     node = None
-    for item in msglist:
+    for item in msglist: # there should just be one; we have one task per distance calculation
         msg = sw.GetMsg(item)
         node = msg["body"]
 
@@ -48,14 +48,17 @@ def InitState(taskindex, msglist):
     ds["start"] = snode
     ds["dist"] = 0
 
-    ds["visit"] = {}
+    ds["visit"] = {} # bleh. ds['visit'] = {snode: 0}
     ds["visit"][snode] = 0
 
     tsize = sw.GetRange()
     tn = TaskId(node,tsize)
 
     dmsg = {}
-    dmsg["task"] = taskindex
+    # this is necessary so we know to whom to send back the neighbors
+    # though it seems like this is sort of redundant since we set dmsg['src']
+    # with roughly the same information
+    dmsg["task"] = taskindex 
     dmsg["nodes"] = [node]
 
     dmsgout = {}
@@ -95,7 +98,7 @@ def AddNewNodes(taskindex, sw, ds, msglist):
             dcount[distance] += 1
 
         nnodes = int(sw.GetVar("nodes"))
-        l = []
+        l = [] # TODO (smacke): we're ignoring gaps in distance histogram?
         for i in range(0, nnodes):
             if not dcount.has_key(i):
                 break

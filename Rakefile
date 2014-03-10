@@ -10,7 +10,7 @@ PORT = HOST_PORT[1]
 
 SLEEPTIME = 10
 LFS = "/lfs/local/0/${USER}"
-HOST_N = 17
+HOST_N = 5
 
 ################################
 
@@ -79,7 +79,7 @@ def task_deploy()
     sh "mkdir -p #{stage_dir}"
 
     sh "cp -f -p -r python/* #{stage_dir}"
-    sh "cp app/libbfs/* app/cppbfs/* #{stage_dir}"
+    sh "cp app/libbfs/* app/cppbfs/* app/bfs64/* #{stage_dir}"
     sh "cp app/pybfs/* #{stage_dir}"
     sh "cp -p ../snap-python/dev/swig-sw/_snap.so ../snap-python/dev/swig-sw/snap.py #{stage_dir}"
     # override config File

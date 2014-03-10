@@ -13,12 +13,15 @@ def SelectNodes(sw):
     nnodes = int(sw.GetVar("nodes"))
     nsample = int(sw.GetVar("stat_tasks"))
 
+    # TODO (smacke): perhaps it would make more sense to use a numpy
+    # random sample function here.
+    # e.g. numpy.random.choice with replace=False
     s = set()
     for i in range(0, nsample):
 
-        while 1:
+        while 1: # blah. TODO: while True:
             n = int(random.random() * nnodes)
-            if not n in s:
+            if not n in s: # if we have not already considered this node in the sample
                 break
 
         dmsgout = {}

@@ -4,6 +4,14 @@ import traceback
 
 import swlib
 
+# TODO (smacke): Here we are taking a single source node from which
+# to BFS, but the legacy naming scheme makes it seem like there
+# should be nsample source nodes. (In reality 'nsample' just corresponds
+# to the number of stat_tasks; i.e. the number of tasks among whom the
+# GetDist operation is partitioned.
+
+# Eventually we'll want to make partitioned GetDist work
+# for more than just a single source node, I imagine.
 def SelectNodes(sw):
     """
     select random nodes for distance calculations
@@ -21,16 +29,13 @@ def SelectNodes(sw):
     sw.log.info("task: %s, nodes: %d, tsize: %d" % (nnodes, nsample, tsize))
 
     # select the single source node
-    # TODO (smacke): for debug only
+    # TODO (smacke): debug only
     random.seed(0)
     n = int(random.random() * nnodes)
 
-    ns = 0
-    while ns < nnodes:
+    for ns in xrange(0, nnodes, tsize):
         tname = ns / tsize
-        ne = ns + tsize
-        if ne > nnodes:
-            ne = nnodes
+        ne = min(ns+tsize, nnodes)
 
         dout = {}
         dout["s"] = ns
@@ -44,8 +49,6 @@ def SelectNodes(sw):
         dmsgout["body"] = dout
 
         sw.Send(tname, dmsgout)
-
-        ns = ne
 
 def Worker(sw):
     SelectNodes(sw)
