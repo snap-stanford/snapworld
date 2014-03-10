@@ -64,7 +64,6 @@ def InitState(sw, taskindex, msglist):
     Snap.ZeroVec(Visited)
     if node >= 0:
         # set start node to 1, reset to 0 at the end
-        # TODO (smacke): ??? ^^^ ???
         Visited.GetVal(node-ns).Val = 1
         ds["count"] = 1
 
@@ -77,7 +76,7 @@ def InitState(sw, taskindex, msglist):
     if node >= 0:
         Vec1 = Snap.TIntV()
         Vec1.Add(node)
-        Vec1.Add(0) # TODO (smacke): what is this?
+        Vec1.Add(0) # distance to "node"
         sw.Send(tn,Vec1,swsnap=True)
 
     return ds
@@ -104,7 +103,7 @@ def AddNewNodes(taskindex, sw, ds, msglist):
 
         sw.cum_timer.cum_start("disk")
 
-        name = sw.GetMsgName(item) # TODO (smacke): ask Rok about this appearance of disk usage vs. python code
+        name = sw.GetMsgName(item)
 
         # read the input nodes
         FIn = Snap.TFIn(Snap.TStr(name))
@@ -112,7 +111,7 @@ def AddNewNodes(taskindex, sw, ds, msglist):
 
         sw.cum_timer.cum_stop("disk")
 
-        distance = Vec.Last().Val + 1 # TODO (smacke): ??????
+        distance = Vec.Last().Val + 1 # update current distance for fringe nodes
         Vec.DelLast()
 
         # subtract the starting index
