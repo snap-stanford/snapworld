@@ -232,7 +232,7 @@ def messagevec(server, src, dst, Vec):
 
     data = res.read()
 
-    h.close() # closing file stream should handle this
+    h.close()
 
     if need_token: release_token()
 

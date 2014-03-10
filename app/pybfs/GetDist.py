@@ -48,8 +48,7 @@ def InitState(taskindex, msglist):
     ds["start"] = snode
     ds["dist"] = 0
 
-    ds["visit"] = {} # bleh. ds['visit'] = {snode: 0}
-    ds["visit"][snode] = 0
+    ds['visit'] = {snode: 0}
 
     tsize = sw.GetRange()
     tn = TaskId(node,tsize)
