@@ -381,7 +381,7 @@ if __name__ == '__main__':
     parser.add_argument('mode', choices = ['master', 'supervisor', 'system_perf', 'process_run'])#TODO system_perf
     parser.add_argument('-f', '--filename_master', default = '/lfs/local/0/' + os.environ["USER"] + '/master.log',
             help = 'If mode is master, use this to specify the filename.')
-    parser.add_argument('-y', '--yperf_path', default = '../node_modules/run_data/')#TODO stop using node_modules.
+    parser.add_argument('-y', '--yperf_path', default = '../processed_yperf/')#TODO stop using node_modules.
     parser.add_argument('-r', '--reset', action = 'store_true')
     args = parser.parse_args()
 
