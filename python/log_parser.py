@@ -338,11 +338,14 @@ def create_agg_tables(sum_arr, n_hosts, step_times, agg_col_names, yperf_path, r
 def process_run(master_log_name, yperf_path, reset):
     times = get_step_timestamps(master_log_name)
     files = get_file_list(times)
+    yperf_path += os.path.split(os.path.dirname(master_log_name))[1]
+    os.system('mkdir -p {0}', yperf_path)
     #TODO temp
     sum_arr = None
     for iln in ILN_NAMES:
         file_list = ''
         path = yperf_path + 'iln' + iln + '/'
+        os.system('mkdir -p {0}/{tsv,raw,json}', path)
         for f in files:
             if not os.path.isfile(path + 'raw/' + f + '.txt'):
                 file_list += 'mulrich@iln' + iln + ':/var/yperf/' + f + '.txt ' #TODO figure out how should be done.
