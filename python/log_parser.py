@@ -345,17 +345,13 @@ def deploy_to_WWW(run_name):
     deploy_src_fold = WEB_DEPLOY_PATH + run_name + '/'
     os.system('cp -r {0}* {1}'.format(WEB_PATH, deploy_src_fold))
     user = os.environ["USER"]
-    deploy_dest_fold = '{0}@corn.stanford.edu:WWW/snapw/'.format(user)
-    command = 'scp -r {0}* {1}'.format(deploy_src_fold, deploy_dest_fold)
-    try:
-        subprocess.call(command)
-    except Exception as e:
-        print(' *Exception* : ')
-        print(e)
-        print('The following call failed:')
-        print('\t' + command)
-        print('Did you create the destination folder? Please run yourself manually.')
-    
+    deploy_dest_fold = '{0}@corn.stanford.edu:WWW/'.format(user)
+    command = 'scp -r {0} {1}'.format(deploy_src_fold, deploy_dest_fold)
+    print('Awesome! Webpage prepared at {0}index.html.'.format(deploy_src_fold))
+    print('Perhaps you would like to run:')
+    print(command)
+    print('So that you can then view the files at stanford.edu/~{0}/{1}/'.format(user, run_name))
+    print('(Note that viewing locally will not work due to cross domain restrictions.)')
 
 def process_run(master_log_name, yperf_path, reset):
     times = get_step_timestamps(master_log_name)
