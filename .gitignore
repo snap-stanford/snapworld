@@ -3,7 +3,5 @@
 bin/
 node_modules/
 python/data/
-web/json/*
-!web/json/README.emptydir
+web_deploy
 processed_yperf/
-!processed_yperf/README.emptydir

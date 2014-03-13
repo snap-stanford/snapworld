@@ -12,6 +12,9 @@ invalid_input = True
 SINGLE_FILE = True
 SECS_PER_HOUR = 3600
 ILN_NAMES = ['02', '03', '04', '05']
+BASE_DIR = '../' #The root of the snapworld repo
+WEB_DEPLOY_PATH = BASE_DIR + 'web_deploy/'
+WEB_PATH = BASE_DIR + 'web/'
 
 "Global store of features as key/values"
 data = {}
@@ -197,7 +200,8 @@ def gen_tsv(path_file_args):
 
         print('Generated tsv for ' + txt_file_name)
 
-def gen_json(arr, file_name, reset):
+def gen_json(arr, folder, file_name, reset):
+    file_name = folder + file_name + '.json'
     if not reset and os.path.isfile(file_name):
         return
     MILLI_PER_SECOND = 1000
@@ -335,12 +339,23 @@ def create_agg_tables(sum_arr, n_hosts, step_times, agg_col_names, yperf_path, r
     #TODO find another way
     encoder.FLOAT_REPR = orig_float_repr
 
+# Copies needed HTML/JS files (assumes json already there), then copies entire thing to WWW
+def deploy_to_WWW(run_name):
+    deploy_src_fold = WEB_DEPLOY + run_name + '/'
+    os.system('cp {0}* {1}'.format(WEB_PATH, deploy_src_fold))
+    user = os.environ["USER"]
+    deploy_dest_fold = '/afs/ir/users/{0}/{1}/{2}/WWW/snapw/'.format(user[0], user[1], user)
+    os.system('mkdir -p ' + deploy_dest_fold)
+    os.system('cp {0}* {1}', deploy_src_fold, deploy_dest_fold)
+
 def process_run(master_log_name, yperf_path, reset):
     times = get_step_timestamps(master_log_name)
     files = get_file_list(times)
-    yperf_path += os.path.split(os.path.dirname(master_log_name))[1] + '/'
+    run_name = os.path.split(os.path.dirname(master_log_name))[1]
+    yperf_path += run_name + '/'
     os.system('mkdir -p {0}'.format(yperf_path))
-    os.syttem('mkdir -p ' + #TODO
+    json_path = WEB_DEPLOY_PATH + run_name + '/json/' 
+    os.system('mkdir -p ' + json_path) 
     #TODO temp
     sum_arr = None
     for iln in ILN_NAMES:
@@ -348,11 +363,11 @@ def process_run(master_log_name, yperf_path, reset):
         path = yperf_path + 'iln' + iln + '/'
         os.system('mkdir -p ' + path + '{tsv,raw}/')
         for f in files:
-            if not os.path.isfile(path + 'raw/' + f + '.txt'):
+            if not reset or not os.path.isfile(path + 'raw/' + f + '.txt'):
                 file_list += 'mulrich@iln' + iln + ':/var/yperf/' + f + '.txt ' #TODO figure out how should be done.
         if file_list:
             command = 'scp {0}{1}iln{2}/raw/'.format(file_list, yperf_path, iln)
-            print(command)
+            print('Copying over yperf files.')
             os.system(command)
         #TODO process_files(files, gen_tsv, path)
         process_tsv(path, reset)
@@ -368,16 +383,17 @@ def process_run(master_log_name, yperf_path, reset):
             for col in to_agg:
                 sum_arr[col] = sum_arr[col] + arr[col]
                 max_arr[col] = np.maximum(max_arr[col], arr[col]);
-        gen_json(arr, yperf_path + 'json/' + 'iln' + iln + '.json', reset)
+        gen_json(arr, json_path, 'iln' + iln, reset)
         #process_files(files, gen_json_series, path)
     #process_system_perf(yperf_path)
     avg_arr = sum_arr.copy()
     n_hosts = len(ILN_NAMES)
     for col in to_agg:
         avg_arr[col] = sum_arr[col] / float(n_hosts)
-    gen_json(avg_arr, yperf_path + 'json/avg.json', reset)
-    gen_json(max_arr, yperf_path + 'json/max.json', reset)
+    gen_json(avg_arr, json_path, 'avg', reset)
+    gen_json(max_arr, json_path, 'max', reset)
     create_agg_tables(sum_arr, n_hosts, times, to_agg, yperf_path, reset)
+    deploy_to_WWW(run_name)
 
 if __name__ == '__main__':
     import argparse

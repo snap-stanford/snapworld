@@ -1,2 +1,0 @@
-This folder is used by python/log_parser to store yperf .txt and .tsv files
-used as intermediaries to generate the json.
