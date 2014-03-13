@@ -6,6 +6,7 @@ import json
 import datetime
 import time
 import numpy as np
+import subprocess
 from multiprocessing import Pool
 
 invalid_input = True
@@ -295,9 +296,9 @@ def get_file_list(times):
         file_list.append(last)
     return file_list
 
-def create_agg_tables(sum_arr, n_hosts, step_times, agg_col_names, yperf_path, reset):
-    sum_f_name = yperf_path + 'json/sum_table.json'
-    avg_f_name = yperf_path + 'json/avg_table.json'
+def create_agg_tables(sum_arr, n_hosts, step_times, agg_col_names, json_path, reset):
+    sum_f_name = json_path + 'sum_table.json'
+    avg_f_name = json_path + 'avg_table.json'
 
     #temp hack from stackoverflow
     from json import encoder
@@ -341,12 +342,20 @@ def create_agg_tables(sum_arr, n_hosts, step_times, agg_col_names, yperf_path, r
 
 # Copies needed HTML/JS files (assumes json already there), then copies entire thing to WWW
 def deploy_to_WWW(run_name):
-    deploy_src_fold = WEB_DEPLOY + run_name + '/'
-    os.system('cp {0}* {1}'.format(WEB_PATH, deploy_src_fold))
+    deploy_src_fold = WEB_DEPLOY_PATH + run_name + '/'
+    os.system('cp -r {0}* {1}'.format(WEB_PATH, deploy_src_fold))
     user = os.environ["USER"]
-    deploy_dest_fold = '/afs/ir/users/{0}/{1}/{2}/WWW/snapw/'.format(user[0], user[1], user)
-    os.system('mkdir -p ' + deploy_dest_fold)
-    os.system('cp {0}* {1}', deploy_src_fold, deploy_dest_fold)
+    deploy_dest_fold = '{0}@corn.stanford.edu:WWW/snapw/'.format(user)
+    command = 'scp -r {0}* {1}'.format(deploy_src_fold, deploy_dest_fold)
+    try:
+        subprocess.call(command)
+    except Exception as e:
+        print(' *Exception* : ')
+        print(e)
+        print('The following call failed:')
+        print('\t' + command)
+        print('Did you create the destination folder? Please run yourself manually.')
+    
 
 def process_run(master_log_name, yperf_path, reset):
     times = get_step_timestamps(master_log_name)
@@ -363,7 +372,7 @@ def process_run(master_log_name, yperf_path, reset):
         path = yperf_path + 'iln' + iln + '/'
         os.system('mkdir -p ' + path + '{tsv,raw}/')
         for f in files:
-            if not reset or not os.path.isfile(path + 'raw/' + f + '.txt'):
+            if reset or not os.path.isfile(path + 'raw/' + f + '.txt'):
                 file_list += 'mulrich@iln' + iln + ':/var/yperf/' + f + '.txt ' #TODO figure out how should be done.
         if file_list:
             command = 'scp {0}{1}iln{2}/raw/'.format(file_list, yperf_path, iln)
@@ -392,7 +401,7 @@ def process_run(master_log_name, yperf_path, reset):
         avg_arr[col] = sum_arr[col] / float(n_hosts)
     gen_json(avg_arr, json_path, 'avg', reset)
     gen_json(max_arr, json_path, 'max', reset)
-    create_agg_tables(sum_arr, n_hosts, times, to_agg, yperf_path, reset)
+    create_agg_tables(sum_arr, n_hosts, times, to_agg, json_path, reset)
     deploy_to_WWW(run_name)
 
 if __name__ == '__main__':
