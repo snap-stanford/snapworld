@@ -369,7 +369,7 @@ def process_run(master_log_name, yperf_path, reset):
         os.system('mkdir -p ' + path + '{tsv,raw}/')
         for f in files:
             if reset or not os.path.isfile(path + 'raw/' + f + '.txt'):
-                file_list += 'mulrich@iln' + iln + ':/var/yperf/' + f + '.txt ' #TODO figure out how should be done.
+                file_list += '{0}@iln{1}:/var/yperf/{2}.txt'.format(os.environ['USER'], iln, f)
         if file_list:
             command = 'scp {0}{1}iln{2}/raw/'.format(file_list, yperf_path, iln)
             print('Copying over yperf files.')
