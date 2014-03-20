@@ -3,3 +3,5 @@
 bin/
 node_modules/
 python/data/
+web_deploy
+processed_yperf/
