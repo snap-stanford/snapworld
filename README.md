@@ -50,11 +50,12 @@ To stop a job type do the following.
     1. % rake cleanup
         This command will kill all of the processes running on all of the
       machines.
-
+      
+      
 Metrics
 -------
 
-To view metrics graphs associated with a given run, log your iln01 snapword repo and
+To view metrics graphs associated with a given run, log into iln01 and
 
     1. % cd python
         Currently it has to be run from this directory.
