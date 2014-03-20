@@ -54,7 +54,7 @@ To stop a job type do the following.
 Metrics
 -------
 
-To view metrics graphs associated with a given run, do
+To view metrics graphs associated with a given run, log into iln01 and
 
     1. % cd python
         Currently it has to be run from this directory.
