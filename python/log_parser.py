@@ -372,7 +372,7 @@ def process_run(master_log_name, yperf_path, reset):
                 file_list += '{0}@iln{1}:/var/yperf/{2}.txt'.format(os.environ['USER'], iln, f)
                 print file_list
         if file_list:
-            command = 'scp {0}{1}iln{2}/raw/'.format(file_list, yperf_path, iln)
+            command = 'scp {0} {1}iln{2}/raw/'.format(file_list, yperf_path, iln)
             print('Copying over yperf files using \n{0}'.format(command))
             os.system(command)
         #TODO process_files(files, gen_tsv, path)
