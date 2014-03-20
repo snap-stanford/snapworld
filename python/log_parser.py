@@ -369,9 +369,9 @@ def process_run(master_log_name, yperf_path, reset):
         os.system('mkdir -p ' + path + '{tsv,raw}/')
         for f in files:
             if reset or not os.path.isfile(path + 'raw/' + f + '.txt'):
-                file_list += '{0}@iln{1}:/var/yperf/{2}.txt'.format(os.environ['USER'], iln, f)
+                file_list += '{0}@iln{1}:/var/yperf/{2}.txt '.format(os.environ['USER'], iln, f)
         if file_list:
-            command = 'scp {0} {1}iln{2}/raw/'.format(file_list, yperf_path, iln)
+            command = 'scp {0}{1}iln{2}/raw/'.format(file_list, yperf_path, iln)
             print('Copying over yperf files using \n{0}'.format(command))
             os.system(command)
         #TODO process_files(files, gen_tsv, path)
@@ -403,10 +403,10 @@ def process_run(master_log_name, yperf_path, reset):
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument('mode', choices = ['master', 'supervisor', 'system_perf', 'process_run'])#TODO system_perf
+    parser.add_argument('mode', choices = ['master', 'supervisor', 'process_run'])
     parser.add_argument('-f', '--filename_master', default = '/lfs/local/0/' + os.environ["USER"] + '/master.log',
             help = 'If mode is master, use this to specify the filename.')
-    parser.add_argument('-y', '--yperf_path', default = '../processed_yperf/')#TODO stop using node_modules.
+    parser.add_argument('-y', '--yperf_path', default = '../processed_yperf/')
     parser.add_argument('-r', '--reset', action = 'store_true')
     args = parser.parse_args()
 
@@ -416,8 +416,6 @@ if __name__ == '__main__':
         process_master(args.filename_master)
     elif args.mode == 'supervisor':
         process_supervisors()
-    elif args.mode == 'system_perf':
-        process_system_perf(args.yperf_path)
 
     if args.mode == 'master' or args.mode == 'supervisor':
         for k, v in data.items():
