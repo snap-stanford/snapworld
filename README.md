@@ -50,17 +50,3 @@ To stop a job type do the following.
     1. % rake cleanup
         This command will kill all of the processes running on all of the
       machines.
-      
-Metrics
--------
-
-To view metrics graphs associated with a given run, log into iln01 and
-
-    1. % cd python
-        Currently it has to be run from this directory.
-    2. % ./log_parser process_run -f PATH_OF_master.log_FILE
-        Run using ./log_parser instead of python log_parser to make sure
-        it uses the correction version of Python. This file currently
-        assumes that you are running supervisors on 4 machines, iln02-05.
-    3. Now it will suggest a command for you to use to copy the output
-       placed in the newly created web_deploy folder onto a server. (scp ...)
