@@ -36,7 +36,7 @@ class GateKeeperClient(httpclient.HTTPClient):
             # sleep 0.1-0.3s before repeating the request
             time.sleep(0.1 + random.random()/5.0)
 
-        return result
+        return status
 
     def release(self,ttype,tpid):
         """
