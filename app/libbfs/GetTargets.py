@@ -15,10 +15,9 @@ def SelectNodes(sw):
 
     s = set()
     for i in range(0, nsample):
-
-        while 1:
+        while True:
             n = int(random.random() * nnodes)
-            if not n in s:
+            if not n in s: # if we have not already considered this node in the sample
                 break
 
         dmsgout = {}

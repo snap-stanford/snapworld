@@ -12,6 +12,24 @@ try:
 except:
     pass
 
+
+class LazyStr(object):
+    """
+    Class to lazily construct strings, used with (for example) log messages.
+    To use, pass in a lambda which returns the desired string.
+
+    E.g.:
+
+    LazyStr(lambda: "hello %s!" % "world")
+
+    When passed as an argument to logging for a suppressed log level,
+    the lambda will not actually get called, potentally saving time.
+    """
+    def __init__(self,func):
+        self.func=func
+    def __str__(self):
+        return self.func()
+
 class SnapWorld:
     def __init__(self):
         pass
@@ -26,6 +44,7 @@ class SnapWorld:
         self.qin = None
         self.configfile = None
         self.local = False
+        self.taskIndex = None
 
         index = 1
         while index < len(argv):
@@ -59,6 +78,7 @@ class SnapWorld:
 
         self.config = None
         self.name = self.taskname.split("-",1)[0]
+        self.taskIndex = int(self.taskname.split("-")[-1]) # TODO (smacke): include some form of string validation
 
         self.var = None
         self.route = None
@@ -111,6 +131,15 @@ class SnapWorld:
             dinfo = dbunch.get(self.name)
             if dinfo:
                 self.range = int(dinfo.get("range"))
+                seg_bits = self.var.get('seg_bits')
+                if seg_bits is not None:
+                    seg_bits = int(seg_bits)
+                    if seg_bits <= 0:
+                        print 'Error! for node-segmented BFS, the number of segment bits must be positive!'
+                        sys.exit(1)
+                    if (1<<seg_bits) % self.range != 0:
+                        print 'Error! for node-segmented BFS, the segment size must be a multiple of the range!'
+                        sys.exit(1)
 
         if self.route:
             for key, routes in self.route.iteritems():
@@ -136,6 +165,12 @@ class SnapWorld:
 
     def GetName(self):
         return self.taskname
+
+    def GetIndex(self):
+        return self.taskIndex
+
+    def GetSegBits(self):
+        return int(self.GetVar('seg_bits'))
 
     def GetHost(self):
         return self.host
@@ -164,6 +199,12 @@ class SnapWorld:
         # get the variable requested
         result = self.var.get(name)
         return result
+
+    def NextSegmentBoundary(self, val):
+        seg_bits = int(self.GetVar('seg_bits'))
+        unit_left = (1<<seg_bits)
+        low_order = unit_left - 1
+        return ((val-1) | low_order) + 1
 
     def GetStateName(self):
         fname = "swstate-%s.txt" % (self.taskname)
@@ -204,6 +245,7 @@ class SnapWorld:
         dstname = self.target[channel] + "-" + str(dstid)
         dsthostid = self.tasks.get(dstname)
         dshost = self.hosts.get(dsthostid)
+        self.log.debug('sending to %s (had id %d)' % (dshost, dstid))
 
         if self.local:
             fname = self.GetOutName(dstname)

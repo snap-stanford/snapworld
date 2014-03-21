@@ -12,10 +12,11 @@ def GetNbr(sw):
     msglist = sw.GetMsgList()
     sw.log.debug("msglist %s" % str(msglist))
 
-    ds = sw.LoadState()
+    ds = sw.LoadState() # TODO (smacke): What happens if there is no state to load?
+    # If that happens it may make sense to assert dmsg['cmd'] == 'init' for every dmsg
     
     edges = []
-    for item in msglist:
+    for item in msglist: # For non-init part of this task, we get 1 msg per GetDist task
         dmsg = sw.GetMsg(item)
         cmd = dmsg["cmd"]
         msg = dmsg["body"]
@@ -25,17 +26,17 @@ def GetNbr(sw):
         else:
             GetNeighbors(sw, ds, msg)
 
-    if len(edges) > 0:
+    if len(edges) > 0: # TODO (smacke): change to if cmd == "init":
         # first iteration: input are edges, save the state
         ds = GetEdges(edges)
         sw.log.debug("state %s" % str(ds))
-        sw.SaveState(ds)
+        sw.SaveState(ds) # This task is responsible for this portion of adjacency list
 
         dmsgout = {}
         dmsgout["src"] = sw.GetName()
         dmsgout["cmd"] = "targets"
         dmsgout["body"] = {}
-        sw.Send(0,dmsgout,"2")
+        sw.Send(0,dmsgout,"2") # only 1 GetTargets task
 
 def GetEdges(edges):
 
@@ -72,7 +73,7 @@ def GetNeighbors(sw, ds, msg):
     dmsgout["src"] = sw.GetName()
     dmsgout["cmd"] = "nbrs"
     dmsgout["body"] = list(s)
-    sw.Send(tdst,dmsgout)
+    sw.Send(tdst,dmsgout) # this is over port 1, since that's the default
 
 def Worker(sw):
     GetNbr(sw)

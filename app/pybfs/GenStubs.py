@@ -41,14 +41,12 @@ def GenStubs(sw):
         sw.log.debug("task %s, start %d, end %d" % (taskname, ns, ne))
 
         # determine node degrees
-        i = ns
         ddeg = {}
-        while i <= ne:
+        for i in xrange(ns,ne):
             deg = StdDist(distmean,distvar)
             #deg = 3
             ddeg[i] = deg
             sw.log.debug("task %s, node %s, degree %s" % (taskname, str(i), str(deg)))
-            i += 1
 
     sw.log.debug("ddeg " + str(ddeg))
 
@@ -58,9 +56,9 @@ def GenStubs(sw):
 
     # each task has a list of stubs
     dstubs = {}
-    for key,value in ddeg.iteritems():
-        for i in range(0,value):
-            t = int(random.random() * ntasks)
+    for key,value in ddeg.iteritems(): # for each node "key"
+        for i in range(0,value):       # for each stub belonging to "key"
+            t = int(random.random() * ntasks) # pick a random GenGraph task responsible for this stub
             if not dstubs.has_key(t):
                 dstubs[t] = []
             dstubs[t].append(key)
@@ -71,7 +69,7 @@ def GenStubs(sw):
     dmsgout["src"] = taskname
     dmsgout["cmd"] = "stubs"
 
-    for tdst, msgout in dstubs.iteritems():
+    for tdst, msgout in dstubs.iteritems(): # send the stubs to GenGraph tasks
         sw.log.debug("sending task %d, msg %s" % (tdst, str(msgout)))
         dmsgout["body"] = msgout
         sw.Send(tdst, dmsgout)
