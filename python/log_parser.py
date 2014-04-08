@@ -113,6 +113,7 @@ def get_kv_file(mode):
 def get_yperf_name(t):
     return 'yperf-' + t.strftime('%Y%m%d-%H')
 
+# TODO make sure no OBOB - should be steps[0] is run start, steps[1] is superstep 1 start, etc.
 def get_step_timestamps(filename):
     steps = []
     line_number = 0
@@ -347,7 +348,7 @@ def deploy_to_WWW(run_name):
     user = os.environ["USER"]
     #deploy_dest_fold = '{0}@corn.stanford.edu:WWW/'.format(user)
     #command = 'scp -r {0} {1}'.format(deploy_src_fold, deploy_dest_fold)
-    command = 'rsync -avW -e "ssh -i  /lfs/iln01/0/snapworld_key/id_rsa" {0} snapworld@snap.stanford.edu:/lfs/snap/0/snapworld/metrics'.format(deploy_src_fold)
+    command = 'rsync -avW -e "ssh -i  /lfs/iln01/0/snapworld_key/id_rsa" {0} snapworld@snap.stanford.edu:/lfs/snap/0/snapworld/metrics/{1}'.format(deploy_src_fold, run_name)
     print('Awesome! Webpage prepared at {0}index.html.'.format(deploy_src_fold))
     print('About to run {0}'.format(command))
     os.system(command)
@@ -356,7 +357,8 @@ def deploy_to_WWW(run_name):
 def process_run(master_log_name, yperf_path, reset):
     times = get_step_timestamps(master_log_name)
     files = get_file_list(times)
-    run_name = os.path.split(os.path.dirname(master_log_name))[1]
+    run_name = 'metrics-' + times[0].strftime('%Y%m%d-%H:%M:%S') # TODO os.path.split(os.path.dirname(master_log_name))[1]
+    return 'yperf-' + t.strftime('%Y%m%d-%H')
     yperf_path += run_name + '/'
     os.system('mkdir -p {0}'.format(yperf_path))
     json_path = WEB_DEPLOY_PATH + run_name + '/json/'
