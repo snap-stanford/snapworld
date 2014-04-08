@@ -345,13 +345,13 @@ def deploy_to_WWW(run_name):
     deploy_src_fold = WEB_DEPLOY_PATH + run_name + '/'
     os.system('cp -r {0}* {1}'.format(WEB_PATH, deploy_src_fold))
     user = os.environ["USER"]
-    deploy_dest_fold = '{0}@corn.stanford.edu:WWW/'.format(user)
-    command = 'scp -r {0} {1}'.format(deploy_src_fold, deploy_dest_fold)
+    #deploy_dest_fold = '{0}@corn.stanford.edu:WWW/'.format(user)
+    #command = 'scp -r {0} {1}'.format(deploy_src_fold, deploy_dest_fold)
+    command = 'rsync -avW -e "ssh -i  /lfs/iln01/0/snapworld_key/id_rsa" {0} snapworld@snap.stanford.edu:/lfs/snap/0/snapworld/metrics'.format(deploy_src_fold)
     print('Awesome! Webpage prepared at {0}index.html.'.format(deploy_src_fold))
-    print('Perhaps you would like to run:')
-    print(command)
-    print('So that you can then view the files at stanford.edu/~{0}/{1}/'.format(user, run_name))
-    print('(Note that viewing locally will not work due to cross domain restrictions.)')
+    print('About to run {0}'.format(command))
+    os.system(command)
+    print('Now you can view run metrics at snapworld.stanford.edu/metrics/{0}/'.format(run_name))
 
 def process_run(master_log_name, yperf_path, reset):
     times = get_step_timestamps(master_log_name)
@@ -359,8 +359,8 @@ def process_run(master_log_name, yperf_path, reset):
     run_name = os.path.split(os.path.dirname(master_log_name))[1]
     yperf_path += run_name + '/'
     os.system('mkdir -p {0}'.format(yperf_path))
-    json_path = WEB_DEPLOY_PATH + run_name + '/json/' 
-    os.system('mkdir -p ' + json_path) 
+    json_path = WEB_DEPLOY_PATH + run_name + '/json/'
+    os.system('mkdir -p ' + json_path)
     #TODO temp
     sum_arr = None
     for iln in ILN_NAMES:
@@ -406,6 +406,7 @@ if __name__ == '__main__':
     parser.add_argument('mode', choices = ['master', 'supervisor', 'process_run'])
     parser.add_argument('-f', '--filename_master', default = '/lfs/local/0/' + os.environ["USER"] + '/master.log',
             help = 'If mode is master, use this to specify the filename.')
+    # TODO add -m flag for message and -n flag for number of nodes.
     parser.add_argument('-y', '--yperf_path', default = '../processed_yperf/')
     parser.add_argument('-r', '--reset', action = 'store_true')
     args = parser.parse_args()
