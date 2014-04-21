@@ -165,14 +165,14 @@ $(function () {
         }
     }
 
-    function renderGraph(json_response, name, xmin, xmax, times) {
+    function renderGraph(json_response, name, times) {
         var series = json_response.series;
         setVisible(series);
         var yAxis = getSeparateYaxis(series);
         var plotLines = [];
         for (var i = 0, i_lim = times.length; i < i_lim; i++) {
             plotLines.push({
-	    		value: new Date(times[i]).getTime(),
+	    		value: (times[i] - times[0]) * MILLI_PER_SECOND,
 	    		width: 1,
 	    		color: 'green',
 	    		dashStyle: 'dash',
@@ -185,30 +185,31 @@ $(function () {
 	    	});
         }
         $('#all_graphs > #' + name)
-          .highcharts('StockChart', {
+            .highcharts('StockChart', {
                 legend: {
                     enabled: true
                 },
                 title: {
                     text: name
                 },
-                pointStart: json_response.epoch_start * MILLI_PER_SECOND,
+                pointStart: (json_response.epoch_start - times[0]) * MILLI_PER_SECOND,
                 pointInterval: MILLI_PER_SECOND,
                 yAxis: yAxis,
                 series: series,
-                xAxis: {min: xmin,
-                        max: xmax,
-                        plotLines: plotLines}
-                });
+                xAxis: {
+                    min: 0,
+                    max: (times[times.length - 1] - times[0]) * MILLI_PER_SECOND,
+                    plotLines: plotLines}
+                }
+            );
     }
 
-    function getJsonSeriesPromises(times) {
-        var first = new Date(times[0])
-        var last = new Date(times[times.length - 1]);
+    function genInfoGraphs(times) {
+        var first = new Date(times[0] * MILLI_PER_SECOND)
+        var last = new Date(times[times.length - 1] * MILLI_PER_SECOND);
         console.log('start:', first);
         console.log('end;', last);
-        //var fileNames = getYperfFileRange(first, last);//TODO support multiple files
-        //console.log(fileNames);
+        console.log('length:', last - first)
         var ilnRange = ['max', 'avg', 'iln02', 'iln03', 'iln04', 'iln05'];
         var allGraphs = $('#all_graphs')
         for (var i = 0, i_lim = ilnRange.length; i < i_lim; i++) {
@@ -216,7 +217,7 @@ $(function () {
               id:ilnRange[i]}))
             $.getJSON('json/' + ilnRange[i] + '.json', (function(name) {
             return function(data) {
-                renderGraph(data, name, first.getTime(), last.getTime(), times);
+                renderGraph(data, name, times);
                 $(window).trigger('resize');
             };})(ilnRange[i])
             );
@@ -271,12 +272,10 @@ $(function () {
                   }
                 }
         });
-        var START_TIME = new Date('2014-02-21 14:15:01');
-        var END_TIME = new Date('2014-02-22 10:14:20');
-        var STEP_TIMES = ['2014-02-21 14:15:01', '2014-02-21 14:15:14', '2014-02-21 14:15:25', '2014-02-21 15:35:48', '2014-02-21 21:08:37', '2014-02-22 02:47:16', '2014-02-22 03:00:15', '2014-02-22 03:00:24', '2014-02-22 03:00:35', '2014-02-22 03:00:38', '2014-02-22 03:05:20', '2014-02-22 03:05:29', '2014-02-22 04:02:47', '2014-02-22 04:20:35', '2014-02-22 05:13:15', '2014-02-22 05:34:00', '2014-02-22 07:08:40', '2014-02-22 08:22:07', '2014-02-22 10:13:40', '2014-02-22 10:14:20'];
         getTables()
-        //TODO rename
-        getJsonSeriesPromises(STEP_TIMES);
+        $.getJSON('json/index.json', function(data) {
+            genInfoGraphs(data['step_times'])
+        });
     }
 
     function main() {

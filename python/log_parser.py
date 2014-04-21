@@ -8,6 +8,7 @@ import time
 import numpy as np
 import subprocess
 from multiprocessing import Pool
+from time import mktime
 
 invalid_input = True
 SINGLE_FILE = True
@@ -202,6 +203,12 @@ def gen_tsv(path_file_args):
 
         print('Generated tsv for ' + txt_file_name)
 
+def dump_json(json_data, f_name):
+    """Writes json to file name using space-efficient sperators.
+    """
+    with open(f_name, 'w') as f:
+        json.dump(json_data, f, separators=(',',':'))
+
 def gen_json(arr, folder, file_name, reset):
     file_name = folder + file_name + '.json'
     if not reset and os.path.isfile(file_name):
@@ -219,8 +226,7 @@ def gen_json(arr, folder, file_name, reset):
             'pointInterval': MILLI_PER_SECOND})
     #TODO confirm epoch always increases by 1?
     res = {'epoch_start': arr['epoch'][0], 'length': arr['epoch'].size, 'series': data}
-    with open(file_name, 'w') as f_out:
-        json.dump(res, f_out, separators=(',',':'))
+    dump_json(res, file_name)
 
 def gen_json_series(path_file_args):
     yperf_path, file_name = path_file_args
@@ -329,14 +335,12 @@ def create_agg_tables(sum_arr, n_hosts, step_times, agg_col_names, json_path, re
     sum_row = ['sum'] + [x for x in np.array(sum_rows).sum(axis = 0)][1:]
     sum_rows.append(sum_row)
     sum_res = {'aaData': sum_rows, 'aoColumns': [{'sTitle': x, 'sType': 'numeric'} for x in header_row]}
-    with open(sum_f_name, 'w') as f_out:
-        json.dump(sum_res, f_out, separators=(',',':'))
+    dump_json(sum_res, sum_f_name)
 
     avg_rows = [row[0:2] + [x for x in np.array(row[2:]) / (row[1] * n_hosts)] for row in sum_rows]
     avg_res = sum_res
     avg_res['aaData'] = avg_rows
-    with open(avg_f_name, 'w') as f_out:
-        json.dump(avg_res, f_out, separators=(',',':'))
+    dump_json(avg_res, avg_f_name)
 
     #TODO find another way
     encoder.FLOAT_REPR = orig_float_repr
@@ -346,16 +350,29 @@ def deploy_to_WWW(run_name):
     deploy_src_fold = WEB_DEPLOY_PATH + run_name + '/'
     os.system('cp -r {0}* {1}'.format(WEB_PATH, deploy_src_fold))
     user = os.environ["USER"]
-    #deploy_dest_fold = '{0}@corn.stanford.edu:WWW/'.format(user)
-    #command = 'scp -r {0} {1}'.format(deploy_src_fold, deploy_dest_fold)
     command = 'rsync -avW -e "ssh -i  /lfs/iln01/0/snapworld_key/id_rsa" {0} snapworld@snap.stanford.edu:/lfs/snap/0/snapworld/metrics/{1}'.format(deploy_src_fold, run_name)
-    print('Awesome! Webpage prepared at {0}index.html.'.format(deploy_src_fold))
-    print('About to run {0}'.format(command))
     os.system(command)
-    print('Now you can view run metrics at snapworld.stanford.edu/metrics/{0}/'.format(run_name))
+    print('Now you can view run metrics at http://snapworld.stanford.edu/metrics/{0}/'.format(run_name))
+
+def get_run_info(master_log_name):
+    with open(master_log_name) as f:
+        line = f.readline()
+        return json.loads(
+            line[line.find('{'):]
+                .replace("'", '"')
+                .replace('True', 'true')
+                .replace('False', 'false')
+        )
+
+def create_ind_json(times, run_info, json_path):
+    res = json.loads('{}')
+    res['run_info'] = run_info
+    res['step_times'] = [mktime(t.timetuple()) for t in times]
+    dump_json(res, json_path + 'index.json')
 
 def process_run(master_log_name, yperf_path, reset):
     times = get_step_timestamps(master_log_name)
+    run_info = get_run_info(master_log_name)
     files = get_file_list(times)
     run_name = 'metrics-' + times[0].strftime('%Y%m%d-%H%M%S')
     yperf_path += run_name + '/'
@@ -399,6 +416,7 @@ def process_run(master_log_name, yperf_path, reset):
     gen_json(avg_arr, json_path, 'avg', reset)
     gen_json(max_arr, json_path, 'max', reset)
     create_agg_tables(sum_arr, n_hosts, times, to_agg, json_path, reset)
+    create_ind_json(times, run_info, json_path)
     deploy_to_WWW(run_name)
 
 if __name__ == '__main__':
