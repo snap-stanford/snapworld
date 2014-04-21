@@ -357,7 +357,7 @@ def deploy_to_WWW(run_name):
 def process_run(master_log_name, yperf_path, reset):
     times = get_step_timestamps(master_log_name)
     files = get_file_list(times)
-    run_name = 'metrics-' + times[0].strftime('%Y%m%d-%H:%M:%S') # TODO os.path.split(os.path.dirname(master_log_name))[1]
+    run_name = 'metrics-' + times[0].strftime('%Y%m%d-%H%M%S')
     yperf_path += run_name + '/'
     os.system('mkdir -p {0}'.format(yperf_path))
     json_path = WEB_DEPLOY_PATH + run_name + '/json/'
