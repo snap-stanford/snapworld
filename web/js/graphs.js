@@ -157,17 +157,20 @@ $(function () {
         return fileList;
     }
 
-    function setVisible(json_series) {
+    function setSeriesDefaults(json_series, pointStart) {
         var VISIBLE = {'disk': true, 'network': true, 'cpu': true};
         for (var i = 0, len = json_series.length; i < len; i++) {
             var series = json_series[i];
             series.visible = series.name in VISIBLE;
+            series.pointStart = pointStart;
         }
     }
 
+
     function renderGraph(json_response, name, times) {
         var series = json_response.series;
-        setVisible(series);
+        pointStart = (json_response.epoch_start - times[0]) * MILLI_PER_SECOND;
+        setSeriesDefaults(series, pointStart);
         var yAxis = getSeparateYaxis(series);
         var plotLines = [];
         for (var i = 0, i_lim = times.length; i < i_lim; i++) {
@@ -192,13 +195,13 @@ $(function () {
                 title: {
                     text: name
                 },
-                pointStart: (json_response.epoch_start - times[0]) * MILLI_PER_SECOND,
+                pointStart: pointStart,
                 pointInterval: MILLI_PER_SECOND,
                 yAxis: yAxis,
                 series: series,
                 xAxis: {
-                    min: 0,
-                    max: (times[times.length - 1] - times[0]) * MILLI_PER_SECOND,
+                    min: (times[times.length - 1] - times[0]) * MILLI_PER_SECOND,
+                    max: (times[times.length - 1] - times[0]) * MILLI_PER_SECOND + 6000000,
                     plotLines: plotLines}
                 }
             );
