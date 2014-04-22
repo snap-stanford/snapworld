@@ -248,7 +248,7 @@ $(function () {
     }
 
     function genCharts() {
-        Highcharts.setOptions({
+        var hc = Highcharts.setOptions({
                 global: {
                     useUTC: false
                 },
@@ -267,20 +267,21 @@ $(function () {
                     }],
                     inputEnabled: false,
                 },
-                tooltipe: {
-                  valueDecimals: 5
+                tooltip: {
+                  valueDecimals: 3
                 },
-                plotOption: {
+                plotOptions: {
                   area: {
                     dataGrouping: {
-                      groupPixelWidth: 1000
+                      groupPixelWidth: 10//TODO does thiw work?
                     }
                   }
                 }
         });
-        getTables()
+        console.log('hc is', hc);
+        getTables();
         $.getJSON('json/index.json', function(data) {
-            genInfoGraphs(data['step_times'])
+            genInfoGraphs(data['step_times']);
         });
     }
 
