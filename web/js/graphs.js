@@ -174,13 +174,17 @@ $(function () {
         var yAxis = getSeparateYaxis(series);
         var plotLines = [];
         for (var i = 0, i_lim = times.length; i < i_lim; i++) {
+            var text;
+            if (i == 0) text = 'Start'
+            else if (i == 1) text = 'Servers Running'
+            else text = 'ss' + (i - 1) + ' end.'
             plotLines.push({
 	    		value: (times[i] - times[0]) * MILLI_PER_SECOND,
 	    		width: 1,
 	    		color: 'green',
 	    		dashStyle: 'dash',
 	    		label: {
-	    			text: 's' + i + ' end',
+	    			text: text,
 	    			align: 'right',
 	    			y: 12,
 	    			x: 0
@@ -200,8 +204,8 @@ $(function () {
                 yAxis: yAxis,
                 series: series,
                 xAxis: {
-                    min: (times[times.length - 1] - times[0]) * MILLI_PER_SECOND,
-                    max: (times[times.length - 1] - times[0]) * MILLI_PER_SECOND + 6000000,
+                    min: 0,
+                    max: (times[times.length - 1] - times[0]) * MILLI_PER_SECOND,
                     plotLines: plotLines}
                 }
             );
@@ -262,7 +266,6 @@ $(function () {
                         text: 'all'
                     }],
                     inputEnabled: false,
-                    selected: 2
                 },
                 tooltipe: {
                   valueDecimals: 5

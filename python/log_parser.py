@@ -324,7 +324,7 @@ def create_agg_tables(sum_arr, n_hosts, step_times, agg_col_names, json_path, re
     for i, epoch in enumerate(step_epochs):
         if prev_epoch is not None:
             secs_elapsed = epoch - prev_epoch
-            row = [i, secs_elapsed]
+            row = [i - 1, secs_elapsed]
             for name in agg_col_names:
                 start_i = prev_epoch - start_epoch + start_index
                 end_i = epoch - start_epoch + start_index
