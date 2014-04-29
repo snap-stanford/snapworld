@@ -2,6 +2,9 @@ $(function () {
 
     var PERC_AXIS = {'disk': true, 'network': true, 'cpu': true, 'max': true, 'mean': true};
     var MILLI_PER_SECOND = 1000;
+    var GRAPH_NAMES = ['max', 'avg', 'iln02', 'iln03', 'iln04', 'iln05'];
+    var TABLE_NAMES = ['sum_table', 'avg_table']
+    var ALL_NAMES = TABLE_NAMES.concat(GRAPH_NAMES);
 
     function getSeparateYaxis(series) {
         var yAxis = [];
@@ -191,24 +194,28 @@ $(function () {
 	    		}
 	    	});
         }
-        $('#all_graphs > #' + name)
-            .highcharts('StockChart', {
-                legend: {
-                    enabled: true
-                },
-                title: {
-                    text: name
-                },
-                pointStart: pointStart,
-                pointInterval: MILLI_PER_SECOND,
-                yAxis: yAxis,
-                series: series,
-                xAxis: {
-                    min: 0,
-                    max: (times[times.length - 1] - times[0]) * MILLI_PER_SECOND,
-                    plotLines: plotLines}
-                }
-            );
+        hc_div = $('<div>');
+        $('#content')
+          .find('#' + name)
+          .append(hc_div);
+        hc_div
+          .highcharts('StockChart', {
+            legend: {
+              enabled: true
+            },
+            title: {
+              text: name
+            },
+            pointStart: pointStart,
+            pointInterval: MILLI_PER_SECOND,
+            yAxis: yAxis,
+            series: series,
+            xAxis: {
+              min: 0,
+              max: (times[times.length - 1] - times[0]) * MILLI_PER_SECOND,
+              plotLines: plotLines
+            }
+          });
     }
 
     function genInfoGraphs(times) {
@@ -217,16 +224,13 @@ $(function () {
         console.log('start:', first);
         console.log('end;', last);
         console.log('length:', last - first)
-        var ilnRange = ['max', 'avg', 'iln02', 'iln03', 'iln04', 'iln05'];
         var allGraphs = $('#all_graphs')
-        for (var i = 0, i_lim = ilnRange.length; i < i_lim; i++) {
-            allGraphs.append($('<div>', {style: "height: 500px; min-width: 500px",
-              id:ilnRange[i]}))
-            $.getJSON('json/' + ilnRange[i] + '.json', (function(name) {
+        for (var i = 0, i_lim = GRAPH_NAMES.length; i < i_lim; i++) {
+            $.getJSON('json/' + GRAPH_NAMES[i] + '.json', (function(name) {
             return function(data) {
                 renderGraph(data, name, times);
                 $(window).trigger('resize');
-            };})(ilnRange[i])
+            };})(GRAPH_NAMES[i])
             );
         }
     }
@@ -239,12 +243,40 @@ $(function () {
     }
 
     function getTables() {
-      $.getJSON('json/sum_table.json', function(data) {
-        populateTable(data, $('#sum_table'));
+      $.each(TABLE_NAMES, function(i, name) {
+        $.getJSON('json/' + name + '.json', function(data) {
+          populateTable(data, $('#' + name));
+        });
       });
-       $.getJSON('json/avg_table.json', function(data) {
-        populateTable(data, $('#avg_table'));
+    }
+
+    function genAccordion() {
+      accordion = $('<div>', {id: 'accordion'});
+      $.each(ALL_NAMES, function(k, name) {
+        accordion
+          .append([
+            $('<h3>', {text: name}),
+            $('<div>', {id: name})
+          ])
       });
+      $('#content')
+        .append(accordion);
+      accordion
+        .addClass("ui-accordion ui-accordion-icons ui-widget ui-helper-reset")
+        .find("h3")
+        .addClass("ui-accordion-header ui-helper-reset ui-state-default ui-corner-top ui-corner-bottom")
+        .hover(function() { $(this).toggleClass("ui-state-hover"); })
+        .prepend('<span class="ui-icon ui-icon-triangle-1-e"></span>')
+        .click(function() {
+          $(this)
+            .find("> .ui-icon").toggleClass("ui-icon-triangle-1-e ui-icon-triangle-1-s").end()
+            .next().toggleClass("ui-accordion-content-active").slideToggle();
+          $(window).resize();
+          return false;
+        })
+        .next()
+        .addClass("ui-accordion-content  ui-helper-reset ui-widget-content ui-corner-bottom")
+        .hide();
     }
 
     function genCharts() {
@@ -279,6 +311,7 @@ $(function () {
                 }
         });
         console.log('hc is', hc);
+        genAccordion();
         getTables();
         $.getJSON('json/index.json', function(data) {
             genInfoGraphs(data['step_times']);
