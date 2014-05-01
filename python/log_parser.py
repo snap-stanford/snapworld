@@ -210,7 +210,7 @@ def dump_json(json_data, f_name):
         json.dump(json_data, f, separators=(',',':'))
 
 def gen_json(arr, folder, file_name, reset):
-    file_name = folder + file_name + '.json'
+    file_name = folder + file_name + '.gr.json'
     if not reset and os.path.isfile(file_name):
         return
     MILLI_PER_SECOND = 1000
@@ -285,12 +285,6 @@ def process_json_series(yperf_path):
     new_files = [f for f in tsv_files if f not in json_files]
     process_files(new_files, gen_json_series, yperf_path)
 
-def process_system_perf(yperf_path):
-    for iln in ILN_NAMES:
-        path = yperf_path + 'iln' + iln + '/'
-        process_tsv(path)
-        process_json_series(path)
-
 def get_file_list(times):
     file_list = []
     curr = times[0]
@@ -304,8 +298,8 @@ def get_file_list(times):
     return file_list
 
 def create_agg_tables(sum_arr, n_hosts, step_times, agg_col_names, json_path, reset):
-    sum_f_name = json_path + 'sum_table.json'
-    avg_f_name = json_path + 'avg_table.json'
+    sum_f_name = json_path + 'sum.tb.json'
+    avg_f_name = json_path + 'avg.tb.json'
 
     #temp hack from stackoverflow
     from json import encoder
@@ -350,7 +344,7 @@ def deploy_to_WWW(run_name):
     deploy_src_fold = WEB_DEPLOY_PATH + run_name + '/'
     os.system('cp -r {0}* {1}'.format(WEB_PATH, deploy_src_fold))
     user = os.environ["USER"]
-    command = 'rsync -avW -e "ssh -i  /lfs/iln01/0/snapworld_key/id_rsa" {0} snapworld@snap.stanford.edu:/lfs/snap/0/snapworld/metrics/{1}'.format(deploy_src_fold, run_name)
+    command = 'rsync -avW -e "ssh -i  /lfs/iln01/0/snapworld_key/id_rsa" {0} snapworld@snap.stanford.edu:/lfs/snap/0/snapworld/metrics/{1}'.format(deploy_src_fold, run_name) #TODO Do not hard code iln01 or snap.
     os.system(command)
     print('Now you can view run metrics at http://snapworld.stanford.edu/metrics/{0}/'.format(run_name))
 
@@ -364,35 +358,31 @@ def get_run_info(master_log_name):
                 .replace('False', 'false')
         )
 
-def create_ind_json(times, run_info, json_path):
-    res = json.loads('{}')
-    res['run_info'] = run_info
-    res['step_times'] = [mktime(t.timetuple()) for t in times]
-    dump_json(res, json_path + 'index.json')
+def get_times(times):
+    return [mktime(t.timetuple()) for t in times]
 
-def process_run(master_log_name, yperf_path, reset):
+def process_run(master_log_name, yp_path, reset):
     times = get_step_timestamps(master_log_name)
     run_info = get_run_info(master_log_name)
     files = get_file_list(times)
     run_name = 'metrics-' + times[0].strftime('%Y%m%d-%H%M%S')
-    yperf_path += run_name + '/'
-    os.system('mkdir -p {0}'.format(yperf_path))
+    yp_path += run_name + '/'
+    os.system('mkdir -p {0}'.format(yp_path))
     json_path = WEB_DEPLOY_PATH + run_name + '/json/'
     os.system('mkdir -p ' + json_path)
-    #TODO temp
     sum_arr = None
-    for iln in ILN_NAMES:
-        file_list = ''
-        path = yperf_path + 'iln' + iln + '/'
+    for supervisor in run_info['hosts']:
+        path = yp_path + supervisor['id'] + '/'
         os.system('mkdir -p ' + path + '{tsv,raw}/')
+        ip_addr = supervisor['host']
+        file_list = ''
         for f in files:
             if reset or not os.path.isfile(path + 'raw/' + f + '.txt'):
-                file_list += '{0}@iln{1}:/var/yperf/{2}.txt '.format(os.environ['USER'], iln, f)
+                file_list += '{0}@{1}:/var/yperf/{2}.txt '.format(os.environ['USER'], ip_addr, f)
         if file_list:
-            command = 'scp {0}{1}iln{2}/raw/'.format(file_list, yperf_path, iln)
-            print('Copying over yperf files using \n{0}'.format(command))
+            command = 'scp {0} {1}raw/'.format(file_list, path)
+            print('Copying over yperf files using \n{0}'.format(command)) # WODO remove.
             os.system(command)
-        #TODO process_files(files, gen_tsv, path)
         process_tsv(path, reset)
         arr = gen_entire_arr(files, path) #TODO naming
         if sum_arr is None:
@@ -406,17 +396,22 @@ def process_run(master_log_name, yperf_path, reset):
             for col in to_agg:
                 sum_arr[col] = sum_arr[col] + arr[col]
                 max_arr[col] = np.maximum(max_arr[col], arr[col]);
-        gen_json(arr, json_path, 'iln' + iln, reset)
-        #process_files(files, gen_json_series, path)
-    #process_system_perf(yperf_path)
+        gen_json(arr, json_path, supervisor['id'], reset)
     avg_arr = sum_arr.copy()
-    n_hosts = len(ILN_NAMES)
+    n_hosts = len(run_info['hosts'])
     for col in to_agg:
         avg_arr[col] = sum_arr[col] / float(n_hosts)
     gen_json(avg_arr, json_path, 'avg', reset)
     gen_json(max_arr, json_path, 'max', reset)
     create_agg_tables(sum_arr, n_hosts, times, to_agg, json_path, reset)
-    create_ind_json(times, run_info, json_path)
+    ind_json = {}
+    ind_json['step_times'] = get_times(times)
+    ind_json['run_info'] = run_info
+    ind_json['json_tables'] = [{'title': 'Average Table', 'file': 'avg.tb.json'}, {'title': 'Sums Table', 'file': 'sum.tb.json'}]
+    agg_graphs = [{'title': 'Mean Graph', 'file': 'avg.gr.json'}, {'title': 'Max Graph', 'file': 'max.gr.json'}]
+    supervisor_graphs = [{'title': 'Supervisor {} Graph (IP: {})'.format(supervisor['id'], supervisor['host']), 'file': supervisor['id'] + '.gr.json'} for supervisor in run_info['hosts']]
+    ind_json['json_graphs'] = agg_graphs + supervisor_graphs
+    dump_json(ind_json, json_path + 'index.json')
     deploy_to_WWW(run_name)
 
 if __name__ == '__main__':
