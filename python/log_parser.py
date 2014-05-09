@@ -165,14 +165,17 @@ def gen_tsv(path_file_args):
         raw_names = []
         AGG_MEASURES = [{
                 'num': ['cu', 'cs'],
+                'op': sum,
                 'den': 3200.0,
                 'name': 'cpu'
             }, {
                 'num': ['nr', 'nw'],
-                'den': 100.0e6,
+                'op': max,
+                'den': 150.0e6,
                 'name': 'network'
             }, {
                 'num': ['dr', 'dw'],
+                'op': sum,
                 'den': 150.0e6,
                 'name': 'disk'
         }]
@@ -194,7 +197,7 @@ def gen_tsv(path_file_args):
                     n_lines -= 1
                     write_ts_line(f_out, [str(prev_epoch + i + 1)] + ['nan' for i in range(len(headers) - 1)])
             raw_vals = [json_perf[name] for name in raw_names]
-            agg_vals = [sum((json_perf[meas] for meas in agg['num'])) / agg['den'] for agg in AGG_MEASURES]
+            agg_vals = [agg['op']((json_perf[meas] for meas in agg['num'])) / agg['den'] for agg in AGG_MEASURES]
             n_lines -= 1
             write_ts_line(f_out, [epoch, get_overall_class(agg_vals), max(agg_vals), sum(agg_vals) / float(len(agg_vals))] + agg_vals + raw_vals)
             prev_epoch = epoch

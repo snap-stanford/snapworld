@@ -6,7 +6,12 @@ $(function () {
     function getSeparateYaxis(series) {
         var yAxis = [];
         var axisInd = 1;
-        yAxis.push({min: 0, max: 1.2});
+        yAxis.push({
+            min: 0,
+            max: 1.5,
+            opposite: false,
+            formatter: function() { return this.value * 100 + ' %'; }
+            });
         for (var i = 0; i < series.length; i++) {
             yAxis.push({
                 labels: {
@@ -194,7 +199,8 @@ $(function () {
     function populateTable(data, div) {
         div.html('<table cellpadding="0" cellspacing="0" border="0" class="display"></table>');
         data.bFilter = false;
-        data.iDisplayLength = 20;
+        data.bPaginate = false;
+        data.order = [[ 1, 'asc' ]]
         div.find('table').dataTable(data);
     }
 
