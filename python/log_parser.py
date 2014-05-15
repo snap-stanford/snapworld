@@ -13,7 +13,6 @@ from time import mktime
 invalid_input = True
 SINGLE_FILE = True
 SECS_PER_HOUR = 3600
-ILN_NAMES = ['02', '03', '04', '05']
 BASE_DIR = '../' #The root of the snapworld repo
 WEB_DEPLOY_PATH = BASE_DIR + 'web_deploy/'
 WEB_PATH = BASE_DIR + 'web/'
@@ -162,45 +161,52 @@ def gen_tsv(path_file_args):
     print('About to generate tsv for ' + txt_file_name)
     with open(yperf_path + 'raw/' + txt_file_name + '.txt') as f_in, \
             open(yperf_path + 'tsv/' + txt_file_name + '.tsv', 'w') as f_out:
-        raw_names = []
         AGG_MEASURES = [{
-                'num': ['cu', 'cs'],
-                'op': sum,
-                'den': 3200.0,
-                'name': 'cpu'
-            }, {
                 'num': ['nr', 'nw'],
                 'op': max,
-                'den': 150.0e6,
+                'den': 100.0e6,
                 'name': 'network'
             }, {
                 'num': ['dr', 'dw'],
                 'op': sum,
                 'den': 150.0e6,
                 'name': 'disk'
-        }]
+            }, {
+                'num': ['cu', 'cs'],
+                'op': sum,
+                'den': 3200.0,
+                'name': 'cpu'
+            }]
+        raw_smooth = ['nr', 'nw']
+        prev_json_perf = None
+        raw_names = ['nr', 'nw', 'dr', 'dw', 'cu', 'cs', 'ci', 'cn', 'cw']
         prev_epoch = None
         n_lines = 3600
         for line in f_in:
-            epoch, perf_vals = line.split('\t') #todo make sure first epoch is correct
+            epoch, perf_vals = line.split('\t')
             epoch = int(epoch)
             json_perf = json.loads(perf_vals)
-            if not raw_names:
-                raw_names = [measure for measure in json_perf]
+            if prev_epoch is None:
+                raw_names = raw_names + [measure for measure in json_perf if measure not in raw_names]
                 aggs = [agg['name'] for agg in AGG_MEASURES]
                 headers = ['epoch', 'class', 'max', 'mean'] + aggs + raw_names
                 write_ts_line(f_out, headers)
                 if epoch % SECS_PER_HOUR != 0:
                     print('* Warning * {0} did not start aligned at {1}, first epoch was {2}.'.format(txt_file_name, SECS_PER_HOUR, epoch))
             else:
+                # Will usually never do this, but if any epochs have been skipped, then generate nan values.
                 for i in range(epoch - prev_epoch - 1):
                     n_lines -= 1
                     write_ts_line(f_out, [str(prev_epoch + i + 1)] + ['nan' for i in range(len(headers) - 1)])
+            # Store raw values, but for network use moving average of 2 because it seems to only record every 2 seconds on iln.
+            raw_json_perf = json_perf
+            json_perf = {k: (v + prev_json_perf[k]) / 2.0 if k in raw_smooth and prev_json_perf else v for k, v in json_perf.items()}
             raw_vals = [json_perf[name] for name in raw_names]
             agg_vals = [agg['op']((json_perf[meas] for meas in agg['num'])) / agg['den'] for agg in AGG_MEASURES]
             n_lines -= 1
             write_ts_line(f_out, [epoch, get_overall_class(agg_vals), max(agg_vals), sum(agg_vals) / float(len(agg_vals))] + agg_vals + raw_vals)
             prev_epoch = epoch
+            prev_json_perf = raw_json_perf
         for i in range(n_lines):
             write_ts_line(f_out, [str(prev_epoch + i + 1)] + ['nan' for i in range(len(headers) - 1)])
 

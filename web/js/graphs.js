@@ -200,7 +200,16 @@ $(function () {
         div.html('<table cellpadding="0" cellspacing="0" border="0" class="display"></table>');
         data.bFilter = false;
         data.bPaginate = false;
-        data.order = [[ 1, 'asc' ]]
+        data.order = [[ 0, 'asc' ]]
+        for (var i = 0, len = data.aoColumns.length; i < len; i++) {
+            data.aoColumns[i].fnRender = function(o) {
+                orig = o.aData[o.iDataColumn];
+                num = parseFloat(orig);
+                if (isNaN(num)) return orig;
+                return o.oSettings.fnFormatNumber(num);
+            };
+            data.aoColumns[i].sClass = 'right';
+        }
         div.find('table').dataTable(data);
     }
 
