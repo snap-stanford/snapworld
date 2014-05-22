@@ -7,6 +7,12 @@ import urllib
 import logging
 import random
 
+#orig_connect = httplib.HTTPConnection.connect
+#def monkey_connect(self):
+#    orig_connect(self)
+#    self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+#httplib.HTTPConnection.connect = monkey_connect
+
 logging.basicConfig(level=logging.INFO, format='[%(asctime)s] [%(levelname)s] [%(process)d] [%(filename)s] [%(funcName)s] %(message)s')
 
 Snap = None
@@ -28,6 +34,7 @@ def socket_retry(func):
                     logging.warn("socket_retry; msg: %s" % str(e))
 
         logging.error("socket_retry failed")
+        logging.error("had args %s and kwargs %s" % (args, kwargs))
         sys.exit(2)
     return inner_func
 
@@ -244,17 +251,21 @@ def error(server, src_id, msg):
     body = f.read()
     f.close()
 
+@socket_retry
 def acquire_token(size=-1):
     broker_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    broker_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    #broker_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     pid = os.getpid()
+    #try:
+    # TODO(nkhadke): Make this dynamic via snapw config file
+    # broker_sock.connect(("127.0.0.1", 1341))
     try:
-        # TODO(nkhadke): Make this dynamic via snapw config file
-        # broker_sock.connect(("127.0.0.1", 1341))
         broker_sock.connect(("127.0.0.1", 1337))
         acq_cmd = "acquire|net|%d|%d\n" % (pid, size)
 
-        broker_sock.send(acq_cmd)
+        bytes_sent = 0
+        while bytes_sent < len(acq_cmd):
+            bytes_sent += broker_sock.send(acq_cmd[bytes_sent:])
         rv = broker_sock.recv(1024).strip()
         if rv == "ACQUIRED":
             logging.debug("Worker %d acquired token" % pid)
@@ -263,25 +274,29 @@ def acquire_token(size=-1):
             broker_sock.close()
             sys.exit(2)
         broker_sock.close()
-    except socket.error, (value,message):
-        logging.critical("Error in connecting to broker: %s" % message)
+    except socket.error as e:
+        logging.warning("Error in connecting to broker: %s" % e)
         try:
             broker_sock.close()
         except:
             pass
-        sys.exit(2)
+        #sys.exit(2)
+        raise e
 
 
+@socket_retry
 def release_token():
     broker_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    broker_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    #broker_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     pid = os.getpid()
     try:
         # TODO(nkhadke): Make this dynamic via snapw config file
         # broker_sock.connect(("127.0.0.1", 1341))
         broker_sock.connect(("127.0.0.1", 1337))
         rel_cmd = "release|net|%d\n" % pid
-        broker_sock.send(rel_cmd)
+        bytes_sent = 0
+        while bytes_sent < len(rel_cmd):
+            bytes_sent += broker_sock.send(rel_cmd[bytes_sent:])
         rv = broker_sock.recv(1024).strip()
         if rv == "RELEASED":
             logging.debug("Worker %d released token" % pid)
@@ -290,11 +305,12 @@ def release_token():
             broker_sock.close()
             sys.exit(2)
         broker_sock.close()
-    except socket.error, (value,message):
-        logging.critical("Error in connecting to broker: %s" % message)
+    except socket.error as e:
+        logging.warning("Error in connecting to broker: %s" % e)
         try:
             broker_sock.close()
         except:
             pass
-        sys.exit(2)
+        #sys.exit(2)
+        raise e
 
