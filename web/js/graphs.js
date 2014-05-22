@@ -196,18 +196,43 @@ $(function () {
         });
     }
 
+    function formatNumberLarg(o) {
+        orig = o.aData[o.iDataColumn];
+        num = parseFloat(orig);
+        if (isNaN(num)) return orig;
+        whole = Math.floor(num);
+        res = o.oSettings.fnFormatNumber(whole);
+        if (whole == num) return res;
+        dec = num - whole;
+        rounded = dec.toFixed(1);
+        return res + rounded.substr(1);
+    }
+
+    function formatNumberWhole(o) {
+        return o.oSettings.fnFormatNumber(Math.round(o.aData[o.iDataColumn]));
+    }
+
+    function formatNumberPerc(o) {
+        orig = o.aData[o.iDataColumn];
+        perc = orig * 100;
+        return Math.round(perc);
+    }
+
     function populateTable(data, div) {
+        bigFormatter = div.attr('id').substr(0, 3) === 'avg' ? formatNumberLarg : formatNumberWhole;
         div.html('<table cellpadding="0" cellspacing="0" border="0" class="display"></table>');
         data.bFilter = false;
         data.bPaginate = false;
         data.order = [[ 0, 'asc' ]]
         for (var i = 0, len = data.aoColumns.length; i < len; i++) {
-            data.aoColumns[i].fnRender = function(o) {
-                orig = o.aData[o.iDataColumn];
-                num = parseFloat(orig);
-                if (isNaN(num)) return orig;
-                return o.oSettings.fnFormatNumber(num);
-            };
+            title = data.aoColumns[i].sTitle;
+            var formatter = null;
+            if (title.length == 2) {
+              formatter = bigFormatter;
+            } else if (title == 'max' || title == 'mean' || title == 'cpu' || title == 'network' || title == 'disk') {
+                formatter = formatNumberPerc;
+            }
+            if (formatter !== null) data.aoColumns[i].fnRender = formatter;
             data.aoColumns[i].sClass = 'right';
         }
         div.find('table').dataTable(data);
@@ -288,6 +313,7 @@ $(function () {
         console.log('hc is', hc);
         $.getJSON('json/index.json', function(data) {
             console.log(data['run_info']);
+            $('#title').text($('title').text() + ' for ' + data['run_info']['var']['nodes'] + ' nodes.');
             allNames = data.json_tables
               .concat(
                 data.json_graphs
