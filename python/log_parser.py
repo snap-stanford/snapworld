@@ -191,13 +191,14 @@ def gen_tsv(path_file_args):
                 aggs = [agg['name'] for agg in AGG_MEASURES]
                 headers = ['epoch', 'class', 'max', 'mean'] + aggs + raw_names
                 write_ts_line(f_out, headers)
+                prev_epoch = epoch - 1
                 if epoch % SECS_PER_HOUR != 0:
                     print('* Warning * {0} did not start aligned at {1}, first epoch was {2}.'.format(txt_file_name, SECS_PER_HOUR, epoch))
-            else:
-                # Will usually never do this, but if any epochs have been skipped, then generate nan values.
-                for i in range(epoch - prev_epoch - 1):
-                    n_lines -= 1
-                    write_ts_line(f_out, [str(prev_epoch + i + 1)] + ['nan' for i in range(len(headers) - 1)])
+                    prev_epoch = (epoch // SECS_PER_HOUR) * SECS_PER_HOUR - 1 # To add correct number of nan values.
+            # Will usually never do this, but if any epochs have been skipped, then generate nan values.
+            for i in range(epoch - prev_epoch - 1):
+                n_lines -= 1
+                write_ts_line(f_out, [str(prev_epoch + i + 1)] + ['nan' for i in range(len(headers) - 1)])
             # Store raw values, but for network use moving average of 2 because it seems to only record every 2 seconds on iln.
             raw_json_perf = json_perf
             json_perf = {k: (v + prev_json_perf[k]) / 2.0 if k in raw_smooth and prev_json_perf else v for k, v in json_perf.items()}
@@ -283,7 +284,7 @@ def process_files(file_names, fn_to_apply, path):
     if len(file_names) == 1:
         fn_to_apply([path, file_names[0]])
     elif len(file_names) > 1:
-        p = Pool(min(len(file_names), MAX_THREADS)) #TODO need the min?
+        p = Pool()
         p.map(fn_to_apply, ([path, f] for f in file_names))
     else:
         print(' *WARNING* No new files exist for path "{0}" to apply "{1}"'.format(path, fn_to_apply.__name__))
@@ -401,7 +402,7 @@ def process_run(master_log_name, yp_path, reset):
             to_agg = [col_name for col_name in arr.dtype.names if col_name != 'epoch']
         else:
             if not np.all(arr['epoch'] == orig_epoch):
-                print(' *ERROR* - epochs {0} and {1} do not match.')
+                print(' *ERROR* - epochs for {0} do not match original.'.format(supervisor['id']))
             for col in to_agg:
                 sum_arr[col] = sum_arr[col] + arr[col]
                 max_arr[col] = np.maximum(max_arr[col], arr[col]);
