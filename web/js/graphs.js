@@ -1,28 +1,111 @@
 $(function () {
 
-    var PERC_AXIS = {'disk': true, 'network': true, 'cpu': true, 'max': true, 'mean': true};
+    var AXIS = {
+        'disk': 'percent',
+        'network': 'percent',
+        'cpu': 'percent',
+        'max': 'percent',
+        'mean': 'percent',
+        'cu': 'cpu',
+        'cs': 'cpu',
+        'ci': 'cpu',
+        'cn': 'cpu',
+        'cw': 'cpu',
+        'nr': 'network',
+        'nw': 'network',
+        'dr': 'disk',
+        'dw': 'disk'
+    };
     var MILLI_PER_SECOND = 1000;
 
+        var PERC_AXIS = {'disk': true, 'network': true, 'cpu': true, 'max': true, 'mean': true};
+
+    //globals
+    var times;
+
+
+    function getSeparateYaxis(series) {
+        //var yAxis = [];
+        //yAxis.push({min: 0, max: 1.2});
+        var yAxis = [{
+            min: 0,
+            max: 1.5,
+            opposite: false,
+            formatter: function() { return this.value * 100 + ' %'; },
+            id: 'percent',
+            title: {text: 'PERC'}
+        },
+        {
+            min: 0,
+            max: 3200,
+            opposite: false,
+            id: 'cpu',
+            title: {text: 'CPU'}
+        },
+        {
+            min: 0,
+            max: 150e6,
+            opposite: false,
+            id: 'disk',
+            title: {text: 'D R/W'}
+        },
+        {
+            min: 0,
+            max: 100e6,
+            opposite: false,
+            id: 'network',
+            title: {text: 'N R/W'}
+        }];
+        $.each(series, function(i, v) {
+             if (v.name in AXIS) {
+                 v.yAxis = AXIS[v.name];
+             } else {
+                 yAxis.push({labels: {enabled: false}, id: "" + i, title: {text: v.name}});
+                 v.yAxis = "" + i;
+             }
+        });
+        return yAxis;
+    }
+    /*
     function getSeparateYaxis(series) {
         var yAxis = [];
-        var axisInd = 1;
         yAxis.push({
             min: 0,
             max: 1.5,
             opposite: false,
-            formatter: function() { return this.value * 100 + ' %'; }
-            });
+            formatter: function() { return this.value * 100 + ' %'; },
+            id: 'percent'
+        });
+        yAxis.push({
+            min: 0,
+            max: 3200,
+            opposite: false,
+            id: 'cpu'
+        });
+        yAxis.push({
+            min: 0,
+            max: 150e6,
+            opposite: false,
+            id: 'disk'
+        });
+        yAxis.push({
+            min: 0,
+            max: 100e6,
+            opposite: false,
+            id: 'network'
+        });
         for (var i = 0; i < series.length; i++) {
             yAxis.push({
                 labels: {
                     enabled: false
-                }
+                },
+                id: i
             });
-            series[i].yAxis = (series[i].name in PERC_AXIS) ? 0 : axisInd++;
+            series[i].yAxis = (series[i].name in AXIS) ? AXIS[series[i].name] : i;
         }
         return yAxis;
     }
-
+*/
     function dateToEpochTime(d) {
         if (typeof d === 'string') {
             d = new Date(d);
@@ -132,8 +215,7 @@ $(function () {
         }
     }
 
-
-    function renderGraph(json_response, name, times) {
+    function renderGraph(json_response, name) {
         var series = json_response.series;
         pointStart = (json_response.epoch_start - times[0]) * MILLI_PER_SECOND;
         setSeriesDefaults(series, pointStart);
@@ -182,16 +264,10 @@ $(function () {
         $(window).trigger('resize');
     }
 
-    function genGraphs(graphNames, times) {
-        var first = new Date(times[0] * MILLI_PER_SECOND)
-        var last = new Date(times[times.length - 1] * MILLI_PER_SECOND);
-        console.log('start:', first);
-        console.log('end;', last);
-        console.log('length:', last - first)
-        var allGraphs = $('#all_graphs')
+    function genGraphs(graphNames) { //TODO delete
         $.each(graphNames, function(i, name) {
             $.getJSON('json/' + name.file, function(data) {
-                renderGraph(data, name, times);
+                renderGraph(data, name);
             });
         });
     }
@@ -218,8 +294,9 @@ $(function () {
         return Math.round(perc);
     }
 
-    function populateTable(data, div) {
-        bigFormatter = div.attr('id').substr(0, 3) === 'avg' ? formatNumberLarg : formatNumberWhole;
+    function renderTable(data, name) {
+        var div = $('#' + getId(name));
+        var bigFormatter = div.attr('id').substr(0, 3) === 'avg' ? formatNumberLarg : formatNumberWhole;
         div.html('<table cellpadding="0" cellspacing="0" border="0" class="display"></table>');
         data.bFilter = false;
         data.bPaginate = false;
@@ -238,14 +315,6 @@ $(function () {
         div.find('table').dataTable(data);
     }
 
-    function genTables(tableNames) {
-        $.each(tableNames, function(i, name) {
-                $.getJSON('json/' + name.file, function(data) {
-                    populateTable(data, $('#' + getId(name)));
-                    });
-                });
-    }
-
     function getId(name) {
         return name.file.replace(/\./g, '');
     }
@@ -255,28 +324,52 @@ $(function () {
       $.each(allNames, function(k, name) {
         accordion
           .append([
-            $('<h3>', {text: name.title}),
+            $('<h3>', {text: name.title})
+                .data(name),
             $('<div>', {id: getId(name)})
           ])
       });
       $('#content')
         .append(accordion);
       accordion
-        .addClass("ui-accordion ui-accordion-icons ui-widget ui-helper-reset")
-        .find("h3")
-        .addClass("ui-accordion-header ui-helper-reset ui-state-default ui-corner-top ui-corner-bottom")
-        .hover(function() { $(this).toggleClass("ui-state-hover"); })
-        .prepend('<span class="ui-icon ui-icon-triangle-1-e"></span>')
-        .click(function() {
-          $(this)
-            .find("> .ui-icon").toggleClass("ui-icon-triangle-1-e ui-icon-triangle-1-s").end()
-            .next().toggleClass("ui-accordion-content-active").slideToggle();
-          $(window).resize();
-          return false;
-        })
-        .next()
-        .addClass("ui-accordion-content  ui-helper-reset ui-widget-content ui-corner-bottom")
-        .hide();
+          .addClass("ui-accordion ui-accordion-icons ui-widget ui-helper-reset")
+          .find("h3")
+          .addClass("ui-accordion-header ui-helper-reset ui-state-default ui-corner-top ui-corner-bottom")
+          .hover(function() { $(this).toggleClass("ui-state-hover"); })
+          .prepend('<span class="ui-icon ui-icon-triangle-1-e"></span>')
+          .click(function() {
+              var head = $(this);
+              head
+                  .find("> .ui-icon").toggleClass("ui-icon-triangle-1-e ui-icon-triangle-1-s").end()
+                  .next().toggleClass("ui-accordion-content-active").slideToggle();
+              if (!head.hasClass("loading-started")) {
+                  head.addClass("loading-started");
+                  var dat = head.data();
+                  if (dat.type == 'table') {
+                      $.getJSON('json/' + dat.file, function(data) {
+                          renderTable(data, dat);
+                          $(window).resize();
+                      });
+                  } else if (dat.type == 'graph') {
+                      $.getJSON('json/' + dat.file, function(data) {
+                          renderGraph(data, dat);
+                          $(window).resize();
+                      });
+                  } else {
+                      console.error('Type', dat.type, 'not recognized');
+                  }
+              }
+              return false;
+           })
+      .next()
+          .addClass("ui-accordion-content  ui-helper-reset ui-widget-content ui-corner-bottom")
+          .hide();
+      $.each(accordion.find("h3"), function(i, elem) {
+          elem = $(elem);
+          if (elem.data().load) {
+              elem.click();
+          }
+      });
     }
 
     function genAll() {
@@ -301,26 +394,15 @@ $(function () {
                 },
                 tooltip: {
                   valueDecimals: 3
-                },
-                plotOptions: {
-                  area: {
-                    dataGrouping: {
-                      groupPixelWidth: 10//TODO does thiw work?
-                    }
-                  }
                 }
         });
         console.log('hc is', hc);
         $.getJSON('json/index.json', function(data) {
             console.log(data['run_info']);
+            times = data['step_times'];
             $('#title').text($('title').text() + ' for ' + data['run_info']['var']['nodes'] + ' nodes.');
-            allNames = data.json_tables
-              .concat(
-                data.json_graphs
-              );
+            allNames = data.views
             genAccordion(allNames);
-            genTables(data.json_tables);
-            genGraphs(data.json_graphs , data['step_times']);
         });
     }
 

@@ -185,6 +185,8 @@ def gen_tsv(path_file_args):
         for line in f_in:
             epoch, perf_vals = line.split('\t')
             epoch = int(epoch)
+            if (epoch <= prev_epoch):
+                continue # TODO print warning.
             json_perf = json.loads(perf_vals)
             if prev_epoch is None:
                 raw_names = raw_names + [measure for measure in json_perf if measure not in raw_names]
@@ -208,6 +210,8 @@ def gen_tsv(path_file_args):
             write_ts_line(f_out, [epoch, get_overall_class(agg_vals), max(agg_vals), sum(agg_vals) / float(len(agg_vals))] + agg_vals + raw_vals)
             prev_epoch = epoch
             prev_json_perf = raw_json_perf
+        if (n_lines < 0 or n_lines > 100):
+            print('* Warning * n_lines is {0} instead of 0.', n_lines)
         for i in range(n_lines):
             write_ts_line(f_out, [str(prev_epoch + i + 1)] + ['nan' for i in range(len(headers) - 1)])
 
@@ -234,7 +238,6 @@ def gen_json(arr, folder, file_name, reset):
             'data': [None if np.isnan(val) else val for val in arr[name]],
             'pointStart': arr['epoch'][0] * MILLI_PER_SECOND,
             'pointInterval': MILLI_PER_SECOND})
-    #TODO confirm epoch always increases by 1?
     res = {'epoch_start': arr['epoch'][0], 'length': arr['epoch'].size, 'series': data}
     dump_json(res, file_name)
 
@@ -280,11 +283,11 @@ def process_tsv(yperf_path, reset):
     process_files(new_files, gen_tsv, yperf_path)
 
 def process_files(file_names, fn_to_apply, path):
-    MAX_THREADS = 5
+    N_THREADS = 4
     if len(file_names) == 1:
         fn_to_apply([path, file_names[0]])
     elif len(file_names) > 1:
-        p = Pool()
+        p = Pool(4)
         p.map(fn_to_apply, ([path, f] for f in file_names))
     else:
         print(' *WARNING* No new files exist for path "{0}" to apply "{1}"'.format(path, fn_to_apply.__name__))
@@ -375,7 +378,7 @@ def process_run(master_log_name, yp_path, reset):
     times = get_step_timestamps(master_log_name)
     run_info = get_run_info(master_log_name)
     files = get_file_list(times)
-    run_name = 'metrics-' + times[0].strftime('%Y%m%d-%H%M%S')
+    run_name = 'metrics-' + times[0].strftime('%Y%m%d-%H%M%S') #TODO add nodes, hours
     yp_path += run_name + '/'
     os.system('mkdir -p {0}'.format(yp_path))
     json_path = WEB_DEPLOY_PATH + run_name + '/json/'
@@ -394,10 +397,14 @@ def process_run(master_log_name, yp_path, reset):
             print('Copying over yperf files using \n{0}'.format(command)) # WODO remove.
             os.system(command)
         process_tsv(path, reset)
-        arr = gen_entire_arr(files, path) #TODO naming
+        try:
+            arr = gen_entire_arr(files, path) #TODO naming
+        except:
+            print(' *WARNING* Could not locate yperf/tsv from {0}, skipping'.format(ip_addr))
+            continue
         if sum_arr is None:
-            sum_arr = arr.copy();
-            max_arr = arr.copy();
+            sum_arr = arr.copy()
+            max_arr = arr.copy()
             orig_epoch = arr['epoch']
             to_agg = [col_name for col_name in arr.dtype.names if col_name != 'epoch']
         else:
@@ -417,10 +424,10 @@ def process_run(master_log_name, yp_path, reset):
     ind_json = {}
     ind_json['step_times'] = get_times(times)
     ind_json['run_info'] = run_info
-    ind_json['json_tables'] = [{'title': 'Average Table', 'file': 'avg.tb.json'}, {'title': 'Sums Table', 'file': 'sum.tb.json'}]
-    agg_graphs = [{'title': 'Mean Graph', 'file': 'avg.gr.json'}, {'title': 'Max Graph', 'file': 'max.gr.json'}]
-    supervisor_graphs = [{'title': 'Supervisor {} Graph (IP: {})'.format(supervisor['id'], supervisor['host']), 'file': supervisor['id'] + '.gr.json'} for supervisor in run_info['hosts']]
-    ind_json['json_graphs'] = agg_graphs + supervisor_graphs
+    agg_tables = [{'title': 'Average Table', 'file': 'avg.tb.json', 'type': 'table', 'load': True}, {'title': 'Sums Table', 'file': 'sum.tb.json', 'type': 'table', 'load': True}]
+    agg_graphs = [{'title': 'Mean Graph', 'file': 'avg.gr.json', 'type': 'graph', 'load': True}, {'title': 'Max Graph', 'file': 'max.gr.json', 'type': 'graph', 'load': False}]
+    supervisor_graphs = [{'title': 'Supervisor {} Graph (IP: {})'.format(supervisor['id'], supervisor['host']), 'file': supervisor['id'] + '.gr.json', 'type': 'graph', 'load': False} for supervisor in run_info['hosts']]
+    ind_json['views'] = agg_tables + agg_graphs + supervisor_graphs
     dump_json(ind_json, json_path + 'index.json')
     deploy_to_WWW(run_name)
 
