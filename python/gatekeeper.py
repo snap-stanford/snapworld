@@ -9,9 +9,6 @@ import BaseHTTPServer
 import SimpleHTTPServer
 import SocketServer
 
-sys.path.append("../python")
-sys.path.append("../../python")
-
 import daemon
 
 try:

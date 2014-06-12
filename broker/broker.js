@@ -78,7 +78,7 @@ var TokenType = function(type, max_tokens) {
         token.acquired_time = Date.now();
         this.used_tokens++;
         this.issued[token.srcID] = token;
-        console.log(str_time() + " Token acquired for: " + token.srcID);
+        console.log(str_time() + " Token acquired for: " + token.srcID + ", " + this.used_tokens + " in use.");
       } catch (e) {
         console.log(str_time() + " Cannot write to socket for src: " + token.srcID);
       }

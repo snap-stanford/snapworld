@@ -32,9 +32,9 @@ else
 fi
 ###############
 
-node ${SNAPW_BIN}/broker/broker.js ${SNAPW_BROKER_PORT} ${SNAPW_BROKER_TOKENS} &> ${SNAPW_OUTPUT}/broker.log &
+# TODO (smacke): make gatekeeper take n. tokens as cmdline arg
+${PYTHON} ${SNAPW_BIN}/gatekeeper.py -d -p ${SNAPW_BROKER_PORT}
 
 echo $SNAPW_ID $SNAPW_PORT $SNAPW_MASTER $SNAPW_MASTER_PORT
 echo ${PYTHON} ${SNAPW_BIN}/supervisor.py -d -i ${SNAPW_ID} -p ${SNAPW_PORT} -m ${SNAPW_MASTER}:${SNAPW_MASTER_PORT}
 ${PYTHON} ${SNAPW_BIN}/supervisor.py -d -i ${SNAPW_ID} -p ${SNAPW_PORT} -m ${SNAPW_MASTER}:${SNAPW_MASTER_PORT} >> ${SNAPW_EXEC}/supervisor-sh-${SNAPW_PORT}.log 2>&1
-
