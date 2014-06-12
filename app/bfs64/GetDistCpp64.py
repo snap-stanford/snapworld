@@ -206,6 +206,7 @@ def AddNewNodes(taskindex, sw, ds, msglist):
 
         sw.log.debug("final: %s %s" % (str(ds["source"]), str(distance)))
         sw.log.debug("distances: %s" % str(l))
+        return
 
     # nodes in each task
     tsize = sw.GetRange()

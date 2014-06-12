@@ -6,6 +6,8 @@ import urllib2
 import urllib
 import logging
 import random
+import httpclient
+import gatekeeperlib
 
 logging.basicConfig(level=logging.INFO, format='[%(asctime)s] [%(levelname)s] [%(process)d] [%(filename)s] [%(funcName)s] %(message)s')
 
@@ -165,76 +167,50 @@ def messagevec(server, src, dst, Vec):
     else:
         raise ValueError('send not defined for type %s' % str(type(Vec)))
 
-
     # need_token = (content_length >= 1*1024*1024)
     need_token = True
 
-    if need_token: acquire_token(content_length)
+    if need_token:
+        acquire_token(content_length)
 
-    h = httplib.HTTPConnection(server)
-    
-    sw_ok = False
-    for i in xrange(MAX_RETRIES):
+    try:
+        client = httpclient.HTTPClient(*server.split(':'))
+
+        logging.debug("messagevec content-length: %d" % content_length)
+
+        url = "/msg/%s/%s" % (dst, src)
+        client.h.putrequest("POST", url)
+        client.h.putheader("Content-Length", str(content_length))
+        client.h.endheaders()
+
+        fileno = client.h.sock.fileno()
+
+        logging.debug("socket: %s" % client.h.sock)
+
+        if type(Vec) == Snap.TIntV:
+            r = Snap.SendVec_TIntV(Vec, fileno)
+        elif type(Vec) == Snap.TIntIntVV:
+            logging.debug('sending vector TIntIntVV')
+            r = Snap.SendVec_TIntIntVV(Vec, fileno)
+        else:
+            raise ValueError('send not defined for type %s' % str(type(Vec)))
+
+        if r < 0:
+            logging.warn("Snap.SendVec_TIntV (or SnedVec_TIntIntVV) returned with error %d" % r)
+            raise socket.error("Send.SendVec_TIntV (or SendVec_TIntIntVV) error")
+
+        res = client.h.getresponse()
+        #print res.status, res.reason
+
+        data = res.read()
+
+    finally:
         try:
-            h.connect()
-            sw_ok = True
-        except socket.error, e:
-            # check out for socket.error: [Errno 110] Connection timed out
-            if e.errno == 110:
-                logging.warn("[Error 110] Connection timed out; attempt: %d, dest: %s" % (i, str(dst)))
-            elif e.errno == 111:
-                logging.warn("[Errno 111] Connection refused; attempt: %d, dest: %s" % (i, str(dst)))
-            elif e.errno == 113:
-                logging.warn("[Errno 113] No route to host; attempt: %d, dest: %s" % (i, str(dst)))
-            elif e.errno == -2:
-                logging.warn("[Errno -2] Name or service not know: attempt: %d, dest: %s" % (i, str(dst)))
-            else:
-                logging.error("socket.error: %s: attempt: %d, dest: %s" % (str(e), i, str(dst)))
-                # break out of the loop and fail later
-                break
-        
-        if sw_ok: break
-
-        if i < MAX_RETRIES-1:
-            wait_time = pow(2.0, i) * (1.0 + random.random()) 
-            time.sleep(wait_time)
-
-    if not sw_ok:
-        logging.error("Could not establish connection to dest: %s" % str(dst))
-        if need_token: release_token()
-        raise socket.error("Could not establish connection to dest: %s" % str(dst))
-
-    logging.debug("messagevec content-length: %d" % content_length)
-
-    url = "/msg/%s/%s" % (dst, src)
-    h.putrequest("POST", url)
-    h.putheader("Content-Length", str(content_length))
-    h.endheaders()
-
-    fileno = h.sock.fileno()
-
-    if type(Vec) == Snap.TIntV:
-        r = Snap.SendVec_TIntV(Vec, fileno)
-    elif type(Vec) == Snap.TIntIntVV:
-        logging.debug('sending vector TIntIntVV')
-        r = Snap.SendVec_TIntIntVV(Vec, fileno)
-    else:
-        raise ValueError('send not defined for type %s' % str(type(Vec)))
-
-    if r < 0:
-        logging.warn("Snap.SendVec_TIntV (or SnedVec_TIntIntVV) returned with error %d" % r)
-        h.close()
-        if need_token: release_token()
-        raise socket.error("Send.SendVec_TIntV (or SendVec_TIntIntVV) error")
-
-    res = h.getresponse()
-    #print res.status, res.reason
-
-    data = res.read()
-
-    h.close()
-
-    if need_token: release_token()
+            if client.h.sock is not None:
+                client.close()
+        finally:
+            if need_token:
+                release_token()
 
 @socket_retry
 def error(server, src_id, msg):
@@ -244,57 +220,18 @@ def error(server, src_id, msg):
     body = f.read()
     f.close()
 
+#@socket_retry
 def acquire_token(size=-1):
-    broker_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    broker_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    pid = os.getpid()
-    try:
-        # TODO(nkhadke): Make this dynamic via snapw config file
-        # broker_sock.connect(("127.0.0.1", 1341))
-        broker_sock.connect(("127.0.0.1", 1337))
-        acq_cmd = "acquire|net|%d|%d\n" % (pid, size)
-
-        broker_sock.send(acq_cmd)
-        rv = broker_sock.recv(1024).strip()
-        if rv == "ACQUIRED":
-            logging.debug("Worker %d acquired token" % pid)
-        else:
-            logging.critical("Error in acquiring token from broker: " + str(rv))
-            broker_sock.close()
-            sys.exit(2)
-        broker_sock.close()
-    except socket.error, (value,message):
-        logging.critical("Error in connecting to broker: %s" % message)
-        try:
-            broker_sock.close()
-        except:
-            pass
-        sys.exit(2)
+    # TODO (smacke): Make this dynamic via snapw config file
+    gkclient = gatekeeperlib.GateKeeperClient('127.0.0.1', 1337)
+    gkclient.acquire('net', os.getpid(), size)
+    gkclient.close()
 
 
+#@socket_retry
 def release_token():
-    broker_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    broker_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    pid = os.getpid()
-    try:
-        # TODO(nkhadke): Make this dynamic via snapw config file
-        # broker_sock.connect(("127.0.0.1", 1341))
-        broker_sock.connect(("127.0.0.1", 1337))
-        rel_cmd = "release|net|%d\n" % pid
-        broker_sock.send(rel_cmd)
-        rv = broker_sock.recv(1024).strip()
-        if rv == "RELEASED":
-            logging.debug("Worker %d released token" % pid)
-        else:
-            logging.critical("Error in releasing token to broker")
-            broker_sock.close()
-            sys.exit(2)
-        broker_sock.close()
-    except socket.error, (value,message):
-        logging.critical("Error in connecting to broker: %s" % message)
-        try:
-            broker_sock.close()
-        except:
-            pass
-        sys.exit(2)
+    # TODO (smacke): Make this dynamic via snapw config file
+    gkclient = gatekeeperlib.GateKeeperClient('127.0.0.1', 1337)
+    gkclient.release('net', os.getpid())
+    gkclient.close()
 

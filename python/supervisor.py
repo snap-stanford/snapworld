@@ -554,7 +554,7 @@ if __name__ == '__main__':
     handler.master = master
 
     if master != None:
-        SYS_STATS = True
+        # SYS_STATS = True
         # get configuration from master
         sconf = client.config(master)
     
