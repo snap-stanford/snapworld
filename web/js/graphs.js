@@ -1,23 +1,111 @@
 $(function () {
 
-    var PERC_AXIS = {'disk': true, 'network': true, 'cpu': true, 'max': true, 'mean': true};
+    var AXIS = {
+        'disk': 'percent',
+        'network': 'percent',
+        'cpu': 'percent',
+        'max': 'percent',
+        'mean': 'percent',
+        'cu': 'cpu',
+        'cs': 'cpu',
+        'ci': 'cpu',
+        'cn': 'cpu',
+        'cw': 'cpu',
+        'nr': 'network',
+        'nw': 'network',
+        'dr': 'disk',
+        'dw': 'disk'
+    };
     var MILLI_PER_SECOND = 1000;
 
+        var PERC_AXIS = {'disk': true, 'network': true, 'cpu': true, 'max': true, 'mean': true};
+
+    //globals
+    var times;
+
+
+    function getSeparateYaxis(series) {
+        //var yAxis = [];
+        //yAxis.push({min: 0, max: 1.2});
+        var yAxis = [{
+            min: 0,
+            max: 1.5,
+            opposite: false,
+            formatter: function() { return this.value * 100 + ' %'; },
+            id: 'percent',
+            title: {text: 'PERC'}
+        },
+        {
+            min: 0,
+            max: 3200,
+            opposite: false,
+            id: 'cpu',
+            title: {text: 'CPU'}
+        },
+        {
+            min: 0,
+            max: 150e6,
+            opposite: false,
+            id: 'disk',
+            title: {text: 'D R/W'}
+        },
+        {
+            min: 0,
+            max: 100e6,
+            opposite: false,
+            id: 'network',
+            title: {text: 'N R/W'}
+        }];
+        $.each(series, function(i, v) {
+             if (v.name in AXIS) {
+                 v.yAxis = AXIS[v.name];
+             } else {
+                 yAxis.push({labels: {enabled: false}, id: "" + i, title: {text: v.name}});
+                 v.yAxis = "" + i;
+             }
+        });
+        return yAxis;
+    }
+    /*
     function getSeparateYaxis(series) {
         var yAxis = [];
-        var axisInd = 1;
-        yAxis.push({min: 0, max: 1.2});
+        yAxis.push({
+            min: 0,
+            max: 1.5,
+            opposite: false,
+            formatter: function() { return this.value * 100 + ' %'; },
+            id: 'percent'
+        });
+        yAxis.push({
+            min: 0,
+            max: 3200,
+            opposite: false,
+            id: 'cpu'
+        });
+        yAxis.push({
+            min: 0,
+            max: 150e6,
+            opposite: false,
+            id: 'disk'
+        });
+        yAxis.push({
+            min: 0,
+            max: 100e6,
+            opposite: false,
+            id: 'network'
+        });
         for (var i = 0; i < series.length; i++) {
             yAxis.push({
                 labels: {
                     enabled: false
-                }
+                },
+                id: i
             });
-            series[i].yAxis = (series[i].name in PERC_AXIS) ? 0 : axisInd++;
+            series[i].yAxis = (series[i].name in AXIS) ? AXIS[series[i].name] : i;
         }
         return yAxis;
     }
-
+*/
     function dateToEpochTime(d) {
         if (typeof d === 'string') {
             d = new Date(d);
@@ -118,129 +206,174 @@ $(function () {
         return series;
     }
 
-    function padZero(num) {
-        var res = '' + num;
-        if (res.length === 1) {
-            return '0' + res;
-        } if (res.length !== 2) {
-            console.error('Only expecting 0 <= num < 100, but I got: ' + res + '.');
-        }
-        return res;
-    }
-
-    function getYperfFileName(start) {
-        return 'yperf-' + start.getFullYear() + padZero(start.getMonth() + 1) + padZero(start.getDate()) + '-' + padZero(start.getHours()) + '.json';
-    }
-
-    function getYperfFileRange(start, end) {
-        var MILLI_SEC_PER_MIN = 60*1000;
-        var PACIFIC_OFFSET = 8*60*MILLI_SEC_PER_MIN;
-        var tOffset = start.getTimezoneOffset()*MILLI_SEC_PER_MIN;
-        var fileList = [];
-        if (tOffset !== PACIFIC_OFFSET) {
-            console.log('Converting timezone to pacific.');
-            start = new Date(start.getTime() - PACIFIC_OFFSET + tOffset);//TODO test
-            end = new Date(end.getTime() - PACIFIC_OFFSET + tOffset);
-        }
-        var yperf_name;
-        while (start < end) {
-            yperf_name = getYperfFileName(start);
-            fileList.push(yperf_name);
-            //Move forward by an hour.
-            start = new Date(start.getTime() + MILLI_SEC_PER_MIN * 60);
-            console.log(start);
-        }
-        var last = getYperfFileName(end);
-        if (yperf_name != last) {
-            fileList.push(last);
-        }
-        return fileList;
-    }
-
-    function setVisible(json_series) {
+    function setSeriesDefaults(json_series, pointStart) {
         var VISIBLE = {'disk': true, 'network': true, 'cpu': true};
         for (var i = 0, len = json_series.length; i < len; i++) {
             var series = json_series[i];
             series.visible = series.name in VISIBLE;
+            series.pointStart = pointStart;
         }
     }
 
-    function renderGraph(json_response, name, xmin, xmax, times) {
+    function renderGraph(json_response, name) {
         var series = json_response.series;
-        setVisible(series);
+        pointStart = (json_response.epoch_start - times[0]) * MILLI_PER_SECOND;
+        setSeriesDefaults(series, pointStart);
         var yAxis = getSeparateYaxis(series);
         var plotLines = [];
         for (var i = 0, i_lim = times.length; i < i_lim; i++) {
+            var text;
+            if (i == 0) text = 'Start'
+            else if (i == 1) text = 'Servers Running'
+            else text = 'ss' + (i - 1) + ' end.'
             plotLines.push({
-	    		value: new Date(times[i]).getTime(),
+	    		value: (times[i] - times[0]) * MILLI_PER_SECOND,
 	    		width: 1,
 	    		color: 'green',
 	    		dashStyle: 'dash',
 	    		label: {
-	    			text: 's' + i + ' end',
+	    			text: text,
 	    			align: 'right',
 	    			y: 12,
 	    			x: 0
 	    		}
 	    	});
         }
-        $('#all_graphs > #' + name)
+        hc_div = $('<div>');
+        $('#content')
+          .find('#' + getId(name))
+          .append(hc_div);
+        hc_div
           .highcharts('StockChart', {
-                legend: {
-                    enabled: true
-                },
-                title: {
-                    text: name
-                },
-                pointStart: json_response.epoch_start * MILLI_PER_SECOND,
-                pointInterval: MILLI_PER_SECOND,
-                yAxis: yAxis,
-                series: series,
-                xAxis: {min: xmin,
-                        max: xmax,
-                        plotLines: plotLines}
-                });
+            legend: {
+              enabled: true
+            },
+            title: {
+              text: name.title
+            },
+            pointStart: pointStart,
+            pointInterval: MILLI_PER_SECOND,
+            yAxis: yAxis,
+            series: series,
+            xAxis: {
+              min: 0,
+              max: (times[times.length - 1] - times[0]) * MILLI_PER_SECOND,
+              plotLines: plotLines
+            }
+          });
+        $(window).trigger('resize');
     }
 
-    function getJsonSeriesPromises(times) {
-        var first = new Date(times[0])
-        var last = new Date(times[times.length - 1]);
-        console.log('start:', first);
-        console.log('end;', last);
-        //var fileNames = getYperfFileRange(first, last);//TODO support multiple files
-        //console.log(fileNames);
-        var ilnRange = ['max', 'avg', 'iln02', 'iln03', 'iln04', 'iln05'];
-        var allGraphs = $('#all_graphs')
-        for (var i = 0, i_lim = ilnRange.length; i < i_lim; i++) {
-            allGraphs.append($('<div>', {style: "height: 500px; min-width: 500px",
-              id:ilnRange[i]}))
-            $.getJSON('json/' + ilnRange[i] + '.json', (function(name) {
-            return function(data) {
-                renderGraph(data, name, first.getTime(), last.getTime(), times);
-                $(window).trigger('resize');
-            };})(ilnRange[i])
-            );
+    function genGraphs(graphNames) { //TODO delete
+        $.each(graphNames, function(i, name) {
+            $.getJSON('json/' + name.file, function(data) {
+                renderGraph(data, name);
+            });
+        });
+    }
+
+    function formatNumberLarg(o) {
+        orig = o.aData[o.iDataColumn];
+        num = parseFloat(orig);
+        if (isNaN(num)) return orig;
+        whole = Math.floor(num);
+        res = o.oSettings.fnFormatNumber(whole);
+        if (whole == num) return res;
+        dec = num - whole;
+        rounded = dec.toFixed(1);
+        return res + rounded.substr(1);
+    }
+
+    function formatNumberWhole(o) {
+        return o.oSettings.fnFormatNumber(Math.round(o.aData[o.iDataColumn]));
+    }
+
+    function formatNumberPerc(o) {
+        orig = o.aData[o.iDataColumn];
+        perc = orig * 100;
+        return Math.round(perc);
+    }
+
+    function renderTable(data, name) {
+        var div = $('#' + getId(name));
+        var bigFormatter = div.attr('id').substr(0, 3) === 'avg' ? formatNumberLarg : formatNumberWhole;
+        div.html('<table cellpadding="0" cellspacing="0" border="0" class="display"></table>');
+        data.bFilter = false;
+        data.bPaginate = false;
+        data.order = [[ 0, 'asc' ]]
+        for (var i = 0, len = data.aoColumns.length; i < len; i++) {
+            title = data.aoColumns[i].sTitle;
+            var formatter = null;
+            if (title.length == 2) {
+              formatter = bigFormatter;
+            } else if (title == 'max' || title == 'mean' || title == 'cpu' || title == 'network' || title == 'disk') {
+                formatter = formatNumberPerc;
+            }
+            if (formatter !== null) data.aoColumns[i].fnRender = formatter;
+            data.aoColumns[i].sClass = 'right';
         }
+        div.find('table').dataTable(data);
     }
 
-    function populateTable(data, div) {
-      div.html('<table cellpadding="0" cellspacing="0" border="0" class="display"></table>');
-      data.bFilter = false;
-      data.iDisplayLength = 20;
-      div.find('table').dataTable(data);
+    function getId(name) {
+        return name.file.replace(/\./g, '');
     }
 
-    function getTables() {
-      $.getJSON('json/sum_table.json', function(data) {
-        populateTable(data, $('#sum_table'));
+    function genAccordion(allNames) {
+      accordion = $('<div>', {id: 'accordion'});
+      $.each(allNames, function(k, name) {
+        accordion
+          .append([
+            $('<h3>', {text: name.title})
+                .data(name),
+            $('<div>', {id: getId(name)})
+          ])
       });
-       $.getJSON('json/avg_table.json', function(data) {
-        populateTable(data, $('#avg_table'));
+      $('#content')
+        .append(accordion);
+      accordion
+          .addClass("ui-accordion ui-accordion-icons ui-widget ui-helper-reset")
+          .find("h3")
+          .addClass("ui-accordion-header ui-helper-reset ui-state-default ui-corner-top ui-corner-bottom")
+          .hover(function() { $(this).toggleClass("ui-state-hover"); })
+          .prepend('<span class="ui-icon ui-icon-triangle-1-e"></span>')
+          .click(function() {
+              var head = $(this);
+              head
+                  .find("> .ui-icon").toggleClass("ui-icon-triangle-1-e ui-icon-triangle-1-s").end()
+                  .next().toggleClass("ui-accordion-content-active").slideToggle();
+              if (!head.hasClass("loading-started")) {
+                  head.addClass("loading-started");
+                  var dat = head.data();
+                  if (dat.type == 'table') {
+                      $.getJSON('json/' + dat.file, function(data) {
+                          renderTable(data, dat);
+                          $(window).resize();
+                      });
+                  } else if (dat.type == 'graph') {
+                      $.getJSON('json/' + dat.file, function(data) {
+                          renderGraph(data, dat);
+                          $(window).resize();
+                      });
+                  } else {
+                      console.error('Type', dat.type, 'not recognized');
+                  }
+              }
+              return false;
+           })
+      .next()
+          .addClass("ui-accordion-content  ui-helper-reset ui-widget-content ui-corner-bottom")
+          .hide();
+      $.each(accordion.find("h3"), function(i, elem) {
+          elem = $(elem);
+          if (elem.data().load) {
+              elem.click();
+          }
       });
     }
 
-    function genCharts() {
-        Highcharts.setOptions({
+    function genAll() {
+        var hc = Highcharts.setOptions({
                 global: {
                     useUTC: false
                 },
@@ -258,30 +391,24 @@ $(function () {
                         text: 'all'
                     }],
                     inputEnabled: false,
-                    selected: 2
                 },
-                tooltipe: {
-                  valueDecimals: 5
-                },
-                plotOption: {
-                  area: {
-                    dataGrouping: {
-                      groupPixelWidth: 1000
-                    }
-                  }
+                tooltip: {
+                  valueDecimals: 3
                 }
         });
-        var START_TIME = new Date('2014-02-21 14:15:01');
-        var END_TIME = new Date('2014-02-22 10:14:20');
-        var STEP_TIMES = ['2014-02-21 14:15:01', '2014-02-21 14:15:14', '2014-02-21 14:15:25', '2014-02-21 15:35:48', '2014-02-21 21:08:37', '2014-02-22 02:47:16', '2014-02-22 03:00:15', '2014-02-22 03:00:24', '2014-02-22 03:00:35', '2014-02-22 03:00:38', '2014-02-22 03:05:20', '2014-02-22 03:05:29', '2014-02-22 04:02:47', '2014-02-22 04:20:35', '2014-02-22 05:13:15', '2014-02-22 05:34:00', '2014-02-22 07:08:40', '2014-02-22 08:22:07', '2014-02-22 10:13:40', '2014-02-22 10:14:20'];
-        getTables()
-        //TODO rename
-        getJsonSeriesPromises(STEP_TIMES);
+        console.log('hc is', hc);
+        $.getJSON('json/index.json', function(data) {
+            console.log(data['run_info']);
+            times = data['step_times'];
+            $('#title').text($('title').text() + ' for ' + data['run_info']['var']['nodes'] + ' nodes.');
+            allNames = data.views
+            genAccordion(allNames);
+        });
     }
 
     function main() {
         console.time('load_render_all');
-        genCharts();
+        genAll();
     }
 
     main();
