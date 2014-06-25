@@ -3,7 +3,6 @@
 """ This generates a json file containing information about what yperf record
 to generate. """
 
-import os
 import json
 import datetime
 from time import mktime
