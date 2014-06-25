@@ -9,11 +9,6 @@ from time import mktime
 
 SECS_PER_HOUR = 3600
 
-def get_yperf_name(tm):
-    """ Returns the file prefix that would correspond to a certain struct
-    datetime t. """
-    return 'yperf-' + tm.strftime('%Y%m%d-%H')
-
 def get_step_timestamps(filename):
     """ Returns the start time, followed by the time at which each superstep completed. """
     steps = []
