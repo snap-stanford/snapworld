@@ -55,10 +55,5 @@ To stop a job type do the following.
 Metrics
 -------
 
-To view metrics graphs associated with a given run, log into iln01 and
-
-    1. % cd python
-        Currently it has to be run from this directory.
-    2. % ./log_parser process_run -f PATH_OF_master.log_FILE
-        Run using ./log_parser instead of python log_parser to make sure
-        it uses the correction version of Python.
+To view metrics graphs associated with a given run, log into iln01 and run
+`rake yperf[PATH_TO_MASTER_LOG]
