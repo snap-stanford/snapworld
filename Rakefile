@@ -65,6 +65,20 @@ task :setup do
     end
 end
 
+task :yperf, [:master_log] do |t, args|
+  unless File.exists?("yperf")
+    Dir.chdir("../") do
+      sh "git clone git@github.com:snap-stanford/yperf.git" unless File.exists?("yperf")
+      #TODO cd and pull?
+    end
+  end
+  if args[:master_log].nil?
+    puts 'You must specify the path of master log, for instance rake yperf[../folder/master.log]'
+  else
+    sh "python/yperf_input.py %s | ../yperf/gen_report.py" % [args[:master_log]]
+  end
+end
+
 def pre_deploy_cleanup()
     sh "fs flushvolume -path ." # flush AFS cache
     cleanup = "rm -rf #{LFS}/supervisors/*; rm -rf #{LFS}/snapshot-*; rm -rf #{LFS}/master.log"
